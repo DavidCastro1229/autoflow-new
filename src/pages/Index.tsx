@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Wrench, Users, LineChart, Clock, CheckCircle2, ArrowRight } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import heroImage from "@/assets/hero-auto.jpg";
 
 const Index = () => {
@@ -47,9 +48,12 @@ const Index = () => {
             <Wrench className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">AutoFlowX</span>
           </div>
-          <Button variant="hero" onClick={() => navigate("/auth")}>
-            Iniciar Sesión
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="hero" onClick={() => navigate("/auth")}>
+              Iniciar Sesión
+            </Button>
+          </div>
         </div>
       </nav>
 
