@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      aseguradoras: {
+        Row: {
+          apellido_contacto: string
+          ciudad: string
+          codigo_postal: string
+          created_at: string
+          descripcion: string | null
+          direccion: string
+          email: string
+          estado: string
+          id: string
+          nombre_aseguradora: string
+          nombre_contacto: string
+          rfc: string
+          telefono: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apellido_contacto: string
+          ciudad: string
+          codigo_postal: string
+          created_at?: string
+          descripcion?: string | null
+          direccion: string
+          email: string
+          estado: string
+          id?: string
+          nombre_aseguradora: string
+          nombre_contacto: string
+          rfc: string
+          telefono: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apellido_contacto?: string
+          ciudad?: string
+          codigo_postal?: string
+          created_at?: string
+          descripcion?: string | null
+          direccion?: string
+          email?: string
+          estado?: string
+          id?: string
+          nombre_aseguradora?: string
+          nombre_contacto?: string
+          rfc?: string
+          telefono?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           apellido_contacto: string
@@ -65,6 +119,93 @@ export type Database = {
           rfc?: string | null
           telefono?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      taller_aseguradoras: {
+        Row: {
+          aseguradora_id: string
+          created_at: string
+          id: string
+          taller_id: string
+        }
+        Insert: {
+          aseguradora_id: string
+          created_at?: string
+          id?: string
+          taller_id: string
+        }
+        Update: {
+          aseguradora_id?: string
+          created_at?: string
+          id?: string
+          taller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taller_aseguradoras_aseguradora_id_fkey"
+            columns: ["aseguradora_id"]
+            isOneToOne: false
+            referencedRelation: "aseguradoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taller_aseguradoras_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talleres: {
+        Row: {
+          apellido_contacto: string
+          ciudad: string
+          codigo_postal: string
+          created_at: string
+          descripcion: string | null
+          direccion: string
+          email: string
+          estado: string
+          id: string
+          nombre_contacto: string
+          nombre_taller: string
+          telefono: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apellido_contacto: string
+          ciudad: string
+          codigo_postal: string
+          created_at?: string
+          descripcion?: string | null
+          direccion: string
+          email: string
+          estado: string
+          id?: string
+          nombre_contacto: string
+          nombre_taller: string
+          telefono: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apellido_contacto?: string
+          ciudad?: string
+          codigo_postal?: string
+          created_at?: string
+          descripcion?: string | null
+          direccion?: string
+          email?: string
+          estado?: string
+          id?: string
+          nombre_contacto?: string
+          nombre_taller?: string
+          telefono?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
