@@ -212,6 +212,7 @@ export type Database = {
           id: string
           nombre_contacto: string
           nombre_taller: string
+          status: Database["public"]["Enums"]["taller_status"]
           telefono: string
           updated_at: string
           user_id: string
@@ -228,6 +229,7 @@ export type Database = {
           id?: string
           nombre_contacto: string
           nombre_taller: string
+          status?: Database["public"]["Enums"]["taller_status"]
           telefono: string
           updated_at?: string
           user_id: string
@@ -244,6 +246,7 @@ export type Database = {
           id?: string
           nombre_contacto?: string
           nombre_taller?: string
+          status?: Database["public"]["Enums"]["taller_status"]
           telefono?: string
           updated_at?: string
           user_id?: string
@@ -287,6 +290,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_taller: { Args: { taller_id_param: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -294,9 +298,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      reject_taller: { Args: { taller_id_param: string }; Returns: undefined }
     }
     Enums: {
       app_role: "taller" | "admin_taller" | "aseguradora" | "super_admin"
+      taller_status: "pendiente" | "aprobado" | "rechazado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -425,6 +431,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["taller", "admin_taller", "aseguradora", "super_admin"],
+      taller_status: ["pendiente", "aprobado", "rechazado"],
     },
   },
 } as const

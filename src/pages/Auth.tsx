@@ -78,14 +78,13 @@ const Auth = () => {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setIsLoading(false);
-
     if (error) {
+      setIsLoading(false);
       toast({
         title: "Error al iniciar sesión",
         description: error.message,
@@ -94,6 +93,40 @@ const Auth = () => {
       return;
     }
 
+    // Verificar si el usuario es un taller y si está aprobado
+    if (data.user) {
+      const { data: tallerData } = await supabase
+        .from('talleres')
+        .select('status')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+
+      if (tallerData && tallerData.status === 'pendiente') {
+        // Si el taller está pendiente, cerrar sesión
+        await supabase.auth.signOut();
+        setIsLoading(false);
+        toast({
+          title: "Solicitud pendiente",
+          description: "Tu solicitud de registro está siendo revisada. Te notificaremos cuando sea aprobada.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (tallerData && tallerData.status === 'rechazado') {
+        // Si el taller fue rechazado
+        await supabase.auth.signOut();
+        setIsLoading(false);
+        toast({
+          title: "Solicitud rechazada",
+          description: "Tu solicitud de registro fue rechazada. Contacta al administrador para más información.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setIsLoading(false);
     toast({
       title: "¡Bienvenido!",
       description: "Has iniciado sesión correctamente",
@@ -165,7 +198,7 @@ const Auth = () => {
 
     toast({
       title: "¡Registro exitoso!",
-      description: "Tu cuenta ha sido creada. Redirigiendo...",
+      description: "Tu solicitud está pendiente de aprobación. Te notificaremos cuando sea aprobada.",
     });
   };
 
