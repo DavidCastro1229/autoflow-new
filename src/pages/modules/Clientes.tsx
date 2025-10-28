@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, UserCircle, Mail, Phone, Building2 } from "lucide-react";
+import { Plus, Users, Building2, Truck, User } from "lucide-react";
+import { useForm } from "react-hook-form";
 
 type TipoCliente = "individual" | "empresa" | "flota";
 
@@ -23,22 +25,25 @@ interface Cliente {
   created_at: string;
 }
 
+interface ClienteFormData {
+  nombre: string;
+  apellido: string;
+  nombre_empresa: string;
+  email: string;
+  password: string;
+  telefono: string;
+  tipo_cliente: TipoCliente;
+}
+
 export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
-
-  const [formData, setFormData] = useState({
-    nombre: "",
-    apellido: "",
-    nombre_empresa: "",
-    email: "",
-    password: "",
-    telefono: "",
-    tipo_cliente: "" as TipoCliente | "",
-  });
+  const { register, handleSubmit, reset, setValue, watch } = useForm<ClienteFormData>();
+  
+  const tipoCliente = watch("tipo_cliente");
 
   useEffect(() => {
     fetchClientes();
@@ -61,14 +66,12 @@ export default function Clientes() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsCreating(true);
-
+  const onSubmit = async (formData: ClienteFormData) => {
+    setSubmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -78,25 +81,20 @@ export default function Clientes() {
 
       const { data, error } = await supabase.functions.invoke("create-cliente", {
         body: formData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
 
       toast({
-        title: "¡Cliente creado!",
-        description: "El cliente ha sido registrado exitosamente",
+        title: "Cliente creado",
+        description: `${formData.nombre} ${formData.apellido} ha sido registrado exitosamente`,
       });
 
-      setIsDialogOpen(false);
-      setFormData({
-        nombre: "",
-        apellido: "",
-        nombre_empresa: "",
-        email: "",
-        password: "",
-        telefono: "",
-        tipo_cliente: "",
-      });
+      reset();
+      setDialogOpen(false);
       fetchClientes();
     } catch (error: any) {
       console.error("Error creating cliente:", error);
@@ -106,33 +104,29 @@ export default function Clientes() {
         variant: "destructive",
       });
     } finally {
-      setIsCreating(false);
+      setSubmitting(false);
     }
   };
 
-  const getTipoClienteColor = (tipo: TipoCliente) => {
+  const getTipoIcon = (tipo: TipoCliente) => {
     switch (tipo) {
       case "individual":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+        return <User className="h-4 w-4" />;
       case "empresa":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+        return <Building2 className="h-4 w-4" />;
       case "flota":
-        return "bg-orange-500/10 text-orange-500 border-orange-500/20";
-      default:
-        return "";
+        return <Truck className="h-4 w-4" />;
     }
   };
 
-  const getTipoClienteLabel = (tipo: TipoCliente) => {
+  const getTipoBadgeVariant = (tipo: TipoCliente): "default" | "secondary" | "outline" => {
     switch (tipo) {
       case "individual":
-        return "Individual";
+        return "default";
       case "empresa":
-        return "Empresa";
+        return "secondary";
       case "flota":
-        return "Flota";
-      default:
-        return tipo;
+        return "outline";
     }
   };
 
@@ -143,52 +137,45 @@ export default function Clientes() {
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Clientes</h1>
           <p className="text-muted-foreground">Administración de clientes del taller</p>
         </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Nuevo Cliente
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Registrar Nuevo Cliente</DialogTitle>
+              <DialogTitle>Crear Nuevo Cliente</DialogTitle>
               <DialogDescription>
-                Ingresa los datos del cliente. Se creará una cuenta de usuario con acceso restringido.
+                Complete los datos del cliente para registrarlo en el sistema
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nombre">Nombre *</Label>
                   <Input
                     id="nombre"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    required
+                    {...register("nombre", { required: true })}
+                    placeholder="Juan"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="apellido">Apellido *</Label>
                   <Input
                     id="apellido"
-                    value={formData.apellido}
-                    onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
-                    required
+                    {...register("apellido", { required: true })}
+                    placeholder="Pérez"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="tipo_cliente">Tipo de Cliente *</Label>
-                <Select
-                  value={formData.tipo_cliente}
-                  onValueChange={(value: TipoCliente) => setFormData({ ...formData, tipo_cliente: value })}
-                  required
-                >
+                <Select onValueChange={(value) => setValue("tipo_cliente", value as TipoCliente)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona el tipo de cliente" />
+                    <SelectValue placeholder="Seleccionar tipo" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="individual">Individual</SelectItem>
@@ -198,27 +185,33 @@ export default function Clientes() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="nombre_empresa">
-                  Nombre de Empresa {formData.tipo_cliente !== "individual" && "*"}
-                </Label>
-                <Input
-                  id="nombre_empresa"
-                  value={formData.nombre_empresa}
-                  onChange={(e) => setFormData({ ...formData, nombre_empresa: e.target.value })}
-                  required={formData.tipo_cliente !== "individual"}
-                  disabled={formData.tipo_cliente === "individual"}
-                />
-              </div>
+              {(tipoCliente === "empresa" || tipoCliente === "flota") && (
+                <div className="space-y-2">
+                  <Label htmlFor="nombre_empresa">Nombre de Empresa</Label>
+                  <Input
+                    id="nombre_empresa"
+                    {...register("nombre_empresa")}
+                    placeholder="Empresa S.A."
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
+                  {...register("email", { required: true })}
+                  placeholder="correo@ejemplo.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="telefono">Teléfono *</Label>
+                <Input
+                  id="telefono"
+                  {...register("telefono", { required: true })}
+                  placeholder="+52 123 456 7890"
                 />
               </div>
 
@@ -227,21 +220,8 @@ export default function Clientes() {
                 <Input
                   id="password"
                   type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="telefono">Teléfono *</Label>
-                <Input
-                  id="telefono"
-                  type="tel"
-                  value={formData.telefono}
-                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  required
+                  {...register("password", { required: true })}
+                  placeholder="••••••••"
                 />
               </div>
 
@@ -249,13 +229,13 @@ export default function Clientes() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  disabled={isCreating}
+                  onClick={() => setDialogOpen(false)}
+                  disabled={submitting}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={isCreating}>
-                  {isCreating ? "Creando..." : "Crear Cliente"}
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? "Creando..." : "Crear Cliente"}
                 </Button>
               </div>
             </form>
@@ -265,63 +245,57 @@ export default function Clientes() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Clientes</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Lista de Clientes
+          </CardTitle>
           <CardDescription>
             {clientes.length} cliente{clientes.length !== 1 ? "s" : ""} registrado{clientes.length !== 1 ? "s" : ""}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <p className="text-center text-muted-foreground py-8">Cargando clientes...</p>
+          {loading ? (
+            <p className="text-center py-8 text-muted-foreground">Cargando clientes...</p>
           ) : clientes.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No hay clientes registrados aún
+            <p className="text-center py-8 text-muted-foreground">
+              No hay clientes registrados. Crea uno usando el botón "Nuevo Cliente"
             </p>
           ) : (
-            <div className="space-y-4">
-              {clientes.map((cliente) => (
-                <Card key={cliente.id} className="overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <UserCircle className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="font-semibold text-lg">
-                                {cliente.nombre} {cliente.apellido}
-                              </h3>
-                              {cliente.nombre_empresa && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                  <Building2 className="h-4 w-4" />
-                                  {cliente.nombre_empresa}
-                                </div>
-                              )}
-                            </div>
-                            <Badge className={getTipoClienteColor(cliente.tipo_cliente)}>
-                              {getTipoClienteLabel(cliente.tipo_cliente)}
-                            </Badge>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Mail className="h-4 w-4" />
-                              {cliente.email}
-                            </div>
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Phone className="h-4 w-4" />
-                              {cliente.telefono}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Teléfono</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Fecha Registro</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {clientes.map((cliente) => (
+                  <TableRow key={cliente.id}>
+                    <TableCell className="font-medium">
+                      {cliente.nombre} {cliente.apellido}
+                    </TableCell>
+                    <TableCell>{cliente.email}</TableCell>
+                    <TableCell>{cliente.telefono}</TableCell>
+                    <TableCell>
+                      <Badge variant={getTipoBadgeVariant(cliente.tipo_cliente)} className="flex items-center gap-1 w-fit">
+                        {getTipoIcon(cliente.tipo_cliente)}
+                        {cliente.tipo_cliente.charAt(0).toUpperCase() + cliente.tipo_cliente.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {cliente.nombre_empresa || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(cliente.created_at).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
