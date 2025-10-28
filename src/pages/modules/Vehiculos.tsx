@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Car, Loader2 } from "lucide-react";
+import { Car, Loader2, Plus } from "lucide-react";
 
 interface Cliente {
   id: string;
@@ -41,6 +42,7 @@ export default function Vehiculos() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -161,6 +163,7 @@ export default function Vehiculos() {
         cliente_id: "",
       });
 
+      setModalOpen(false);
       fetchVehiculos();
     } catch (error: any) {
       toast({
@@ -192,174 +195,190 @@ export default function Vehiculos() {
     return estado.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
+  const formatTipoCliente = (tipo: string) => {
+    const tipos: { [key: string]: string } = {
+      individual: "Individual",
+      empresa: "Empresa",
+      flota: "Flota",
+    };
+    return tipos[tipo] || tipo;
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Vehículos</h1>
-        <p className="text-muted-foreground">Gestiona los vehículos del taller</p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Car className="h-5 w-5" />
-            Registrar Vehículo
-          </CardTitle>
-          <CardDescription>
-            Completa los datos del vehículo para registrarlo en el sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="cliente">Cliente *</Label>
-                <Select
-                  value={formData.cliente_id}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, cliente_id: value })
-                  }
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((cliente) => (
-                      <SelectItem key={cliente.id} value={cliente.id}>
-                        {cliente.tipo_cliente === "empresa"
-                          ? cliente.nombre_empresa
-                          : `${cliente.nombre} ${cliente.apellido}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="marca">Marca *</Label>
-                <Input
-                  id="marca"
-                  value={formData.marca}
-                  onChange={(e) =>
-                    setFormData({ ...formData, marca: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="modelo">Modelo *</Label>
-                <Input
-                  id="modelo"
-                  value={formData.modelo}
-                  onChange={(e) =>
-                    setFormData({ ...formData, modelo: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="anio">Año *</Label>
-                <Input
-                  id="anio"
-                  type="number"
-                  min="1900"
-                  max={new Date().getFullYear() + 1}
-                  value={formData.anio}
-                  onChange={(e) =>
-                    setFormData({ ...formData, anio: parseInt(e.target.value) })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="placa">Placa *</Label>
-                <Input
-                  id="placa"
-                  value={formData.placa}
-                  onChange={(e) =>
-                    setFormData({ ...formData, placa: e.target.value.toUpperCase() })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="color">Color *</Label>
-                <Input
-                  id="color"
-                  value={formData.color}
-                  onChange={(e) =>
-                    setFormData({ ...formData, color: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="vin">VIN *</Label>
-                <Input
-                  id="vin"
-                  value={formData.vin}
-                  onChange={(e) =>
-                    setFormData({ ...formData, vin: e.target.value.toUpperCase() })
-                  }
-                  maxLength={17}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="kilometraje">Kilometraje *</Label>
-                <Input
-                  id="kilometraje"
-                  type="number"
-                  min="0"
-                  value={formData.kilometraje}
-                  onChange={(e) =>
-                    setFormData({ ...formData, kilometraje: parseInt(e.target.value) })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="estado">Estado *</Label>
-                <Select
-                  value={formData.estado}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, estado: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="activo">Activo</SelectItem>
-                    <SelectItem value="en_servicio">En Servicio</SelectItem>
-                    <SelectItem value="entregado">Entregado</SelectItem>
-                    <SelectItem value="inactivo">Inactivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Button type="submit" disabled={loading} className="w-full md:w-auto">
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Registrando...
-                </>
-              ) : (
-                "Registrar Vehículo"
-              )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Vehículos</h1>
+          <p className="text-muted-foreground">Gestiona los vehículos del taller</p>
+        </div>
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Registrar Vehículo
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Car className="h-5 w-5" />
+                Registrar Vehículo
+              </DialogTitle>
+              <DialogDescription>
+                Completa los datos del vehículo para registrarlo en el sistema
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cliente">Cliente *</Label>
+                  <Select
+                    value={formData.cliente_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, cliente_id: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((cliente) => (
+                        <SelectItem key={cliente.id} value={cliente.id}>
+                          {cliente.tipo_cliente === "empresa"
+                            ? `${cliente.nombre_empresa} (${formatTipoCliente(cliente.tipo_cliente)})`
+                            : `${cliente.nombre} ${cliente.apellido} (${formatTipoCliente(cliente.tipo_cliente)})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="marca">Marca *</Label>
+                  <Input
+                    id="marca"
+                    value={formData.marca}
+                    onChange={(e) =>
+                      setFormData({ ...formData, marca: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="modelo">Modelo *</Label>
+                  <Input
+                    id="modelo"
+                    value={formData.modelo}
+                    onChange={(e) =>
+                      setFormData({ ...formData, modelo: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="anio">Año *</Label>
+                  <Input
+                    id="anio"
+                    type="number"
+                    min="1900"
+                    max={new Date().getFullYear() + 1}
+                    value={formData.anio}
+                    onChange={(e) =>
+                      setFormData({ ...formData, anio: parseInt(e.target.value) })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="placa">Placa *</Label>
+                  <Input
+                    id="placa"
+                    value={formData.placa}
+                    onChange={(e) =>
+                      setFormData({ ...formData, placa: e.target.value.toUpperCase() })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="color">Color *</Label>
+                  <Input
+                    id="color"
+                    value={formData.color}
+                    onChange={(e) =>
+                      setFormData({ ...formData, color: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="vin">VIN *</Label>
+                  <Input
+                    id="vin"
+                    value={formData.vin}
+                    onChange={(e) =>
+                      setFormData({ ...formData, vin: e.target.value.toUpperCase() })
+                    }
+                    maxLength={17}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="kilometraje">Kilometraje *</Label>
+                  <Input
+                    id="kilometraje"
+                    type="number"
+                    min="0"
+                    value={formData.kilometraje}
+                    onChange={(e) =>
+                      setFormData({ ...formData, kilometraje: parseInt(e.target.value) })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="estado">Estado *</Label>
+                  <Select
+                    value={formData.estado}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, estado: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="activo">Activo</SelectItem>
+                      <SelectItem value="en_servicio">En Servicio</SelectItem>
+                      <SelectItem value="entregado">Entregado</SelectItem>
+                      <SelectItem value="inactivo">Inactivo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registrando...
+                  </>
+                ) : (
+                  "Registrar Vehículo"
+                )}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <Card>
         <CardHeader>
