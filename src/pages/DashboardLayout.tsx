@@ -12,6 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 
 // Define allowed roles for each route
 const routePermissions: Record<string, UserRole[]> = {
+  // Rutas específicas de super_admin
+  "/usuarios": ["super_admin"],
+  "/solicitudes": ["super_admin"],
+  "/aseguradoras": ["super_admin"],
+  
+  // Rutas compartidas
   "/dashboard": ["admin_taller", "aseguradora", "super_admin"],
   "/kanban": ["admin_taller", "super_admin"],
   "/talleres": ["aseguradora", "super_admin"],
