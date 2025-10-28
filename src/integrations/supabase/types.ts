@@ -335,6 +335,69 @@ export type Database = {
           },
         ]
       }
+      vehiculos: {
+        Row: {
+          anio: number
+          cliente_id: string
+          color: string
+          created_at: string
+          estado: Database["public"]["Enums"]["estado_vehiculo"]
+          id: string
+          kilometraje: number
+          marca: string
+          modelo: string
+          placa: string
+          taller_id: string
+          updated_at: string
+          vin: string
+        }
+        Insert: {
+          anio: number
+          cliente_id: string
+          color: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_vehiculo"]
+          id?: string
+          kilometraje?: number
+          marca: string
+          modelo: string
+          placa: string
+          taller_id: string
+          updated_at?: string
+          vin: string
+        }
+        Update: {
+          anio?: number
+          cliente_id?: string
+          color?: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_vehiculo"]
+          id?: string
+          kilometraje?: number
+          marca?: string
+          modelo?: string
+          placa?: string
+          taller_id?: string
+          updated_at?: string
+          vin?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehiculos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehiculos_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -357,6 +420,7 @@ export type Database = {
         | "aseguradora"
         | "super_admin"
         | "cliente"
+      estado_vehiculo: "activo" | "en_servicio" | "entregado" | "inactivo"
       taller_status: "pendiente" | "aprobado" | "rechazado"
       tipo_cliente: "individual" | "empresa" | "flota"
     }
@@ -493,6 +557,7 @@ export const Constants = {
         "super_admin",
         "cliente",
       ],
+      estado_vehiculo: ["activo", "en_servicio", "entregado", "inactivo"],
       taller_status: ["pendiente", "aprobado", "rechazado"],
       tipo_cliente: ["individual", "empresa", "flota"],
     },
