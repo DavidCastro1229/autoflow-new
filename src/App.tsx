@@ -27,8 +27,137 @@ import Talleres from "./pages/modules/Talleres";
 import Mensajes from "./pages/modules/Mensajes";
 import Reparaciones from "./pages/modules/Reparaciones";
 import Siniestros from "./pages/modules/Siniestros";
+import { RoleProtectedRoute } from "./components/RoleProtectedRoute";
+import { useUserRole, UserRole } from "./hooks/useUserRole";
 
 const queryClient = new QueryClient();
+
+// Define allowed roles for each route
+const routePermissions: Record<string, UserRole[]> = {
+  dashboard: ["admin_taller", "aseguradora", "super_admin"],
+  kanban: ["admin_taller", "super_admin"],
+  talleres: ["aseguradora", "super_admin"],
+  equipo: ["taller", "admin_taller", "super_admin"],
+  ordenes: ["taller", "admin_taller", "super_admin"],
+  vehiculos: ["taller", "admin_taller", "aseguradora", "super_admin"],
+  flotas: ["taller", "admin_taller", "super_admin"],
+  cotizaciones: ["taller", "admin_taller", "aseguradora", "super_admin"],
+  facturacion: ["taller", "admin_taller", "aseguradora", "super_admin"],
+  mensajes: ["aseguradora", "super_admin"],
+  reparaciones: ["aseguradora", "super_admin"],
+  siniestros: ["aseguradora", "super_admin"],
+  citas: ["taller", "admin_taller", "super_admin"],
+  inventario: ["taller", "admin_taller", "super_admin"],
+  tecnicos: ["taller", "admin_taller", "super_admin"],
+  clientes: ["admin_taller", "super_admin"],
+  reportes: ["taller", "admin_taller", "aseguradora", "super_admin"],
+  accesos: ["admin_taller", "super_admin"],
+  configuraciones: ["admin_taller", "super_admin"],
+};
+
+const ProtectedRoutes = () => {
+  const { role } = useUserRole();
+
+  return (
+    <Route path="/" element={<DashboardLayout />}>
+      <Route path="dashboard" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.dashboard} userRole={role}>
+          <Dashboard />
+        </RoleProtectedRoute>
+      } />
+      <Route path="kanban" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.kanban} userRole={role}>
+          <Kanban />
+        </RoleProtectedRoute>
+      } />
+      <Route path="talleres" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.talleres} userRole={role}>
+          <Talleres />
+        </RoleProtectedRoute>
+      } />
+      <Route path="equipo" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.equipo} userRole={role}>
+          <Equipo />
+        </RoleProtectedRoute>
+      } />
+      <Route path="ordenes" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.ordenes} userRole={role}>
+          <Ordenes />
+        </RoleProtectedRoute>
+      } />
+      <Route path="vehiculos" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.vehiculos} userRole={role}>
+          <Vehiculos />
+        </RoleProtectedRoute>
+      } />
+      <Route path="flotas" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.flotas} userRole={role}>
+          <Flotas />
+        </RoleProtectedRoute>
+      } />
+      <Route path="cotizaciones" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.cotizaciones} userRole={role}>
+          <Cotizaciones />
+        </RoleProtectedRoute>
+      } />
+      <Route path="facturacion" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.facturacion} userRole={role}>
+          <Facturacion />
+        </RoleProtectedRoute>
+      } />
+      <Route path="mensajes" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.mensajes} userRole={role}>
+          <Mensajes />
+        </RoleProtectedRoute>
+      } />
+      <Route path="reparaciones" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.reparaciones} userRole={role}>
+          <Reparaciones />
+        </RoleProtectedRoute>
+      } />
+      <Route path="siniestros" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.siniestros} userRole={role}>
+          <Siniestros />
+        </RoleProtectedRoute>
+      } />
+      <Route path="citas" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.citas} userRole={role}>
+          <Citas />
+        </RoleProtectedRoute>
+      } />
+      <Route path="inventario" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.inventario} userRole={role}>
+          <Inventario />
+        </RoleProtectedRoute>
+      } />
+      <Route path="tecnicos" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.tecnicos} userRole={role}>
+          <Tecnicos />
+        </RoleProtectedRoute>
+      } />
+      <Route path="clientes" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.clientes} userRole={role}>
+          <Clientes />
+        </RoleProtectedRoute>
+      } />
+      <Route path="reportes" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.reportes} userRole={role}>
+          <Reportes />
+        </RoleProtectedRoute>
+      } />
+      <Route path="accesos" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.accesos} userRole={role}>
+          <Accesos />
+        </RoleProtectedRoute>
+      } />
+      <Route path="configuraciones" element={
+        <RoleProtectedRoute allowedRoles={routePermissions.configuraciones} userRole={role}>
+          <Configuraciones />
+        </RoleProtectedRoute>
+      } />
+    </Route>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -40,27 +169,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<DashboardLayout />}>
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="kanban" element={<Kanban />} />
-              <Route path="talleres" element={<Talleres />} />
-              <Route path="equipo" element={<Equipo />} />
-              <Route path="ordenes" element={<Ordenes />} />
-              <Route path="vehiculos" element={<Vehiculos />} />
-              <Route path="flotas" element={<Flotas />} />
-              <Route path="cotizaciones" element={<Cotizaciones />} />
-              <Route path="facturacion" element={<Facturacion />} />
-              <Route path="mensajes" element={<Mensajes />} />
-              <Route path="reparaciones" element={<Reparaciones />} />
-              <Route path="siniestros" element={<Siniestros />} />
-              <Route path="citas" element={<Citas />} />
-              <Route path="inventario" element={<Inventario />} />
-              <Route path="tecnicos" element={<Tecnicos />} />
-              <Route path="clientes" element={<Clientes />} />
-              <Route path="reportes" element={<Reportes />} />
-              <Route path="accesos" element={<Accesos />} />
-              <Route path="configuraciones" element={<Configuraciones />} />
-            </Route>
+            <ProtectedRoutes />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
