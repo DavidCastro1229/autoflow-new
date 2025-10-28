@@ -1,19 +1,46 @@
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useUserRole, UserRole } from "@/hooks/useUserRole";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { LogOut, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+
+// Define allowed roles for each route
+const routePermissions: Record<string, UserRole[]> = {
+  "/dashboard": ["admin_taller", "aseguradora", "super_admin"],
+  "/kanban": ["admin_taller", "super_admin"],
+  "/talleres": ["aseguradora", "super_admin"],
+  "/equipo": ["taller", "admin_taller", "super_admin"],
+  "/ordenes": ["taller", "admin_taller", "super_admin"],
+  "/vehiculos": ["taller", "admin_taller", "aseguradora", "super_admin"],
+  "/flotas": ["taller", "admin_taller", "super_admin"],
+  "/cotizaciones": ["taller", "admin_taller", "aseguradora", "super_admin"],
+  "/facturacion": ["taller", "admin_taller", "aseguradora", "super_admin"],
+  "/mensajes": ["aseguradora", "super_admin"],
+  "/reparaciones": ["aseguradora", "super_admin"],
+  "/siniestros": ["aseguradora", "super_admin"],
+  "/citas": ["taller", "admin_taller", "super_admin"],
+  "/inventario": ["taller", "admin_taller", "super_admin"],
+  "/tecnicos": ["taller", "admin_taller", "super_admin"],
+  "/clientes": ["admin_taller", "super_admin"],
+  "/reportes": ["taller", "admin_taller", "aseguradora", "super_admin"],
+  "/accesos": ["admin_taller", "super_admin"],
+  "/configuraciones": ["admin_taller", "super_admin"],
+};
 
 export default function DashboardLayout() {
   const { role, loading } = useUserRole();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  const currentPath = location.pathname;
+  const allowedRoles = routePermissions[currentPath] || [];
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -62,7 +89,9 @@ export default function DashboardLayout() {
             </header>
 
             <main className="flex-1 p-6 overflow-auto">
-              <Outlet />
+              <RoleProtectedRoute allowedRoles={allowedRoles} userRole={role}>
+                <Outlet />
+              </RoleProtectedRoute>
             </main>
           </div>
         </div>
