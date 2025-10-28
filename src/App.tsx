@@ -23,6 +23,10 @@ import Clientes from "./pages/modules/Clientes";
 import Reportes from "./pages/modules/Reportes";
 import Accesos from "./pages/modules/Accesos";
 import Configuraciones from "./pages/modules/Configuraciones";
+import Talleres from "./pages/modules/Talleres";
+import Mensajes from "./pages/modules/Mensajes";
+import Reparaciones from "./pages/modules/Reparaciones";
+import Siniestros from "./pages/modules/Siniestros";
 
 const queryClient = new QueryClient();
 
@@ -39,12 +43,16 @@ const App = () => (
             <Route path="/" element={<DashboardLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="kanban" element={<Kanban />} />
+              <Route path="talleres" element={<Talleres />} />
               <Route path="equipo" element={<Equipo />} />
               <Route path="ordenes" element={<Ordenes />} />
               <Route path="vehiculos" element={<Vehiculos />} />
               <Route path="flotas" element={<Flotas />} />
               <Route path="cotizaciones" element={<Cotizaciones />} />
               <Route path="facturacion" element={<Facturacion />} />
+              <Route path="mensajes" element={<Mensajes />} />
+              <Route path="reparaciones" element={<Reparaciones />} />
+              <Route path="siniestros" element={<Siniestros />} />
               <Route path="citas" element={<Citas />} />
               <Route path="inventario" element={<Inventario />} />
               <Route path="tecnicos" element={<Tecnicos />} />

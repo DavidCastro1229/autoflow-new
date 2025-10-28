@@ -13,7 +13,11 @@ import {
   UserCog, 
   BarChart3, 
   Shield, 
-  Settings 
+  Settings,
+  Building2,
+  MessageSquare,
+  WrenchIcon,
+  AlertTriangle
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -42,13 +46,19 @@ const menuItems: MenuItem[] = [
     title: "Dashboard", 
     url: "/dashboard", 
     icon: LayoutDashboard, 
-    allowedRoles: ["admin_taller", "super_admin"] 
+    allowedRoles: ["admin_taller", "aseguradora", "super_admin"] 
   },
   { 
     title: "Kanban", 
     url: "/kanban", 
     icon: KanbanSquare, 
     allowedRoles: ["admin_taller", "super_admin"] 
+  },
+  { 
+    title: "Talleres", 
+    url: "/talleres", 
+    icon: Building2, 
+    allowedRoles: ["aseguradora", "super_admin"] 
   },
   { 
     title: "Equipo", 
@@ -66,25 +76,43 @@ const menuItems: MenuItem[] = [
     title: "Vehículos", 
     url: "/vehiculos", 
     icon: Car, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
+    allowedRoles: ["taller", "admin_taller", "aseguradora", "super_admin"] 
   },
   { 
     title: "Flotas", 
     url: "/flotas", 
     icon: Truck, 
-    allowedRoles: ["taller", "admin_taller", "aseguradora", "super_admin"] 
+    allowedRoles: ["taller", "admin_taller", "super_admin"] 
   },
   { 
     title: "Cotizaciones", 
     url: "/cotizaciones", 
     icon: FileText, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
+    allowedRoles: ["taller", "admin_taller", "aseguradora", "super_admin"] 
   },
   { 
     title: "Facturación", 
     url: "/facturacion", 
     icon: Receipt, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
+    allowedRoles: ["taller", "admin_taller", "aseguradora", "super_admin"] 
+  },
+  { 
+    title: "Mensajes", 
+    url: "/mensajes", 
+    icon: MessageSquare, 
+    allowedRoles: ["aseguradora", "super_admin"] 
+  },
+  { 
+    title: "Reparaciones", 
+    url: "/reparaciones", 
+    icon: WrenchIcon, 
+    allowedRoles: ["aseguradora", "super_admin"] 
+  },
+  { 
+    title: "Siniestros", 
+    url: "/siniestros", 
+    icon: AlertTriangle, 
+    allowedRoles: ["aseguradora", "super_admin"] 
   },
   { 
     title: "Citas", 
@@ -114,7 +142,7 @@ const menuItems: MenuItem[] = [
     title: "Reportes", 
     url: "/reportes", 
     icon: BarChart3, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
+    allowedRoles: ["taller", "admin_taller", "aseguradora", "super_admin"] 
   },
   { 
     title: "Gestión de Accesos", 
