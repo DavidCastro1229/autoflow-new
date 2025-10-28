@@ -25,8 +25,10 @@ export type Database = {
           email: string
           estado: string
           id: string
+          nombre_aseguradora: string | null
           nombre_contacto: string
           nombre_taller: string
+          rfc: string | null
           telefono: string
           updated_at: string
         }
@@ -40,8 +42,10 @@ export type Database = {
           email: string
           estado: string
           id: string
+          nombre_aseguradora?: string | null
           nombre_contacto: string
           nombre_taller: string
+          rfc?: string | null
           telefono: string
           updated_at?: string
         }
@@ -55,8 +59,10 @@ export type Database = {
           email?: string
           estado?: string
           id?: string
+          nombre_aseguradora?: string | null
           nombre_contacto?: string
           nombre_taller?: string
+          rfc?: string | null
           telefono?: string
           updated_at?: string
         }
