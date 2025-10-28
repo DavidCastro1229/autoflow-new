@@ -116,15 +116,11 @@ export default function Accesos() {
             .eq('user_id', emp.user_id)
             .single();
 
-          // Get email from auth
-          const { data: { users: authUsers } } = await supabase.auth.admin.listUsers();
-          const authUser = authUsers?.find(u => u.id === emp.user_id);
-
           return {
             id: emp.user_id,
             nombre: emp.nombre,
             apellidos: emp.apellidos,
-            email: authUser?.email || '',
+            email: emp.email || '',
             role: roleData?.role || 'taller',
             created_at: emp.created_at,
             isCurrentUser: emp.user_id === user.id,

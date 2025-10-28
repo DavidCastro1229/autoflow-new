@@ -87,7 +87,11 @@ serve(async (req) => {
     // Update taller_empleados
     const { error: updateError } = await supabaseClient
       .from('taller_empleados')
-      .update({ nombre, apellidos })
+      .update({ 
+        nombre, 
+        apellidos,
+        email: email || empleadoData.email 
+      })
       .eq('user_id', userId);
 
     if (updateError) {
