@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,19 +10,20 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const signupSchema = z.object({
-  workshopName: z.string().trim().min(1, "El nombre del taller es requerido").max(100, "Máximo 100 caracteres"),
-  phone: z.string().trim().min(10, "Teléfono debe tener al menos 10 dígitos").max(20, "Máximo 20 caracteres"),
-  address: z.string().trim().min(1, "La dirección es requerida").max(200, "Máximo 200 caracteres"),
-  city: z.string().trim().min(1, "La ciudad es requerida").max(100, "Máximo 100 caracteres"),
-  state: z.string().trim().min(1, "El estado es requerido").max(100, "Máximo 100 caracteres"),
-  zipCode: z.string().trim().min(1, "El código postal es requerido").max(10, "Máximo 10 caracteres"),
-  firstName: z.string().trim().min(1, "El nombre es requerido").max(50, "Máximo 50 caracteres"),
-  lastName: z.string().trim().min(1, "El apellido es requerido").max(50, "Máximo 50 caracteres"),
+  nombre_taller: z.string().trim().min(1, "El nombre del taller es requerido").max(100, "Máximo 100 caracteres"),
+  telefono: z.string().trim().min(10, "Teléfono debe tener al menos 10 dígitos").max(20, "Máximo 20 caracteres"),
+  direccion: z.string().trim().min(1, "La dirección es requerida").max(200, "Máximo 200 caracteres"),
+  ciudad: z.string().trim().min(1, "La ciudad es requerida").max(100, "Máximo 100 caracteres"),
+  estado: z.string().trim().min(1, "El estado es requerido").max(100, "Máximo 100 caracteres"),
+  codigo_postal: z.string().trim().min(1, "El código postal es requerido").max(10, "Máximo 10 caracteres"),
+  nombre_contacto: z.string().trim().min(1, "El nombre es requerido").max(50, "Máximo 50 caracteres"),
+  apellido_contacto: z.string().trim().min(1, "El apellido es requerido").max(50, "Máximo 50 caracteres"),
   email: z.string().trim().email("Correo electrónico inválido").max(255, "Máximo 255 caracteres"),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(100, "Máximo 100 caracteres"),
-  description: z.string().trim().max(500, "Máximo 500 caracteres").optional(),
+  descripcion: z.string().trim().max(500, "Máximo 500 caracteres").optional(),
 });
 
 const loginSchema = z.object({
@@ -35,36 +36,53 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard");
+      }
+    };
+    
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        navigate("/dashboard");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const data = {
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-    };
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-    try {
-      const validated = loginSchema.parse(data);
-      // Simulación de login - aquí se conectará con el backend
-      setTimeout(() => {
-        setIsLoading(false);
-        toast({
-          title: "Inicio de sesión exitoso",
-          description: "Bienvenido a AutoFlowX",
-        });
-      }, 1500);
-    } catch (error) {
-      setIsLoading(false);
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Error de validación",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: "Error al iniciar sesión",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
     }
+
+    toast({
+      title: "¡Bienvenido!",
+      description: "Has iniciado sesión correctamente",
+    });
   };
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -72,40 +90,67 @@ const Auth = () => {
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const data = {
-      workshopName: formData.get("workshopName") as string,
-      phone: formData.get("phone") as string,
-      address: formData.get("address") as string,
-      city: formData.get("city") as string,
-      state: formData.get("state") as string,
-      zipCode: formData.get("zipCode") as string,
-      firstName: formData.get("firstName") as string,
-      lastName: formData.get("lastName") as string,
+    
+    const signupData = {
+      nombre_taller: formData.get("nombre_taller") as string,
+      telefono: formData.get("telefono") as string,
+      direccion: formData.get("direccion") as string,
+      ciudad: formData.get("ciudad") as string,
+      estado: formData.get("estado") as string,
+      codigo_postal: formData.get("codigo_postal") as string,
+      nombre_contacto: formData.get("nombre_contacto") as string,
+      apellido_contacto: formData.get("apellido_contacto") as string,
       email: formData.get("email") as string,
       password: formData.get("password") as string,
-      description: formData.get("description") as string || undefined,
+      descripcion: (formData.get("descripcion") as string) || undefined,
     };
 
-    try {
-      const validated = signupSchema.parse(data);
-      // Simulación de registro - aquí se conectará con el backend
-      setTimeout(() => {
-        setIsLoading(false);
-        toast({
-          title: "Registro exitoso",
-          description: "Tu cuenta ha sido creada correctamente",
-        });
-      }, 1500);
-    } catch (error) {
+    const result = signupSchema.safeParse(signupData);
+
+    if (!result.success) {
       setIsLoading(false);
-      if (error instanceof z.ZodError) {
-        toast({
-          title: "Error de validación",
-          description: error.errors[0].message,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Validación fallida",
+        description: result.error.errors[0]?.message || "Por favor verifica los campos",
+        variant: "destructive",
+      });
+      return;
     }
+
+    const { error } = await supabase.auth.signUp({
+      email: signupData.email,
+      password: signupData.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: {
+          nombre_taller: signupData.nombre_taller,
+          telefono: signupData.telefono,
+          direccion: signupData.direccion,
+          ciudad: signupData.ciudad,
+          estado: signupData.estado,
+          codigo_postal: signupData.codigo_postal,
+          nombre_contacto: signupData.nombre_contacto,
+          apellido_contacto: signupData.apellido_contacto,
+          descripcion: signupData.descripcion,
+        },
+      },
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: "Error al registrar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "¡Registro exitoso!",
+      description: "Tu cuenta ha sido creada. Redirigiendo...",
+    });
   };
 
   return (
@@ -195,10 +240,10 @@ const Auth = () => {
                     <h3 className="font-semibold text-sm text-muted-foreground">Información del Taller</h3>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="workshopName">Nombre del Taller *</Label>
+                      <Label htmlFor="nombre_taller">Nombre del Taller *</Label>
                       <Input
-                        id="workshopName"
-                        name="workshopName"
+                        id="nombre_taller"
+                        name="nombre_taller"
                         type="text"
                         placeholder="Taller Automotriz XYZ"
                         required
@@ -207,10 +252,10 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Teléfono *</Label>
+                      <Label htmlFor="telefono">Teléfono *</Label>
                       <Input
-                        id="phone"
-                        name="phone"
+                        id="telefono"
+                        name="telefono"
                         type="tel"
                         placeholder="+52 123 456 7890"
                         required
@@ -219,10 +264,10 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="address">Dirección *</Label>
+                      <Label htmlFor="direccion">Dirección *</Label>
                       <Input
-                        id="address"
-                        name="address"
+                        id="direccion"
+                        name="direccion"
                         type="text"
                         placeholder="Calle Principal #123"
                         required
@@ -232,10 +277,10 @@ const Auth = () => {
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="city">Ciudad *</Label>
+                        <Label htmlFor="ciudad">Ciudad *</Label>
                         <Input
-                          id="city"
-                          name="city"
+                          id="ciudad"
+                          name="ciudad"
                           type="text"
                           placeholder="Ciudad"
                           required
@@ -243,10 +288,10 @@ const Auth = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="state">Estado *</Label>
+                        <Label htmlFor="estado">Estado *</Label>
                         <Input
-                          id="state"
-                          name="state"
+                          id="estado"
+                          name="estado"
                           type="text"
                           placeholder="Estado"
                           required
@@ -256,10 +301,10 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="zipCode">Código Postal *</Label>
+                      <Label htmlFor="codigo_postal">Código Postal *</Label>
                       <Input
-                        id="zipCode"
-                        name="zipCode"
+                        id="codigo_postal"
+                        name="codigo_postal"
                         type="text"
                         placeholder="12345"
                         required
@@ -268,10 +313,10 @@ const Auth = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="description">Descripción del Taller</Label>
+                      <Label htmlFor="descripcion">Descripción del Taller</Label>
                       <Textarea
-                        id="description"
-                        name="description"
+                        id="descripcion"
+                        name="descripcion"
                         placeholder="Breve descripción de los servicios que ofrece tu taller (opcional)"
                         maxLength={500}
                         rows={3}
@@ -285,10 +330,10 @@ const Auth = () => {
                     
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="firstName">Nombre *</Label>
+                        <Label htmlFor="nombre_contacto">Nombre *</Label>
                         <Input
-                          id="firstName"
-                          name="firstName"
+                          id="nombre_contacto"
+                          name="nombre_contacto"
                           type="text"
                           placeholder="Juan"
                           required
@@ -296,10 +341,10 @@ const Auth = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="lastName">Apellido *</Label>
+                        <Label htmlFor="apellido_contacto">Apellido *</Label>
                         <Input
-                          id="lastName"
-                          name="lastName"
+                          id="apellido_contacto"
+                          name="apellido_contacto"
                           type="text"
                           placeholder="Pérez"
                           required

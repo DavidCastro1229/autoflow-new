@@ -1,12 +1,25 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { Wrench, Users, LineChart, Clock, CheckCircle2, ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import heroImage from "@/assets/hero-auto.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard");
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
   const features = [
     {
