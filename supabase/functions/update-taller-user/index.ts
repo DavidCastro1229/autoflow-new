@@ -14,48 +14,57 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const authHeader = req.headers.get('Authorization')!;
-
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    // Client for user operations (uses service role)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    
+    // Get the auth token from the request
+    const authHeader = req.headers.get('Authorization')!;
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Client for verifying the requesting user
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Verify user is authenticated and has admin_taller role
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    // Verify the requesting user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
-    if (userError || !user) {
-      console.error('Authentication error:', userError);
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
       return new Response(
         JSON.stringify({ error: 'No autorizado' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
 
-    const { data: roleData } = await supabaseClient
+    // Verify user is admin_taller
+    const { data: userRole, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single();
 
-    if (!roleData || roleData.role !== 'admin_taller') {
-      console.error('User does not have admin_taller role');
+    if (roleError || !userRole || userRole.role !== 'admin_taller') {
+      console.error('Role verification error:', roleError);
       return new Response(
-        JSON.stringify({ error: 'No tienes permisos de administrador' }),
+        JSON.stringify({ error: 'Solo administradores pueden actualizar usuarios' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
       );
     }
 
-    // Get taller_id
-    const { data: tallerData } = await supabaseClient
+    // Get the taller_id for the admin
+    const { data: taller, error: tallerError } = await supabase
       .from('talleres')
       .select('id')
       .eq('user_id', user.id)
       .single();
 
-    if (!tallerData) {
+    if (tallerError || !taller) {
+      console.error('Taller lookup error:', tallerError);
       return new Response(
-        JSON.stringify({ error: 'Taller no encontrado' }),
+        JSON.stringify({ error: 'No se encontró el taller asociado' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
@@ -70,11 +79,11 @@ serve(async (req) => {
     }
 
     // Verify the user belongs to the same taller
-    const { data: empleadoData } = await supabaseClient
+    const { data: empleadoData } = await supabase
       .from('taller_empleados')
-      .select('id')
+      .select('id, email')
       .eq('user_id', userId)
-      .eq('taller_id', tallerData.id)
+      .eq('taller_id', taller.id)
       .single();
 
     if (!empleadoData) {
@@ -84,8 +93,8 @@ serve(async (req) => {
       );
     }
 
-    // Update taller_empleados
-    const { error: updateError } = await supabaseClient
+    // Update taller_empleados using admin client to bypass RLS
+    const { error: updateError } = await supabaseAdmin
       .from('taller_empleados')
       .update({ 
         nombre, 
@@ -111,9 +120,9 @@ serve(async (req) => {
       }
     }
 
-    // Update role if provided
+    // Update role if provided using admin client to bypass RLS
     if (role && (role === 'taller' || role === 'admin_taller')) {
-      const { error: roleError } = await supabaseClient
+      const { error: roleError } = await supabaseAdmin
         .from('user_roles')
         .update({ role })
         .eq('user_id', userId);
