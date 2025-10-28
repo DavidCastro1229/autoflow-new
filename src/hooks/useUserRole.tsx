@@ -19,19 +19,15 @@ export const useUserRole = () => {
 
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role_id, roles!inner(name)")
+        .select("role")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .single();
 
-      if (error) {
+      if (error || !data) {
         console.error("Error fetching user role:", error);
         setRole(null);
-      } else if (!data) {
-        console.log("No role found for user");
-        setRole(null);
       } else {
-        const roleName = (data.roles as any)?.name;
-        setRole(roleName as UserRole);
+        setRole(data.role as UserRole);
       }
       
       setLoading(false);
