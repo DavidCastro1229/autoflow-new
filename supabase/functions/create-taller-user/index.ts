@@ -110,8 +110,8 @@ serve(async (req) => {
 
     console.log('User created in auth:', newUser.user.id);
 
-    // Create employee record
-    const { error: empleadoError } = await supabase
+    // Create employee record using admin client to bypass RLS
+    const { error: empleadoError } = await supabaseAdmin
       .from('taller_empleados')
       .insert({
         user_id: newUser.user.id,
@@ -133,8 +133,8 @@ serve(async (req) => {
 
     console.log('Employee record created');
 
-    // Assign role
-    const { error: roleInsertError } = await supabase
+    // Assign role using admin client to bypass RLS
+    const { error: roleInsertError } = await supabaseAdmin
       .from('user_roles')
       .insert({
         user_id: newUser.user.id,
@@ -145,7 +145,7 @@ serve(async (req) => {
     if (roleInsertError) {
       console.error('Error assigning role:', roleInsertError);
       // Clean up
-      await supabase.from('taller_empleados').delete().eq('user_id', newUser.user.id);
+      await supabaseAdmin.from('taller_empleados').delete().eq('user_id', newUser.user.id);
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       return new Response(
         JSON.stringify({ error: `Error al asignar rol: ${roleInsertError.message}` }),
