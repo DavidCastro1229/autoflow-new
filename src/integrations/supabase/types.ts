@@ -68,6 +68,56 @@ export type Database = {
         }
         Relationships: []
       }
+      clientes: {
+        Row: {
+          apellido: string
+          created_at: string
+          email: string
+          id: string
+          nombre: string
+          nombre_empresa: string | null
+          taller_id: string
+          telefono: string
+          tipo_cliente: Database["public"]["Enums"]["tipo_cliente"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apellido: string
+          created_at?: string
+          email: string
+          id?: string
+          nombre: string
+          nombre_empresa?: string | null
+          taller_id: string
+          telefono: string
+          tipo_cliente: Database["public"]["Enums"]["tipo_cliente"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apellido?: string
+          created_at?: string
+          email?: string
+          id?: string
+          nombre?: string
+          nombre_empresa?: string | null
+          taller_id?: string
+          telefono?: string
+          tipo_cliente?: Database["public"]["Enums"]["tipo_cliente"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           apellido_contacto: string
@@ -301,8 +351,14 @@ export type Database = {
       reject_taller: { Args: { taller_id_param: string }; Returns: undefined }
     }
     Enums: {
-      app_role: "taller" | "admin_taller" | "aseguradora" | "super_admin"
+      app_role:
+        | "taller"
+        | "admin_taller"
+        | "aseguradora"
+        | "super_admin"
+        | "cliente"
       taller_status: "pendiente" | "aprobado" | "rechazado"
+      tipo_cliente: "individual" | "empresa" | "flota"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -430,8 +486,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["taller", "admin_taller", "aseguradora", "super_admin"],
+      app_role: [
+        "taller",
+        "admin_taller",
+        "aseguradora",
+        "super_admin",
+        "cliente",
+      ],
       taller_status: ["pendiente", "aprobado", "rechazado"],
+      tipo_cliente: ["individual", "empresa", "flota"],
     },
   },
 } as const

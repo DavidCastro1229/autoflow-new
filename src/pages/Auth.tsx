@@ -93,8 +93,27 @@ const Auth = () => {
       return;
     }
 
-    // Verificar si el usuario es un taller y si está aprobado
+    // Verificar el rol del usuario
     if (data.user) {
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+
+      // Bloquear login de usuarios con rol 'cliente'
+      if (userRole && userRole.role === 'cliente') {
+        await supabase.auth.signOut();
+        setIsLoading(false);
+        toast({
+          title: "Acceso No Permitido",
+          description: "Los usuarios con rol de cliente no pueden iniciar sesión en esta plataforma.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Verificar si el usuario es un taller y si está aprobado
       const { data: tallerData } = await supabase
         .from('talleres')
         .select('status')
