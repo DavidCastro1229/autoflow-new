@@ -27,6 +27,9 @@ import Talleres from "./pages/modules/Talleres";
 import Mensajes from "./pages/modules/Mensajes";
 import Reparaciones from "./pages/modules/Reparaciones";
 import Siniestros from "./pages/modules/Siniestros";
+import Usuarios from "./pages/modules/Usuarios";
+import Solicitudes from "./pages/modules/Solicitudes";
+import AseguradorasModule from "./pages/modules/AseguradorasModule";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +45,9 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<DashboardLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="usuarios" element={<Usuarios />} />
+              <Route path="solicitudes" element={<Solicitudes />} />
+              <Route path="aseguradoras" element={<AseguradorasModule />} />
               <Route path="kanban" element={<Kanban />} />
               <Route path="talleres" element={<Talleres />} />
               <Route path="equipo" element={<Equipo />} />

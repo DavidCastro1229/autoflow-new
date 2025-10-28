@@ -12,12 +12,13 @@ import {
   Wrench, 
   UserCog, 
   BarChart3, 
-  Shield, 
+  Shield as ShieldIcon, 
   Settings,
   Building2,
   MessageSquare,
   WrenchIcon,
-  AlertTriangle
+  AlertTriangle,
+  FileCheck
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -41,120 +42,179 @@ interface MenuItem {
   allowedRoles: UserRole[];
 }
 
-const menuItems: MenuItem[] = [
+// Módulos específicos para Super Admin
+const superAdminMenuItems: MenuItem[] = [
   { 
     title: "Dashboard", 
     url: "/dashboard", 
     icon: LayoutDashboard, 
-    allowedRoles: ["admin_taller", "aseguradora", "super_admin"] 
+    allowedRoles: ["super_admin"] 
   },
   { 
-    title: "Kanban", 
-    url: "/kanban", 
-    icon: KanbanSquare, 
-    allowedRoles: ["admin_taller", "super_admin"] 
-  },
-  { 
-    title: "Talleres", 
-    url: "/talleres", 
-    icon: Building2, 
-    allowedRoles: ["aseguradora", "super_admin"] 
-  },
-  { 
-    title: "Equipo", 
-    url: "/equipo", 
+    title: "Usuarios", 
+    url: "/usuarios", 
     icon: Users, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
+    allowedRoles: ["super_admin"] 
   },
   { 
-    title: "Órdenes", 
-    url: "/ordenes", 
-    icon: ClipboardList, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
+    title: "Solicitudes de Talleres", 
+    url: "/solicitudes", 
+    icon: FileCheck, 
+    allowedRoles: ["super_admin"] 
+  },
+  { 
+    title: "Aseguradoras", 
+    url: "/aseguradoras", 
+    icon: ShieldIcon, 
+    allowedRoles: ["super_admin"] 
+  },
+  { 
+    title: "Clientes", 
+    url: "/clientes", 
+    icon: UserCog, 
+    allowedRoles: ["super_admin"] 
   },
   { 
     title: "Vehículos", 
     url: "/vehiculos", 
     icon: Car, 
-    allowedRoles: ["taller", "admin_taller", "aseguradora", "super_admin"] 
-  },
-  { 
-    title: "Flotas", 
-    url: "/flotas", 
-    icon: Truck, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
+    allowedRoles: ["super_admin"] 
   },
   { 
     title: "Cotizaciones", 
     url: "/cotizaciones", 
     icon: FileText, 
-    allowedRoles: ["taller", "admin_taller", "aseguradora", "super_admin"] 
-  },
-  { 
-    title: "Facturación", 
-    url: "/facturacion", 
-    icon: Receipt, 
-    allowedRoles: ["taller", "admin_taller", "aseguradora", "super_admin"] 
-  },
-  { 
-    title: "Mensajes", 
-    url: "/mensajes", 
-    icon: MessageSquare, 
-    allowedRoles: ["aseguradora", "super_admin"] 
-  },
-  { 
-    title: "Reparaciones", 
-    url: "/reparaciones", 
-    icon: WrenchIcon, 
-    allowedRoles: ["aseguradora", "super_admin"] 
-  },
-  { 
-    title: "Siniestros", 
-    url: "/siniestros", 
-    icon: AlertTriangle, 
-    allowedRoles: ["aseguradora", "super_admin"] 
-  },
-  { 
-    title: "Citas", 
-    url: "/citas", 
-    icon: Calendar, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
-  },
-  { 
-    title: "Inventario", 
-    url: "/inventario", 
-    icon: Package, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
-  },
-  { 
-    title: "Técnicos", 
-    url: "/tecnicos", 
-    icon: Wrench, 
-    allowedRoles: ["taller", "admin_taller", "super_admin"] 
-  },
-  { 
-    title: "Gestión de Clientes", 
-    url: "/clientes", 
-    icon: UserCog, 
-    allowedRoles: ["admin_taller", "super_admin"] 
+    allowedRoles: ["super_admin"] 
   },
   { 
     title: "Reportes", 
     url: "/reportes", 
     icon: BarChart3, 
-    allowedRoles: ["taller", "admin_taller", "aseguradora", "super_admin"] 
+    allowedRoles: ["super_admin"] 
+  },
+  { 
+    title: "Configuración", 
+    url: "/configuraciones", 
+    icon: Settings, 
+    allowedRoles: ["super_admin"] 
+  },
+];
+
+// Módulos para otros roles
+const menuItems: MenuItem[] = [
+  { 
+    title: "Dashboard", 
+    url: "/dashboard", 
+    icon: LayoutDashboard, 
+    allowedRoles: ["admin_taller", "aseguradora"] 
+  },
+  { 
+    title: "Kanban", 
+    url: "/kanban", 
+    icon: KanbanSquare, 
+    allowedRoles: ["admin_taller"] 
+  },
+  { 
+    title: "Talleres", 
+    url: "/talleres", 
+    icon: Building2, 
+    allowedRoles: ["aseguradora"] 
+  },
+  { 
+    title: "Equipo", 
+    url: "/equipo", 
+    icon: Users, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
+    title: "Órdenes", 
+    url: "/ordenes", 
+    icon: ClipboardList, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
+    title: "Vehículos", 
+    url: "/vehiculos", 
+    icon: Car, 
+    allowedRoles: ["taller", "admin_taller", "aseguradora"] 
+  },
+  { 
+    title: "Flotas", 
+    url: "/flotas", 
+    icon: Truck, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
+    title: "Cotizaciones", 
+    url: "/cotizaciones", 
+    icon: FileText, 
+    allowedRoles: ["taller", "admin_taller", "aseguradora"] 
+  },
+  { 
+    title: "Facturación", 
+    url: "/facturacion", 
+    icon: Receipt, 
+    allowedRoles: ["taller", "admin_taller", "aseguradora"] 
+  },
+  { 
+    title: "Mensajes", 
+    url: "/mensajes", 
+    icon: MessageSquare, 
+    allowedRoles: ["aseguradora"] 
+  },
+  { 
+    title: "Reparaciones", 
+    url: "/reparaciones", 
+    icon: WrenchIcon, 
+    allowedRoles: ["aseguradora"] 
+  },
+  { 
+    title: "Siniestros", 
+    url: "/siniestros", 
+    icon: AlertTriangle, 
+    allowedRoles: ["aseguradora"] 
+  },
+  { 
+    title: "Citas", 
+    url: "/citas", 
+    icon: Calendar, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
+    title: "Inventario", 
+    url: "/inventario", 
+    icon: Package, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
+    title: "Técnicos", 
+    url: "/tecnicos", 
+    icon: Wrench, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
+    title: "Gestión de Clientes", 
+    url: "/clientes", 
+    icon: UserCog, 
+    allowedRoles: ["admin_taller"] 
+  },
+  { 
+    title: "Reportes", 
+    url: "/reportes", 
+    icon: BarChart3, 
+    allowedRoles: ["taller", "admin_taller", "aseguradora"] 
   },
   { 
     title: "Gestión de Accesos", 
     url: "/accesos", 
-    icon: Shield, 
-    allowedRoles: ["admin_taller", "super_admin"] 
+    icon: ShieldIcon, 
+    allowedRoles: ["admin_taller"] 
   },
   { 
     title: "Configuraciones", 
     url: "/configuraciones", 
     icon: Settings, 
-    allowedRoles: ["admin_taller", "super_admin"] 
+    allowedRoles: ["admin_taller"] 
   },
 ];
 
@@ -166,7 +226,10 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
-  const filteredItems = menuItems.filter(item => 
+  // Si es super_admin, usar su menú específico
+  const itemsToUse = userRole === "super_admin" ? superAdminMenuItems : menuItems;
+  
+  const filteredItems = itemsToUse.filter(item => 
     userRole && item.allowedRoles.includes(userRole)
   );
 
