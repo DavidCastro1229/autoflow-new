@@ -1,20 +1,13 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileCheck, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FileCheck, Check, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
-type Taller = {
+interface TallerSolicitud {
   id: string;
   nombre_taller: string;
   nombre_contacto: string;
@@ -25,90 +18,110 @@ type Taller = {
   estado: string;
   status: 'pendiente' | 'aprobado' | 'rechazado';
   created_at: string;
-};
+}
 
 const Solicitudes = () => {
+  const [solicitudes, setSolicitudes] = useState<TallerSolicitud[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Fetch talleres pendientes
-  const { data: talleres, isLoading } = useQuery({
-    queryKey: ['talleres-solicitudes'],
-    queryFn: async () => {
+  const fetchSolicitudes = async () => {
+    try {
       const { data, error } = await supabase
         .from('talleres')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Taller[];
-    },
-  });
-
-  // Aprobar taller
-  const approveMutation = useMutation({
-    mutationFn: async (tallerId: string) => {
-      const { error } = await supabase.rpc('approve_taller', {
-        taller_id_param: tallerId,
+      setSolicitudes(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSolicitudes();
+  }, []);
+
+  const handleApprove = async (tallerId: string) => {
+    setProcessingId(tallerId);
+    try {
+      const { error } = await supabase.rpc('approve_taller', {
+        taller_id_param: tallerId
+      });
+
       if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['talleres-solicitudes'] });
+
       toast({
         title: "Taller aprobado",
         description: "El taller ha sido aprobado exitosamente",
       });
-    },
-    onError: (error: Error) => {
+
+      await fetchSolicitudes();
+    } catch (error: any) {
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
-  // Rechazar taller
-  const rejectMutation = useMutation({
-    mutationFn: async (tallerId: string) => {
+  const handleReject = async (tallerId: string) => {
+    setProcessingId(tallerId);
+    try {
       const { error } = await supabase.rpc('reject_taller', {
-        taller_id_param: tallerId,
+        taller_id_param: tallerId
       });
+
       if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['talleres-solicitudes'] });
+
       toast({
         title: "Taller rechazado",
-        description: "El taller ha sido rechazado",
+        description: "La solicitud ha sido rechazada",
       });
-    },
-    onError: (error: Error) => {
+
+      await fetchSolicitudes();
+    } catch (error: any) {
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pendiente':
-        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600">Pendiente</Badge>;
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500">Pendiente</Badge>;
       case 'aprobado':
-        return <Badge variant="outline" className="bg-green-500/10 text-green-600">Aprobado</Badge>;
+        return <Badge variant="outline" className="bg-green-500/10 text-green-500">Aprobado</Badge>;
       case 'rechazado':
-        return <Badge variant="outline" className="bg-red-500/10 text-red-600">Rechazado</Badge>;
+        return <Badge variant="outline" className="bg-red-500/10 text-red-500">Rechazado</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return null;
     }
   };
 
-  const talleresPendientes = talleres?.filter(t => t.status === 'pendiente') || [];
-  const talleresAprobados = talleres?.filter(t => t.status === 'aprobado') || [];
-  const talleresRechazados = talleres?.filter(t => t.status === 'rechazado') || [];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -122,22 +135,17 @@ const Solicitudes = () => {
         </div>
       </div>
 
-      {/* Solicitudes Pendientes */}
       <Card>
         <CardHeader>
-          <CardTitle>Solicitudes Pendientes ({talleresPendientes.length})</CardTitle>
+          <CardTitle>Todas las Solicitudes</CardTitle>
           <CardDescription>
-            Revisa y aprueba las solicitudes de registro de nuevos talleres
+            Revisa y gestiona las solicitudes de registro de talleres
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : talleresPendientes.length === 0 ? (
+          {solicitudes.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              No hay solicitudes pendientes
+              No hay solicitudes de talleres
             </p>
           ) : (
             <Table>
@@ -148,40 +156,60 @@ const Solicitudes = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Ubicación</TableHead>
-                  <TableHead>Fecha</TableHead>
+                  <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {talleresPendientes.map((taller) => (
-                  <TableRow key={taller.id}>
-                    <TableCell className="font-medium">{taller.nombre_taller}</TableCell>
-                    <TableCell>{taller.nombre_contacto} {taller.apellido_contacto}</TableCell>
-                    <TableCell>{taller.email}</TableCell>
-                    <TableCell>{taller.telefono}</TableCell>
-                    <TableCell>{taller.ciudad}, {taller.estado}</TableCell>
-                    <TableCell>{new Date(taller.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-green-500/10 hover:bg-green-500/20 text-green-600"
-                        onClick={() => approveMutation.mutate(taller.id)}
-                        disabled={approveMutation.isPending}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Aprobar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-red-500/10 hover:bg-red-500/20 text-red-600"
-                        onClick={() => rejectMutation.mutate(taller.id)}
-                        disabled={rejectMutation.isPending}
-                      >
-                        <XCircle className="h-4 w-4 mr-1" />
-                        Rechazar
-                      </Button>
+                {solicitudes.map((solicitud) => (
+                  <TableRow key={solicitud.id}>
+                    <TableCell className="font-medium">{solicitud.nombre_taller}</TableCell>
+                    <TableCell>
+                      {solicitud.nombre_contacto} {solicitud.apellido_contacto}
+                    </TableCell>
+                    <TableCell>{solicitud.email}</TableCell>
+                    <TableCell>{solicitud.telefono}</TableCell>
+                    <TableCell>
+                      {solicitud.ciudad}, {solicitud.estado}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(solicitud.status)}</TableCell>
+                    <TableCell className="text-right">
+                      {solicitud.status === 'pendiente' && (
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApprove(solicitud.id)}
+                            disabled={processingId === solicitud.id}
+                            className="bg-green-500/10 hover:bg-green-500/20 text-green-500"
+                          >
+                            {processingId === solicitud.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="h-4 w-4 mr-1" />
+                                Aprobar
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReject(solicitud.id)}
+                            disabled={processingId === solicitud.id}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500"
+                          >
+                            {processingId === solicitud.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <X className="h-4 w-4 mr-1" />
+                                Rechazar
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -190,76 +218,6 @@ const Solicitudes = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Talleres Aprobados */}
-      {talleresAprobados.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Talleres Aprobados ({talleresAprobados.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Taller</TableHead>
-                  <TableHead>Contacto</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Ubicación</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Fecha Aprobación</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {talleresAprobados.map((taller) => (
-                  <TableRow key={taller.id}>
-                    <TableCell className="font-medium">{taller.nombre_taller}</TableCell>
-                    <TableCell>{taller.nombre_contacto} {taller.apellido_contacto}</TableCell>
-                    <TableCell>{taller.email}</TableCell>
-                    <TableCell>{taller.ciudad}, {taller.estado}</TableCell>
-                    <TableCell>{getStatusBadge(taller.status)}</TableCell>
-                    <TableCell>{new Date(taller.created_at).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Talleres Rechazados */}
-      {talleresRechazados.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Talleres Rechazados ({talleresRechazados.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Taller</TableHead>
-                  <TableHead>Contacto</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Ubicación</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Fecha</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {talleresRechazados.map((taller) => (
-                  <TableRow key={taller.id}>
-                    <TableCell className="font-medium">{taller.nombre_taller}</TableCell>
-                    <TableCell>{taller.nombre_contacto} {taller.apellido_contacto}</TableCell>
-                    <TableCell>{taller.email}</TableCell>
-                    <TableCell>{taller.ciudad}, {taller.estado}</TableCell>
-                    <TableCell>{getStatusBadge(taller.status)}</TableCell>
-                    <TableCell>{new Date(taller.created_at).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
