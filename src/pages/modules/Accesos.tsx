@@ -1,38 +1,31 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Loader2, UserPlus, Shield, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Loader2 } from "lucide-react";
-import { useUserRole } from "@/hooks/useUserRole";
 
-interface TallerEmpleado {
+interface TallerUser {
   id: string;
-  user_id: string;
   nombre: string;
   apellidos: string;
+  role: string;
   created_at: string;
 }
 
-interface UserWithRole extends TallerEmpleado {
-  email: string;
-  role: string;
-}
-
 export default function Accesos() {
-  const [usuarios, setUsuarios] = useState<UserWithRole[]>([]);
+  const [users, setUsers] = useState<TallerUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
-  const { role: userRole } = useUserRole();
-
+  
   const [formData, setFormData] = useState({
     nombre: "",
     apellidos: "",
@@ -41,14 +34,18 @@ export default function Accesos() {
     role: "taller" as "taller" | "admin_taller",
   });
 
-  const fetchUsuarios = async () => {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
     try {
       setLoading(true);
-      
-      // Get current user's taller
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (!user) return;
 
+      // Get taller_id first
       const { data: taller } = await supabase
         .from('talleres')
         .select('id')
@@ -57,39 +54,37 @@ export default function Accesos() {
 
       if (!taller) return;
 
-      // Get all employees from this taller
-      const { data: empleados, error: empleadosError } = await supabase
+      // Fetch users from taller_empleados with their roles
+      const { data: empleados, error } = await supabase
         .from('taller_empleados')
         .select('*')
         .eq('taller_id', taller.id)
         .order('created_at', { ascending: false });
 
-      if (empleadosError) throw empleadosError;
+      if (error) throw error;
 
-      // Get roles for these users
-      const userIds = empleados?.map(e => e.user_id) || [];
-      
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('user_id', userIds);
+      // Fetch roles for each user
+      const usersWithRoles = await Promise.all(
+        (empleados || []).map(async (emp) => {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', emp.user_id)
+            .single();
 
-      if (rolesError) throw rolesError;
+          return {
+            id: emp.user_id,
+            nombre: emp.nombre,
+            apellidos: emp.apellidos,
+            role: roleData?.role || 'taller',
+            created_at: emp.created_at,
+          };
+        })
+      );
 
-      // Get emails from auth (we'll need to store this in taller_empleados or get it differently)
-      // For now, we'll create a combined view
-      const usuariosWithRoles: UserWithRole[] = empleados?.map(emp => {
-        const roleData = roles?.find(r => r.user_id === emp.user_id);
-        return {
-          ...emp,
-          email: '', // We'll need to get this from auth or store it
-          role: roleData?.role || 'taller',
-        };
-      }) || [];
-
-      setUsuarios(usuariosWithRoles);
-    } catch (error) {
-      console.error('Error fetching usuarios:', error);
+      setUsers(usersWithRoles);
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
       toast({
         title: "Error",
         description: "No se pudieron cargar los usuarios",
@@ -99,12 +94,6 @@ export default function Accesos() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (userRole === 'admin_taller') {
-      fetchUsuarios();
-    }
-  }, [userRole]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,37 +107,22 @@ export default function Accesos() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast({
-        title: "Error",
-        description: "La contraseña debe tener al menos 6 caracteres",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      setCreating(true);
-
+      setIsCreating(true);
+      
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No hay sesión activa');
+      
+      const { data, error } = await supabase.functions.invoke('create-taller-user', {
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-taller-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Error al crear usuario');
+      if (error) throw error;
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       toast({
@@ -165,7 +139,7 @@ export default function Accesos() {
         role: "taller",
       });
       
-      fetchUsuarios();
+      fetchUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
       toast({
@@ -174,47 +148,41 @@ export default function Accesos() {
         variant: "destructive",
       });
     } finally {
-      setCreating(false);
+      setIsCreating(false);
     }
   };
 
-  const getRoleBadgeVariant = (role: string) => {
-    return role === 'admin_taller' ? 'default' : 'secondary';
+  const getRoleBadge = (role: string) => {
+    if (role === 'admin_taller') {
+      return <Badge variant="default" className="gap-1"><Shield className="h-3 w-3" /> Administrador</Badge>;
+    }
+    return <Badge variant="secondary" className="gap-1"><User className="h-3 w-3" /> Usuario</Badge>;
   };
-
-  const getRoleLabel = (role: string) => {
-    return role === 'admin_taller' ? 'Administrador' : 'Usuario';
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Accesos</h1>
-          <p className="text-muted-foreground">Administración de usuarios y permisos del taller</p>
+          <p className="text-muted-foreground">Administración de usuarios del taller</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Crear Usuario
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Usuario
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <form onSubmit={handleCreateUser}>
               <DialogHeader>
-                <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Crear Nuevo Usuario
+                </DialogTitle>
                 <DialogDescription>
-                  Crea un nuevo usuario para tu taller. Todos los campos son obligatorios.
+                  Crea un nuevo usuario para tu taller. Los usuarios pueden ser empleados o administradores.
                 </DialogDescription>
               </DialogHeader>
               
@@ -229,7 +197,7 @@ export default function Accesos() {
                     required
                   />
                 </div>
-
+                
                 <div className="grid gap-2">
                   <Label htmlFor="apellidos">Apellidos</Label>
                   <Input
@@ -240,7 +208,7 @@ export default function Accesos() {
                     required
                   />
                 </div>
-
+                
                 <div className="grid gap-2">
                   <Label htmlFor="email">Correo Electrónico</Label>
                   <Input
@@ -252,7 +220,7 @@ export default function Accesos() {
                     required
                   />
                 </div>
-
+                
                 <div className="grid gap-2">
                   <Label htmlFor="password">Contraseña</Label>
                   <Input
@@ -261,11 +229,11 @@ export default function Accesos() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="Mínimo 6 caracteres"
-                    required
                     minLength={6}
+                    required
                   />
                 </div>
-
+                
                 <div className="grid gap-2">
                   <Label htmlFor="role">Rol</Label>
                   <Select
@@ -278,27 +246,37 @@ export default function Accesos() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="taller">Usuario Taller</SelectItem>
-                      <SelectItem value="admin_taller">Administrador Taller</SelectItem>
+                      <SelectItem value="taller">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Usuario Normal
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="admin_taller">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Administrador
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-sm text-muted-foreground">
-                    Los administradores tienen acceso a todos los módulos
+                    Los administradores tienen acceso completo al sistema
                   </p>
                 </div>
               </div>
-
+              
               <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
-                  disabled={creating}
+                  disabled={isCreating}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={creating}>
-                  {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                <Button type="submit" disabled={isCreating}>
+                  {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Crear Usuario
                 </Button>
               </DialogFooter>
@@ -311,37 +289,38 @@ export default function Accesos() {
         <CardHeader>
           <CardTitle>Usuarios del Taller</CardTitle>
           <CardDescription>
-            Lista de todos los usuarios con acceso al sistema
+            Lista de todos los usuarios registrados en tu taller
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {usuarios.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : users.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No hay usuarios registrados aún</p>
-              <p className="text-sm mt-2">Crea el primer usuario para comenzar</p>
+              <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No hay usuarios registrados</p>
+              <p className="text-sm">Crea el primer usuario para empezar</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Apellidos</TableHead>
                   <TableHead>Rol</TableHead>
-                  <TableHead>Fecha de Creación</TableHead>
+                  <TableHead>Fecha de Registro</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {usuarios.map((usuario) => (
-                  <TableRow key={usuario.id}>
-                    <TableCell className="font-medium">{usuario.nombre}</TableCell>
-                    <TableCell>{usuario.apellidos}</TableCell>
-                    <TableCell>
-                      <Badge variant={getRoleBadgeVariant(usuario.role)}>
-                        {getRoleLabel(usuario.role)}
-                      </Badge>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      {user.nombre} {user.apellidos}
                     </TableCell>
+                    <TableCell>{getRoleBadge(user.role)}</TableCell>
                     <TableCell>
-                      {new Date(usuario.created_at).toLocaleDateString('es-ES', {
+                      {new Date(user.created_at).toLocaleDateString('es-MX', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
