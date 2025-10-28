@@ -158,6 +158,44 @@ export type Database = {
           },
         ]
       }
+      taller_empleados: {
+        Row: {
+          apellidos: string
+          created_at: string
+          id: string
+          nombre: string
+          taller_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apellidos: string
+          created_at?: string
+          id?: string
+          nombre: string
+          taller_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apellidos?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          taller_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taller_empleados_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talleres: {
         Row: {
           apellido_contacto: string
@@ -214,21 +252,32 @@ export type Database = {
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          taller_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           role: Database["public"]["Enums"]["app_role"]
+          taller_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          taller_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
