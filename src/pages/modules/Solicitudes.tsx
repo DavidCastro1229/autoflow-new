@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileCheck, Check, X, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileCheck, Check, X, Loader2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,8 +15,11 @@ interface TallerSolicitud {
   apellido_contacto: string;
   email: string;
   telefono: string;
+  direccion: string;
   ciudad: string;
   estado: string;
+  codigo_postal: string;
+  descripcion: string | null;
   status: 'pendiente' | 'aprobado' | 'rechazado';
   created_at: string;
 }
@@ -24,6 +28,8 @@ const Solicitudes = () => {
   const [solicitudes, setSolicitudes] = useState<TallerSolicitud[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [selectedTaller, setSelectedTaller] = useState<TallerSolicitud | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchSolicitudes = async () => {
@@ -102,6 +108,11 @@ const Solicitudes = () => {
     }
   };
 
+  const handleViewDetails = (taller: TallerSolicitud) => {
+    setSelectedTaller(taller);
+    setDetailsOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pendiente':
@@ -174,42 +185,52 @@ const Solicitudes = () => {
                     </TableCell>
                     <TableCell>{getStatusBadge(solicitud.status)}</TableCell>
                     <TableCell className="text-right">
-                      {solicitud.status === 'pendiente' && (
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleApprove(solicitud.id)}
-                            disabled={processingId === solicitud.id}
-                            className="bg-green-500/10 hover:bg-green-500/20 text-green-500"
-                          >
-                            {processingId === solicitud.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Check className="h-4 w-4 mr-1" />
-                                Aprobar
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleReject(solicitud.id)}
-                            disabled={processingId === solicitud.id}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500"
-                          >
-                            {processingId === solicitud.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <X className="h-4 w-4 mr-1" />
-                                Rechazar
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewDetails(solicitud)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver Detalles
+                        </Button>
+                        {solicitud.status === 'pendiente' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleApprove(solicitud.id)}
+                              disabled={processingId === solicitud.id}
+                              className="bg-green-500/10 hover:bg-green-500/20 text-green-500"
+                            >
+                              {processingId === solicitud.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Aprobar
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleReject(solicitud.id)}
+                              disabled={processingId === solicitud.id}
+                              className="bg-red-500/10 hover:bg-red-500/20 text-red-500"
+                            >
+                              {processingId === solicitud.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <X className="h-4 w-4 mr-1" />
+                                  Rechazar
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -218,6 +239,142 @@ const Solicitudes = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de Detalles */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalles del Taller</DialogTitle>
+            <DialogDescription>
+              Información completa de la solicitud
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedTaller && (
+            <div className="space-y-6">
+              {/* Estado */}
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <span className="font-semibold">Estado de la Solicitud</span>
+                {getStatusBadge(selectedTaller.status)}
+              </div>
+
+              {/* Información del Taller */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg border-b pb-2">Información del Taller</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Nombre del Taller</p>
+                    <p className="font-medium">{selectedTaller.nombre_taller}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Teléfono</p>
+                    <p className="font-medium">{selectedTaller.telefono}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{selectedTaller.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Información de Contacto */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg border-b pb-2">Información de Contacto</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Nombre</p>
+                    <p className="font-medium">{selectedTaller.nombre_contacto}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Apellido</p>
+                    <p className="font-medium">{selectedTaller.apellido_contacto}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ubicación */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg border-b pb-2">Ubicación</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Dirección</p>
+                    <p className="font-medium">{selectedTaller.direccion}</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Ciudad</p>
+                      <p className="font-medium">{selectedTaller.ciudad}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Estado</p>
+                      <p className="font-medium">{selectedTaller.estado}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Código Postal</p>
+                      <p className="font-medium">{selectedTaller.codigo_postal}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Descripción */}
+              {selectedTaller.descripcion && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg border-b pb-2">Descripción</h3>
+                  <p className="text-sm">{selectedTaller.descripcion}</p>
+                </div>
+              )}
+
+              {/* Fecha de Registro */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg border-b pb-2">Información Adicional</h3>
+                <div>
+                  <p className="text-sm text-muted-foreground">Fecha de Registro</p>
+                  <p className="font-medium">
+                    {new Date(selectedTaller.created_at).toLocaleString('es-MX', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Acciones */}
+              {selectedTaller.status === 'pendiente' && (
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-green-500/10 hover:bg-green-500/20 text-green-500"
+                    onClick={() => {
+                      handleApprove(selectedTaller.id);
+                      setDetailsOpen(false);
+                    }}
+                    disabled={processingId === selectedTaller.id}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Aprobar Taller
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500"
+                    onClick={() => {
+                      handleReject(selectedTaller.id);
+                      setDetailsOpen(false);
+                    }}
+                    disabled={processingId === selectedTaller.id}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Rechazar Taller
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
