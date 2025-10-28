@@ -26,6 +26,21 @@ const signupSchema = z.object({
   descripcion: z.string().trim().max(500, "Máximo 500 caracteres").optional(),
 });
 
+const aseguradoraSignupSchema = z.object({
+  nombre_aseguradora: z.string().trim().min(1, "El nombre de la aseguradora es requerido").max(100, "Máximo 100 caracteres"),
+  rfc: z.string().trim().min(12, "RFC debe tener al menos 12 caracteres").max(13, "Máximo 13 caracteres"),
+  telefono: z.string().trim().min(10, "Teléfono debe tener al menos 10 dígitos").max(20, "Máximo 20 caracteres"),
+  direccion: z.string().trim().min(1, "La dirección es requerida").max(200, "Máximo 200 caracteres"),
+  ciudad: z.string().trim().min(1, "La ciudad es requerida").max(100, "Máximo 100 caracteres"),
+  estado: z.string().trim().min(1, "El estado es requerido").max(100, "Máximo 100 caracteres"),
+  codigo_postal: z.string().trim().min(1, "El código postal es requerido").max(10, "Máximo 10 caracteres"),
+  nombre_contacto: z.string().trim().min(1, "El nombre es requerido").max(50, "Máximo 50 caracteres"),
+  apellido_contacto: z.string().trim().min(1, "El apellido es requerido").max(50, "Máximo 50 caracteres"),
+  email: z.string().trim().email("Correo electrónico inválido").max(255, "Máximo 255 caracteres"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(100, "Máximo 100 caracteres"),
+  descripcion: z.string().trim().max(500, "Máximo 500 caracteres").optional(),
+});
+
 const loginSchema = z.object({
   email: z.string().trim().email("Correo electrónico inválido"),
   password: z.string().min(1, "La contraseña es requerida"),
@@ -123,6 +138,7 @@ const Auth = () => {
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
+          user_type: 'taller',
           nombre_taller: signupData.nombre_taller,
           telefono: signupData.telefono,
           direccion: signupData.direccion,
@@ -150,6 +166,77 @@ const Auth = () => {
     toast({
       title: "¡Registro exitoso!",
       description: "Tu cuenta ha sido creada. Redirigiendo...",
+    });
+  };
+
+  const handleAseguradoraSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    
+    const signupData = {
+      nombre_aseguradora: formData.get("nombre_aseguradora") as string,
+      rfc: formData.get("rfc") as string,
+      telefono: formData.get("telefono") as string,
+      direccion: formData.get("direccion") as string,
+      ciudad: formData.get("ciudad") as string,
+      estado: formData.get("estado") as string,
+      codigo_postal: formData.get("codigo_postal") as string,
+      nombre_contacto: formData.get("nombre_contacto") as string,
+      apellido_contacto: formData.get("apellido_contacto") as string,
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+      descripcion: (formData.get("descripcion") as string) || undefined,
+    };
+
+    const result = aseguradoraSignupSchema.safeParse(signupData);
+
+    if (!result.success) {
+      setIsLoading(false);
+      toast({
+        title: "Validación fallida",
+        description: result.error.errors[0]?.message || "Por favor verifica los campos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email: signupData.email,
+      password: signupData.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: {
+          user_type: 'aseguradora',
+          nombre_aseguradora: signupData.nombre_aseguradora,
+          rfc: signupData.rfc,
+          telefono: signupData.telefono,
+          direccion: signupData.direccion,
+          ciudad: signupData.ciudad,
+          estado: signupData.estado,
+          codigo_postal: signupData.codigo_postal,
+          nombre_contacto: signupData.nombre_contacto,
+          apellido_contacto: signupData.apellido_contacto,
+          descripcion: signupData.descripcion,
+        },
+      },
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: "Error al registrar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "¡Registro exitoso!",
+      description: "Tu cuenta de aseguradora ha sido creada. Redirigiendo...",
     });
   };
 
@@ -188,9 +275,10 @@ const Auth = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-                <TabsTrigger value="signup">Registrarse</TabsTrigger>
+                <TabsTrigger value="signup">Taller</TabsTrigger>
+                <TabsTrigger value="aseguradora">Aseguradora</TabsTrigger>
               </TabsList>
 
               {/* Login Form */}
@@ -386,6 +474,180 @@ const Auth = () => {
                     disabled={isLoading}
                   >
                     {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Al registrarte, aceptas nuestros términos de servicio y política de privacidad
+                  </p>
+                </form>
+              </TabsContent>
+
+              {/* Aseguradora Signup Form */}
+              <TabsContent value="aseguradora">
+                <form onSubmit={handleAseguradoraSignup} className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                  {/* Información de la Aseguradora */}
+                  <div className="space-y-3 pb-3 border-b border-border">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Información de la Aseguradora</h3>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre_aseguradora">Nombre de la Aseguradora *</Label>
+                      <Input
+                        id="nombre_aseguradora"
+                        name="nombre_aseguradora"
+                        type="text"
+                        placeholder="Aseguradora XYZ S.A."
+                        required
+                        maxLength={100}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="rfc">RFC *</Label>
+                      <Input
+                        id="rfc"
+                        name="rfc"
+                        type="text"
+                        placeholder="ABC123456XYZ"
+                        required
+                        minLength={12}
+                        maxLength={13}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="telefono_aseg">Teléfono *</Label>
+                      <Input
+                        id="telefono_aseg"
+                        name="telefono"
+                        type="tel"
+                        placeholder="+52 123 456 7890"
+                        required
+                        maxLength={20}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="direccion_aseg">Dirección *</Label>
+                      <Input
+                        id="direccion_aseg"
+                        name="direccion"
+                        type="text"
+                        placeholder="Avenida Principal #123"
+                        required
+                        maxLength={200}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="ciudad_aseg">Ciudad *</Label>
+                        <Input
+                          id="ciudad_aseg"
+                          name="ciudad"
+                          type="text"
+                          placeholder="Ciudad"
+                          required
+                          maxLength={100}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="estado_aseg">Estado *</Label>
+                        <Input
+                          id="estado_aseg"
+                          name="estado"
+                          type="text"
+                          placeholder="Estado"
+                          required
+                          maxLength={100}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="codigo_postal_aseg">Código Postal *</Label>
+                      <Input
+                        id="codigo_postal_aseg"
+                        name="codigo_postal"
+                        type="text"
+                        placeholder="12345"
+                        required
+                        maxLength={10}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="descripcion_aseg">Descripción</Label>
+                      <Textarea
+                        id="descripcion_aseg"
+                        name="descripcion"
+                        placeholder="Breve descripción de los servicios de la aseguradora (opcional)"
+                        maxLength={500}
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Información de Contacto */}
+                  <div className="space-y-3 pb-3 border-b border-border">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Información de Contacto</h3>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="nombre_contacto_aseg">Nombre *</Label>
+                        <Input
+                          id="nombre_contacto_aseg"
+                          name="nombre_contacto"
+                          type="text"
+                          placeholder="María"
+                          required
+                          maxLength={50}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="apellido_contacto_aseg">Apellido *</Label>
+                        <Input
+                          id="apellido_contacto_aseg"
+                          name="apellido_contacto"
+                          type="text"
+                          placeholder="González"
+                          required
+                          maxLength={50}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="aseg-email">Correo Electrónico *</Label>
+                      <Input
+                        id="aseg-email"
+                        name="email"
+                        type="email"
+                        placeholder="contacto@aseguradora.com"
+                        required
+                        maxLength={255}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="aseg-password">Contraseña *</Label>
+                      <Input
+                        id="aseg-password"
+                        name="password"
+                        type="password"
+                        placeholder="Mínimo 8 caracteres"
+                        required
+                        minLength={8}
+                        maxLength={100}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    variant="hero"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Creando cuenta..." : "Crear Cuenta de Aseguradora"}
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
                     Al registrarte, aceptas nuestros términos de servicio y política de privacidad
