@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Upload, X } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -22,6 +22,7 @@ interface ItemState {
 const HojaIngreso = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { tallerId, loading: rolesLoading } = useUserRole();
   const [loading, setLoading] = useState(false);
   const [vehiculos, setVehiculos] = useState<any[]>([]);
@@ -75,6 +76,14 @@ const HojaIngreso = () => {
       fetchVehiculos();
     }
   }, [tallerId]);
+
+  useEffect(() => {
+    // Pre-seleccionar vehículo si viene en la URL
+    const vehiculoId = searchParams.get('vehiculo');
+    if (vehiculoId) {
+      setSelectedVehiculo(vehiculoId);
+    }
+  }, [searchParams, vehiculos]);
 
   const fetchVehiculos = async () => {
     if (!tallerId) return;
