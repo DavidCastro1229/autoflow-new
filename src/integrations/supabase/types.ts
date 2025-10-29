@@ -390,6 +390,75 @@ export type Database = {
         }
         Relationships: []
       }
+      tecnicos: {
+        Row: {
+          apellido: string
+          area: Database["public"]["Enums"]["area_tecnico"]
+          certificaciones: string | null
+          created_at: string
+          direccion: string
+          email: string
+          especialidad_id: number
+          experiencia: string
+          habilidades: string | null
+          id: string
+          nombre: string
+          taller_id: string
+          telefono: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          apellido: string
+          area?: Database["public"]["Enums"]["area_tecnico"]
+          certificaciones?: string | null
+          created_at?: string
+          direccion: string
+          email: string
+          especialidad_id: number
+          experiencia: string
+          habilidades?: string | null
+          id?: string
+          nombre: string
+          taller_id: string
+          telefono: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          apellido?: string
+          area?: Database["public"]["Enums"]["area_tecnico"]
+          certificaciones?: string | null
+          created_at?: string
+          direccion?: string
+          email?: string
+          especialidad_id?: number
+          experiencia?: string
+          habilidades?: string | null
+          id?: string
+          nombre?: string
+          taller_id?: string
+          telefono?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tecnicos_especialidad_id_fkey"
+            columns: ["especialidad_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades_taller"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tecnicos_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -507,6 +576,8 @@ export type Database = {
         | "aseguradora"
         | "super_admin"
         | "cliente"
+        | "tecnico"
+      area_tecnico: "tecnico" | "tecnico_senior"
       estado_vehiculo: "activo" | "en_servicio" | "entregado" | "inactivo"
       taller_status: "pendiente" | "aprobado" | "rechazado"
       tipo_cliente: "individual" | "empresa" | "flota"
@@ -643,7 +714,9 @@ export const Constants = {
         "aseguradora",
         "super_admin",
         "cliente",
+        "tecnico",
       ],
+      area_tecnico: ["tecnico", "tecnico_senior"],
       estado_vehiculo: ["activo", "en_servicio", "entregado", "inactivo"],
       taller_status: ["pendiente", "aprobado", "rechazado"],
       tipo_cliente: ["individual", "empresa", "flota"],
