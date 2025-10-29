@@ -118,6 +118,72 @@ export type Database = {
           },
         ]
       }
+      hojas_ingreso: {
+        Row: {
+          comentarios: string | null
+          coqueta: Json
+          created_at: string
+          exteriores: Json
+          firma_cliente: string | null
+          firma_encargado: string | null
+          id: string
+          imagenes_carroceria: string[] | null
+          interiores: Json
+          motor: Json
+          nivel_gasolina: string
+          taller_id: string
+          updated_at: string
+          vehiculo_id: string
+        }
+        Insert: {
+          comentarios?: string | null
+          coqueta?: Json
+          created_at?: string
+          exteriores?: Json
+          firma_cliente?: string | null
+          firma_encargado?: string | null
+          id?: string
+          imagenes_carroceria?: string[] | null
+          interiores?: Json
+          motor?: Json
+          nivel_gasolina?: string
+          taller_id: string
+          updated_at?: string
+          vehiculo_id: string
+        }
+        Update: {
+          comentarios?: string | null
+          coqueta?: Json
+          created_at?: string
+          exteriores?: Json
+          firma_cliente?: string | null
+          firma_encargado?: string | null
+          id?: string
+          imagenes_carroceria?: string[] | null
+          interiores?: Json
+          motor?: Json
+          nivel_gasolina?: string
+          taller_id?: string
+          updated_at?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hojas_ingreso_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hojas_ingreso_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           apellido_contacto: string

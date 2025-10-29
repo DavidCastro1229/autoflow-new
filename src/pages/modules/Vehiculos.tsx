@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Car, Loader2, Plus, Eye, Pencil, Trash } from "lucide-react";
+import { Car, Loader2, Plus, Eye, Pencil, Trash, FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Cliente {
   id: string;
@@ -42,6 +43,7 @@ interface Vehiculo {
 }
 
 export default function Vehiculos() {
+  const navigate = useNavigate();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -327,13 +329,18 @@ export default function Vehiculos() {
           <h1 className="text-3xl font-bold tracking-tight">Vehículos</h1>
           <p className="text-muted-foreground">Gestiona los vehículos del taller</p>
         </div>
-        <Dialog open={modalOpen} onOpenChange={handleModalClose}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Registrar Vehículo
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/hoja-ingreso")}>
+            <FileText className="mr-2 h-4 w-4" />
+            Hoja de Ingreso
+          </Button>
+          <Dialog open={modalOpen} onOpenChange={handleModalClose}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Registrar Vehículo
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -496,6 +503,7 @@ export default function Vehiculos() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>

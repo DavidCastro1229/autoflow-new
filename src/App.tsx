@@ -30,6 +30,7 @@ import Siniestros from "./pages/modules/Siniestros";
 import Usuarios from "./pages/modules/Usuarios";
 import Solicitudes from "./pages/modules/Solicitudes";
 import AseguradorasModule from "./pages/modules/AseguradorasModule";
+import HojaIngreso from "./pages/modules/HojaIngreso";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="equipo" element={<Equipo />} />
               <Route path="ordenes" element={<Ordenes />} />
               <Route path="vehiculos" element={<Vehiculos />} />
+              <Route path="hoja-ingreso" element={<HojaIngreso />} />
               <Route path="flotas" element={<Flotas />} />
               <Route path="cotizaciones" element={<Cotizaciones />} />
               <Route path="facturacion" element={<Facturacion />} />
