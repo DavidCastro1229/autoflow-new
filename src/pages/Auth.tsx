@@ -101,13 +101,13 @@ const Auth = () => {
         .eq('user_id', data.user.id)
         .maybeSingle();
 
-      // Bloquear login de usuarios con rol 'cliente'
-      if (userRole && userRole.role === 'cliente') {
+      // Bloquear login de usuarios con rol 'cliente' o 'tecnico'
+      if (userRole && (userRole.role === 'cliente' || userRole.role === 'tecnico')) {
         await supabase.auth.signOut();
         setIsLoading(false);
         toast({
           title: "Acceso No Permitido",
-          description: "Los usuarios con rol de cliente no pueden iniciar sesión en esta plataforma.",
+          description: "Este tipo de usuario no puede iniciar sesión en esta plataforma.",
           variant: "destructive",
         });
         return;
