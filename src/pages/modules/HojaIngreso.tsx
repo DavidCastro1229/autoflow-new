@@ -293,6 +293,40 @@ const HojaIngreso = () => {
     return data.publicUrl;
   };
 
+  const handleDelete = async () => {
+    if (!hojaIngresoId) return;
+
+    if (!confirm("¿Estás seguro de que deseas eliminar esta hoja de ingreso?")) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("hojas_ingreso")
+        .delete()
+        .eq("id", hojaIngresoId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Hoja de ingreso eliminada correctamente",
+      });
+
+      resetForm();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -662,25 +696,44 @@ const HojaIngreso = () => {
           </Card>
         </div>
 
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate("/vehiculos")}
-            disabled={loading}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Guardando...
-              </>
-            ) : (
-              "Guardar Hoja de Ingreso"
-            )}
-          </Button>
+        <div className="flex justify-between gap-4">
+          {hojaIngresoId && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar Hoja de Ingreso"
+              )}
+            </Button>
+          )}
+          <div className="flex gap-4 ml-auto">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/vehiculos")}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Hoja de Ingreso"
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </div>
