@@ -72,6 +72,7 @@ const HojaIngreso = () => {
   const [imagenesCarroceria, setImagenesCarroceria] = useState<File[]>([]);
   const [imagenesExistentes, setImagenesExistentes] = useState<string[]>([]);
   const [hojaIngresoId, setHojaIngresoId] = useState<string | null>(null);
+  const [firmaEncargadoExistente, setFirmaEncargadoExistente] = useState(false);
 
   useEffect(() => {
     if (tallerId) {
@@ -146,6 +147,7 @@ const HojaIngreso = () => {
           }
         };
         img.src = data.firma_encargado;
+        setFirmaEncargadoExistente(true);
       }
     } else {
       // Resetear el formulario si no hay datos
@@ -190,6 +192,7 @@ const HojaIngreso = () => {
     setComentarios("");
     setImagenesCarroceria([]);
     setImagenesExistentes([]);
+    setFirmaEncargadoExistente(false);
     sigClienteRef.current?.clear();
     sigEncargadoRef.current?.clear();
   };
@@ -627,26 +630,34 @@ const HojaIngreso = () => {
           <Card>
             <CardHeader>
               <CardTitle>Firma del Encargado</CardTitle>
+              {firmaEncargadoExistente && (
+                <p className="text-sm text-muted-foreground">Esta firma ya está guardada y no puede editarse</p>
+              )}
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="border rounded bg-white">
                 <SignatureCanvas
                   ref={sigEncargadoRef}
                   canvasProps={{
-                    className: "w-full h-40",
+                    className: firmaEncargadoExistente 
+                      ? "w-full h-40 cursor-not-allowed opacity-60"
+                      : "w-full h-40",
+                    style: firmaEncargadoExistente ? { pointerEvents: 'none' } : undefined
                   }}
                   backgroundColor="white"
                   penColor="black"
                 />
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => sigEncargadoRef.current?.clear()}
-              >
-                Limpiar
-              </Button>
+              {!firmaEncargadoExistente && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => sigEncargadoRef.current?.clear()}
+                >
+                  Limpiar
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
