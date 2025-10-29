@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Car, Loader2, Plus, Eye } from "lucide-react";
+import { Car, Loader2, Plus, Eye, Pencil, Trash } from "lucide-react";
 
 interface Cliente {
   id: string;
@@ -45,6 +46,10 @@ export default function Vehiculos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [vehiculoToDelete, setVehiculoToDelete] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -133,25 +138,51 @@ export default function Vehiculos() {
         throw new Error("No se encontró el taller asociado");
       }
 
-      const { error } = await supabase.from("vehiculos").insert([{
-        marca: formData.marca,
-        modelo: formData.modelo,
-        anio: formData.anio,
-        placa: formData.placa,
-        color: formData.color,
-        estado: formData.estado as any,
-        vin: formData.vin,
-        kilometraje: formData.kilometraje,
-        cliente_id: formData.cliente_id,
-        taller_id: userRoles.taller_id,
-      }]);
+      if (isEditing && editingId) {
+        // Actualizar vehículo existente
+        const { error } = await supabase
+          .from("vehiculos")
+          .update({
+            marca: formData.marca,
+            modelo: formData.modelo,
+            anio: formData.anio,
+            placa: formData.placa,
+            color: formData.color,
+            estado: formData.estado as any,
+            vin: formData.vin,
+            kilometraje: formData.kilometraje,
+            cliente_id: formData.cliente_id,
+          })
+          .eq("id", editingId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Vehículo registrado",
-        description: "El vehículo ha sido registrado exitosamente",
-      });
+        toast({
+          title: "Vehículo actualizado",
+          description: "El vehículo ha sido actualizado exitosamente",
+        });
+      } else {
+        // Crear nuevo vehículo
+        const { error } = await supabase.from("vehiculos").insert([{
+          marca: formData.marca,
+          modelo: formData.modelo,
+          anio: formData.anio,
+          placa: formData.placa,
+          color: formData.color,
+          estado: formData.estado as any,
+          vin: formData.vin,
+          kilometraje: formData.kilometraje,
+          cliente_id: formData.cliente_id,
+          taller_id: userRoles.taller_id,
+        }]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Vehículo registrado",
+          description: "El vehículo ha sido registrado exitosamente",
+        });
+      }
 
       setFormData({
         marca: "",
@@ -166,11 +197,13 @@ export default function Vehiculos() {
       });
 
       setModalOpen(false);
+      setIsEditing(false);
+      setEditingId(null);
       fetchVehiculos();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "No se pudo registrar el vehículo",
+        description: error.message || `No se pudo ${isEditing ? 'actualizar' : 'registrar'} el vehículo`,
         variant: "destructive",
       });
     } finally {
@@ -211,6 +244,76 @@ export default function Vehiculos() {
     setDetailsModalOpen(true);
   };
 
+  const handleEdit = (vehiculo: Vehiculo) => {
+    setIsEditing(true);
+    setEditingId(vehiculo.id);
+    setFormData({
+      marca: vehiculo.marca,
+      modelo: vehiculo.modelo,
+      anio: vehiculo.anio,
+      placa: vehiculo.placa,
+      color: vehiculo.color,
+      estado: vehiculo.estado,
+      vin: vehiculo.vin,
+      kilometraje: vehiculo.kilometraje,
+      cliente_id: vehiculo.cliente_id,
+    });
+    setModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!vehiculoToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("vehiculos")
+        .delete()
+        .eq("id", vehiculoToDelete);
+
+      if (error) throw error;
+
+      toast({
+        title: "Vehículo eliminado",
+        description: "El vehículo ha sido eliminado exitosamente",
+      });
+
+      fetchVehiculos();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo eliminar el vehículo",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setVehiculoToDelete(null);
+    }
+  };
+
+  const openDeleteDialog = (vehiculoId: string) => {
+    setVehiculoToDelete(vehiculoId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleModalClose = (open: boolean) => {
+    setModalOpen(open);
+    if (!open) {
+      setIsEditing(false);
+      setEditingId(null);
+      setFormData({
+        marca: "",
+        modelo: "",
+        anio: new Date().getFullYear(),
+        placa: "",
+        color: "",
+        estado: "activo",
+        vin: "",
+        kilometraje: 0,
+        cliente_id: "",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -218,7 +321,7 @@ export default function Vehiculos() {
           <h1 className="text-3xl font-bold tracking-tight">Vehículos</h1>
           <p className="text-muted-foreground">Gestiona los vehículos del taller</p>
         </div>
-        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <Dialog open={modalOpen} onOpenChange={handleModalClose}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -229,10 +332,12 @@ export default function Vehiculos() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Car className="h-5 w-5" />
-                Registrar Vehículo
+                {isEditing ? "Editar Vehículo" : "Registrar Vehículo"}
               </DialogTitle>
               <DialogDescription>
-                Completa los datos del vehículo para registrarlo en el sistema
+                {isEditing 
+                  ? "Modifica los datos del vehículo" 
+                  : "Completa los datos del vehículo para registrarlo en el sistema"}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -376,10 +481,10 @@ export default function Vehiculos() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Registrando...
+                    {isEditing ? "Actualizando..." : "Registrando..."}
                   </>
                 ) : (
-                  "Registrar Vehículo"
+                  isEditing ? "Actualizar Vehículo" : "Registrar Vehículo"
                 )}
               </Button>
             </form>
@@ -441,13 +546,29 @@ export default function Vehiculos() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewDetails(vehiculo)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewDetails(vehiculo)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(vehiculo)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteDialog(vehiculo.id)}
+                          >
+                            <Trash className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -536,6 +657,24 @@ export default function Vehiculos() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de confirmación para eliminar */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El vehículo será eliminado permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
