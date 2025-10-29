@@ -607,24 +607,20 @@ const HojaIngreso = () => {
           <Card>
             <CardHeader>
               <CardTitle>Firma del Cliente</CardTitle>
+              <p className="text-sm text-muted-foreground">Esta firma se ingresa desde otra plataforma</p>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="border rounded">
+              <div className="border rounded bg-white">
                 <SignatureCanvas
                   ref={sigClienteRef}
                   canvasProps={{
-                    className: "w-full h-40",
+                    className: "w-full h-40 cursor-not-allowed opacity-60",
+                    style: { pointerEvents: 'none' }
                   }}
+                  backgroundColor="white"
+                  penColor="black"
                 />
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => sigClienteRef.current?.clear()}
-              >
-                Limpiar
-              </Button>
             </CardContent>
           </Card>
 
@@ -633,12 +629,14 @@ const HojaIngreso = () => {
               <CardTitle>Firma del Encargado</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="border rounded">
+              <div className="border rounded bg-white">
                 <SignatureCanvas
                   ref={sigEncargadoRef}
                   canvasProps={{
                     className: "w-full h-40",
                   }}
+                  backgroundColor="white"
+                  penColor="black"
                 />
               </div>
               <Button
