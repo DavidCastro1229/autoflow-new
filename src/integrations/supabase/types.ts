@@ -118,6 +118,27 @@ export type Database = {
           },
         ]
       }
+      especialidades_taller: {
+        Row: {
+          created_at: string
+          id: number
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hojas_ingreso: {
         Row: {
           comentarios: string | null
