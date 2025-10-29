@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Wrench, Award } from "lucide-react";
+import { Plus, Wrench, Award, Eye } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 type AreaTecnico = "tecnico" | "tecnico_senior";
@@ -58,6 +58,8 @@ export default function Tecnicos() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedTecnico, setSelectedTecnico] = useState<Tecnico | null>(null);
   const { toast } = useToast();
   const { register, handleSubmit, reset, setValue } = useForm<TecnicoFormData>();
 
@@ -146,6 +148,11 @@ export default function Tecnicos() {
 
   const getAreaBadgeVariant = (area: AreaTecnico): "default" | "secondary" => {
     return area === "tecnico_senior" ? "secondary" : "default";
+  };
+
+  const handleViewDetail = (tecnico: Tecnico) => {
+    setSelectedTecnico(tecnico);
+    setDetailDialogOpen(true);
   };
 
   return (
@@ -332,7 +339,7 @@ export default function Tecnicos() {
                   <TableHead>Experiencia</TableHead>
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Certificaciones</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -355,8 +362,14 @@ export default function Tecnicos() {
                     <TableCell>{tecnico.experiencia}</TableCell>
                     <TableCell>{tecnico.telefono}</TableCell>
                     <TableCell>{tecnico.email}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {tecnico.certificaciones || "Sin certificaciones"}
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewDetail(tecnico)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -365,6 +378,95 @@ export default function Tecnicos() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de detalle del técnico */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalle del Técnico</DialogTitle>
+            <DialogDescription>
+              Información completa del técnico
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTecnico && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Nombre Completo</Label>
+                  <p className="font-medium">{selectedTecnico.nombre} {selectedTecnico.apellido}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Área</Label>
+                  <div>
+                    <Badge variant={getAreaBadgeVariant(selectedTecnico.area)}>
+                      {selectedTecnico.area === "tecnico_senior" ? "Técnico Senior" : "Técnico"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Especialidad</Label>
+                  <div>
+                    <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                      <Award className="h-3 w-3" />
+                      {selectedTecnico.especialidades_taller?.nombre || "N/A"}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Experiencia</Label>
+                  <p className="font-medium">{selectedTecnico.experiencia}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Teléfono</Label>
+                  <p className="font-medium">{selectedTecnico.telefono}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Email</Label>
+                  <p className="font-medium">{selectedTecnico.email}</p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-muted-foreground">Dirección</Label>
+                <p className="font-medium">{selectedTecnico.direccion}</p>
+              </div>
+
+              {selectedTecnico.habilidades && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Habilidades</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTecnico.habilidades.split(',').map((habilidad, index) => (
+                      <Badge key={index} variant="secondary">
+                        {habilidad.trim()}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedTecnico.certificaciones && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Certificaciones</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTecnico.certificaciones.split(',').map((cert, index) => (
+                      <Badge key={index} variant="outline" className="flex items-center gap-1">
+                        <Award className="h-3 w-3" />
+                        {cert.trim()}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
