@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Wrench, Award, Eye } from "lucide-react";
+import { Plus, Wrench, Award, Eye, Pencil, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 type AreaTecnico = "tecnico" | "tecnico_senior";
@@ -58,10 +59,13 @@ export default function Tecnicos() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTecnico, setSelectedTecnico] = useState<Tecnico | null>(null);
   const { toast } = useToast();
-  const { register, handleSubmit, reset, setValue } = useForm<TecnicoFormData>();
+  const { register, handleSubmit, reset, setValue, watch } = useForm<TecnicoFormData>();
+  const editForm = useForm<Omit<TecnicoFormData, 'password'>>();
 
   useEffect(() => {
     fetchTecnicos();
@@ -153,6 +157,112 @@ export default function Tecnicos() {
   const handleViewDetail = (tecnico: Tecnico) => {
     setSelectedTecnico(tecnico);
     setDetailDialogOpen(true);
+  };
+
+  const handleEdit = (tecnico: Tecnico) => {
+    setSelectedTecnico(tecnico);
+    editForm.reset({
+      nombre: tecnico.nombre,
+      apellido: tecnico.apellido,
+      area: tecnico.area,
+      especialidad_id: tecnico.especialidad_id.toString(),
+      experiencia: tecnico.experiencia,
+      telefono: tecnico.telefono,
+      direccion: tecnico.direccion,
+      habilidades: tecnico.habilidades || "",
+      certificaciones: tecnico.certificaciones || "",
+      email: tecnico.email,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const onEditSubmit = async (formData: Omit<TecnicoFormData, 'password'>) => {
+    if (!selectedTecnico) return;
+    
+    setSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("No hay sesión activa");
+      }
+
+      const { error } = await supabase.functions.invoke("update-tecnico", {
+        body: {
+          tecnico_id: selectedTecnico.id,
+          ...formData,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Técnico actualizado",
+        description: `Los datos de ${formData.nombre} ${formData.apellido} se han actualizado exitosamente`,
+      });
+
+      setEditDialogOpen(false);
+      fetchTecnicos();
+    } catch (error: any) {
+      console.error("Error updating tecnico:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo actualizar el técnico",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteClick = (tecnico: Tecnico) => {
+    setSelectedTecnico(tecnico);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedTecnico) return;
+
+    setSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("No hay sesión activa");
+      }
+
+      const { error } = await supabase.functions.invoke("delete-tecnico", {
+        body: {
+          tecnico_id: selectedTecnico.id,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Técnico eliminado",
+        description: `${selectedTecnico.nombre} ${selectedTecnico.apellido} ha sido eliminado del sistema`,
+      });
+
+      setDeleteDialogOpen(false);
+      setSelectedTecnico(null);
+      fetchTecnicos();
+    } catch (error: any) {
+      console.error("Error deleting tecnico:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo eliminar el técnico",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -363,13 +473,33 @@ export default function Tecnicos() {
                     <TableCell>{tecnico.telefono}</TableCell>
                     <TableCell>{tecnico.email}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewDetail(tecnico)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewDetail(tecnico)}
+                          title="Ver detalles"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(tecnico)}
+                          title="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(tecnico)}
+                          title="Eliminar"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -467,6 +597,172 @@ export default function Tecnicos() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de edición */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Técnico</DialogTitle>
+            <DialogDescription>
+              Actualiza los datos del técnico
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-nombre">Nombre *</Label>
+                <Input
+                  id="edit-nombre"
+                  {...editForm.register("nombre", { required: true })}
+                  placeholder="Juan"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-apellido">Apellido *</Label>
+                <Input
+                  id="edit-apellido"
+                  {...editForm.register("apellido", { required: true })}
+                  placeholder="Pérez"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-area">Área *</Label>
+                <Select 
+                  value={editForm.watch("area")}
+                  onValueChange={(value) => editForm.setValue("area", value as AreaTecnico)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar área" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tecnico">Técnico</SelectItem>
+                    <SelectItem value="tecnico_senior">Técnico Senior</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-especialidad">Especialidad *</Label>
+                <Select 
+                  value={editForm.watch("especialidad_id")}
+                  onValueChange={(value) => editForm.setValue("especialidad_id", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar especialidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {especialidades.map((esp) => (
+                      <SelectItem key={esp.id} value={esp.id.toString()}>
+                        {esp.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-experiencia">Experiencia *</Label>
+              <Input
+                id="edit-experiencia"
+                {...editForm.register("experiencia", { required: true })}
+                placeholder="Ej: 5 años"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-telefono">Teléfono *</Label>
+                <Input
+                  id="edit-telefono"
+                  {...editForm.register("telefono", { required: true })}
+                  placeholder="+52 123 456 7890"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Correo Electrónico *</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  {...editForm.register("email", { required: true })}
+                  placeholder="correo@ejemplo.com"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-direccion">Dirección *</Label>
+              <Input
+                id="edit-direccion"
+                {...editForm.register("direccion", { required: true })}
+                placeholder="Calle, número, colonia"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-habilidades">Habilidades</Label>
+              <Textarea
+                id="edit-habilidades"
+                {...editForm.register("habilidades")}
+                placeholder="Separar por comas: Ej. Soldadura, Pintura automotriz, Diagnóstico electrónico"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-certificaciones">Certificaciones</Label>
+              <Textarea
+                id="edit-certificaciones"
+                {...editForm.register("certificaciones")}
+                placeholder="Separar por comas: Ej. ASE Certified, Certificación Toyota, ISO 9001"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+                disabled={submitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Actualizando..." : "Actualizar Técnico"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert Dialog de confirmación de eliminación */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente al técnico{" "}
+              <strong>
+                {selectedTecnico?.nombre} {selectedTecnico?.apellido}
+              </strong>{" "}
+              del sistema. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={submitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {submitting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
