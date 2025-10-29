@@ -35,6 +35,9 @@ interface Vehiculo {
     nombre: string;
     apellido: string;
     nombre_empresa: string | null;
+    email: string;
+    telefono: string;
+    tipo_cliente: string;
   };
 }
 
@@ -108,7 +111,10 @@ export default function Vehiculos() {
           clientes (
             nombre,
             apellido,
-            nombre_empresa
+            nombre_empresa,
+            email,
+            telefono,
+            tipo_cliente
           )
         `)
         .eq("taller_id", userRoles.taller_id)
@@ -651,6 +657,18 @@ export default function Vehiculos() {
                       <p className="font-medium">{selectedVehiculo.clientes.nombre_empresa}</p>
                     </div>
                   )}
+                  <div>
+                    <Label className="text-muted-foreground">Email</Label>
+                    <p className="font-medium">{selectedVehiculo.clientes.email}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Teléfono</Label>
+                    <p className="font-medium">{selectedVehiculo.clientes.telefono}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Tipo de Cliente</Label>
+                    <p className="font-medium">{formatTipoCliente(selectedVehiculo.clientes.tipo_cliente)}</p>
+                  </div>
                 </div>
               </div>
             </div>
