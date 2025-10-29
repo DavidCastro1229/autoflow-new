@@ -10,8 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Loader2, Eye, User, Car, Wrench, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -99,6 +101,8 @@ export default function Ordenes() {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedOrden, setSelectedOrden] = useState<Orden | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -262,6 +266,11 @@ export default function Ordenes() {
     setModalOpen(true);
   };
 
+  const handleViewDetails = (orden: Orden) => {
+    setSelectedOrden(orden);
+    setDetailsModalOpen(true);
+  };
+
   const getPrioridadBadge = (prioridad: string) => {
     const variants = {
       baja: "secondary",
@@ -352,9 +361,14 @@ export default function Ordenes() {
                     {orden.costo_estimado ? `$${orden.costo_estimado.toFixed(2)}` : "-"}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(orden)}>
-                      Editar
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewDetails(orden)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(orden)}>
+                        Editar
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -596,6 +610,171 @@ export default function Ordenes() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Detalles */}
+      <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalles de la Orden de Trabajo</DialogTitle>
+          </DialogHeader>
+          
+          {selectedOrden && (
+            <div className="space-y-6">
+              {/* Información General de la Orden */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Información de la Orden
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-muted-foreground">Tipo de Servicio</Label>
+                      <p className="font-medium">{selectedOrden.tipos_operacion.nombre}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Estado</Label>
+                      <div className="mt-1">
+                        <Badge variant={getEstadoBadge(selectedOrden.estado) as any}>
+                          {selectedOrden.estado.replace("_", " ")}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Prioridad</Label>
+                      <div className="mt-1">
+                        <Badge variant={getPrioridadBadge(selectedOrden.prioridad) as any}>
+                          {selectedOrden.prioridad}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Costo Estimado</Label>
+                      <p className="font-medium">
+                        {selectedOrden.costo_estimado ? `$${selectedOrden.costo_estimado.toFixed(2)}` : "No especificado"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Fecha de Ingreso</Label>
+                      <p className="font-medium">
+                        {format(new Date(selectedOrden.fecha_ingreso), "dd 'de' MMMM 'de' yyyy", { locale: es })}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Fecha de Entrega</Label>
+                      <p className="font-medium">
+                        {selectedOrden.fecha_entrega 
+                          ? format(new Date(selectedOrden.fecha_entrega), "dd 'de' MMMM 'de' yyyy", { locale: es })
+                          : "No especificada"}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Descripción</Label>
+                    <p className="font-medium mt-1">{selectedOrden.descripcion}</p>
+                  </div>
+                  {selectedOrden.observaciones && (
+                    <div>
+                      <Label className="text-muted-foreground">Observaciones</Label>
+                      <p className="font-medium mt-1">{selectedOrden.observaciones}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Separator />
+
+              {/* Información del Cliente */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Información del Cliente
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-muted-foreground">Nombre Completo</Label>
+                      <p className="font-medium">
+                        {selectedOrden.clientes.nombre} {selectedOrden.clientes.apellido}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Tipo de Cliente</Label>
+                      <p className="font-medium capitalize">{selectedOrden.clientes.tipo_cliente}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Separator />
+
+              {/* Información del Vehículo */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Car className="h-5 w-5" />
+                    Información del Vehículo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-muted-foreground">Marca y Modelo</Label>
+                      <p className="font-medium">
+                        {selectedOrden.vehiculos.marca} {selectedOrden.vehiculos.modelo}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Año</Label>
+                      <p className="font-medium">{selectedOrden.vehiculos.anio}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Placa</Label>
+                      <p className="font-medium">{selectedOrden.vehiculos.placa}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Separator />
+
+              {/* Información del Técnico */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wrench className="h-5 w-5" />
+                    Técnico Asignado
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label className="text-muted-foreground">Nombre Completo</Label>
+                    <p className="font-medium">
+                      {selectedOrden.tecnicos.nombre} {selectedOrden.tecnicos.apellido}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDetailsModalOpen(false)}>
+                  Cerrar
+                </Button>
+                <Button onClick={() => {
+                  setDetailsModalOpen(false);
+                  handleEdit(selectedOrden);
+                }}>
+                  Editar Orden
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
