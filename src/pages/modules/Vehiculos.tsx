@@ -246,7 +246,7 @@ export default function Vehiculos() {
                       {clientes.map((cliente) => (
                         <SelectItem key={cliente.id} value={cliente.id}>
                           {cliente.tipo_cliente === "empresa"
-                            ? `${cliente.nombre_empresa} (${formatTipoCliente(cliente.tipo_cliente)})`
+                            ? `${cliente.nombre} ${cliente.apellido} - ${cliente.nombre_empresa}`
                             : `${cliente.nombre} ${cliente.apellido} (${formatTipoCliente(cliente.tipo_cliente)})`}
                         </SelectItem>
                       ))}
