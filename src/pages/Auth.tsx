@@ -204,9 +204,8 @@ const Auth = () => {
       },
     });
 
-    setIsLoading(false);
-
     if (error) {
+      setIsLoading(false);
       toast({
         title: "Error al registrar",
         description: error.message,
@@ -215,9 +214,17 @@ const Auth = () => {
       return;
     }
 
+    // Cerrar sesión inmediatamente después del registro para evitar auto-login
+    await supabase.auth.signOut();
+    
+    setIsLoading(false);
+
+    // Limpiar el formulario
+    (e.target as HTMLFormElement).reset();
+
     toast({
       title: "¡Registro exitoso!",
-      description: "Tu solicitud está pendiente de aprobación. Te notificaremos cuando sea aprobada.",
+      description: "Tu solicitud de registro ha sido enviada. Podrás iniciar sesión una vez que sea aprobada por un administrador.",
     });
   };
 
@@ -275,9 +282,8 @@ const Auth = () => {
       },
     });
 
-    setIsLoading(false);
-
     if (error) {
+      setIsLoading(false);
       toast({
         title: "Error al registrar",
         description: error.message,
@@ -286,9 +292,17 @@ const Auth = () => {
       return;
     }
 
+    // Cerrar sesión inmediatamente después del registro para evitar auto-login
+    await supabase.auth.signOut();
+    
+    setIsLoading(false);
+
+    // Limpiar el formulario
+    (e.target as HTMLFormElement).reset();
+
     toast({
       title: "¡Registro exitoso!",
-      description: "Tu cuenta de aseguradora ha sido creada. Redirigiendo...",
+      description: "Tu cuenta de aseguradora ha sido creada exitosamente. Ya puedes iniciar sesión.",
     });
   };
 
