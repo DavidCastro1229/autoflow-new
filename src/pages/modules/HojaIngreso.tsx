@@ -70,6 +70,8 @@ const HojaIngreso = () => {
 
   const [comentarios, setComentarios] = useState("");
   const [imagenesCarroceria, setImagenesCarroceria] = useState<File[]>([]);
+  const [imagenesExistentes, setImagenesExistentes] = useState<string[]>([]);
+  const [hojaIngresoId, setHojaIngresoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (tallerId) {
@@ -84,6 +86,113 @@ const HojaIngreso = () => {
       setSelectedVehiculo(vehiculoId);
     }
   }, [searchParams, vehiculos]);
+
+  useEffect(() => {
+    if (selectedVehiculo && tallerId) {
+      fetchHojaIngreso();
+    }
+  }, [selectedVehiculo, tallerId]);
+
+  const fetchHojaIngreso = async () => {
+    if (!selectedVehiculo || !tallerId) return;
+
+    const { data, error } = await supabase
+      .from("hojas_ingreso")
+      .select("*")
+      .eq("vehiculo_id", selectedVehiculo)
+      .eq("taller_id", tallerId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching hoja ingreso:", error);
+      return;
+    }
+
+    if (data) {
+      // Cargar datos existentes
+      setHojaIngresoId(data.id);
+      setInteriores(data.interiores as any);
+      setExteriores(data.exteriores as any);
+      setNivelGasolina(data.nivel_gasolina);
+      setCoqueta(data.coqueta as any);
+      setMotor(data.motor as any);
+      setComentarios(data.comentarios || "");
+      setImagenesExistentes((data.imagenes_carroceria as string[]) || []);
+
+      // Cargar firmas en los canvas
+      if (data.firma_cliente && sigClienteRef.current) {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = sigClienteRef.current;
+          if (canvas) {
+            const ctx = canvas.getCanvas().getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+            }
+          }
+        };
+        img.src = data.firma_cliente;
+      }
+
+      if (data.firma_encargado && sigEncargadoRef.current) {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = sigEncargadoRef.current;
+          if (canvas) {
+            const ctx = canvas.getCanvas().getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+            }
+          }
+        };
+        img.src = data.firma_encargado;
+      }
+    } else {
+      // Resetear el formulario si no hay datos
+      resetForm();
+    }
+  };
+
+  const resetForm = () => {
+    setHojaIngresoId(null);
+    setInteriores({
+      documentos: { cantidad: "", si: false, no: false },
+      radio: { cantidad: "", si: false, no: false },
+      portafusil: { cantidad: "", si: false, no: false },
+      encendedor: { cantidad: "", si: false, no: false },
+      tapetes_tela: { cantidad: "", si: false, no: false },
+      tapetes_plastico: { cantidad: "", si: false, no: false },
+      medidor_gasolina: { cantidad: "", si: false, no: false },
+      kilometraje: { cantidad: "", si: false, no: false },
+    });
+    setExteriores({
+      antena: { cantidad: "", si: false, no: false },
+      falanges: { cantidad: "", si: false, no: false },
+      centro_rin: { cantidad: "", si: false, no: false },
+      placas: { cantidad: "", si: false, no: false },
+    });
+    setNivelGasolina("1/4");
+    setCoqueta({
+      herramienta: { cantidad: "", si: false, no: false },
+      reflejantes: { cantidad: "", si: false, no: false },
+      cables_corriente: { cantidad: "", si: false, no: false },
+      llanta_refaccion: { cantidad: "", si: false, no: false },
+      llave_cruceta: { cantidad: "", si: false, no: false },
+      gato: { cantidad: "", si: false, no: false },
+      latero: { cantidad: "", si: false, no: false },
+      otro: { cantidad: "", si: false, no: false },
+    });
+    setMotor({
+      bateria: { cantidad: "", si: false, no: false },
+      computadora: { cantidad: "", si: false, no: false },
+      tapones_deposito: { cantidad: "", si: false, no: false },
+    });
+    setComentarios("");
+    setImagenesCarroceria([]);
+    setImagenesExistentes([]);
+    sigClienteRef.current?.clear();
+    sigEncargadoRef.current?.clear();
+  };
 
   const fetchVehiculos = async () => {
     if (!tallerId) return;
@@ -125,6 +234,10 @@ const HojaIngreso = () => {
 
   const removeImage = (index: number) => {
     setImagenesCarroceria(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeImagenExistente = (index: number) => {
+    setImagenesExistentes(prev => prev.filter((_, i) => i !== index));
   };
 
   const uploadImages = async () => {
@@ -196,25 +309,49 @@ const HojaIngreso = () => {
       const firmaClienteUrl = await uploadSignature(sigClienteRef.current, "cliente");
       const firmaEncargadoUrl = await uploadSignature(sigEncargadoRef.current, "encargado");
 
-      const { error } = await supabase.from("hojas_ingreso").insert({
-        vehiculo_id: selectedVehiculo,
-        taller_id: tallerId,
-        interiores,
-        exteriores,
-        nivel_gasolina: nivelGasolina,
-        coqueta,
-        motor,
-        comentarios,
-        imagenes_carroceria: imageUrls,
-        firma_cliente: firmaClienteUrl,
-        firma_encargado: firmaEncargadoUrl,
-      });
+      // Combinar imágenes existentes con las nuevas
+      const todasLasImagenes = [...imagenesExistentes, ...imageUrls];
 
-      if (error) throw error;
+      if (hojaIngresoId) {
+        // Actualizar registro existente
+        const { error } = await supabase
+          .from("hojas_ingreso")
+          .update({
+            interiores,
+            exteriores,
+            nivel_gasolina: nivelGasolina,
+            coqueta,
+            motor,
+            comentarios,
+            imagenes_carroceria: todasLasImagenes,
+            firma_cliente: firmaClienteUrl,
+            firma_encargado: firmaEncargadoUrl,
+          })
+          .eq("id", hojaIngresoId);
+
+        if (error) throw error;
+      } else {
+        // Crear nuevo registro
+        const { error } = await supabase.from("hojas_ingreso").insert({
+          vehiculo_id: selectedVehiculo,
+          taller_id: tallerId,
+          interiores,
+          exteriores,
+          nivel_gasolina: nivelGasolina,
+          coqueta,
+          motor,
+          comentarios,
+          imagenes_carroceria: todasLasImagenes,
+          firma_cliente: firmaClienteUrl,
+          firma_encargado: firmaEncargadoUrl,
+        });
+
+        if (error) throw error;
+      }
 
       toast({
         title: "Éxito",
-        description: "Hoja de ingreso creada correctamente",
+        description: hojaIngresoId ? "Hoja de ingreso actualizada correctamente" : "Hoja de ingreso creada correctamente",
       });
 
       navigate("/vehiculos");
@@ -423,13 +560,31 @@ const HojaIngreso = () => {
                 onChange={handleImageUpload}
               />
             </div>
-            {imagenesCarroceria.length > 0 && (
+            {(imagenesExistentes.length > 0 || imagenesCarroceria.length > 0) && (
               <div className="grid grid-cols-3 gap-4">
+                {imagenesExistentes.map((url, index) => (
+                  <div key={`existing-${index}`} className="relative">
+                    <img
+                      src={url}
+                      alt={`Carrocería existente ${index + 1}`}
+                      className="w-full h-32 object-cover rounded"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1"
+                      onClick={() => removeImagenExistente(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
                 {imagenesCarroceria.map((file, index) => (
-                  <div key={index} className="relative">
+                  <div key={`new-${index}`} className="relative">
                     <img
                       src={URL.createObjectURL(file)}
-                      alt={`Carrocería ${index + 1}`}
+                      alt={`Carrocería nueva ${index + 1}`}
                       className="w-full h-32 object-cover rounded"
                     />
                     <Button
