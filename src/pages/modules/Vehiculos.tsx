@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Car, Loader2, Plus } from "lucide-react";
+import { Car, Loader2, Plus, Eye } from "lucide-react";
 
 interface Cliente {
   id: string;
@@ -43,6 +43,8 @@ export default function Vehiculos() {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -202,6 +204,11 @@ export default function Vehiculos() {
       flota: "Flota",
     };
     return tipos[tipo] || tipo;
+  };
+
+  const handleViewDetails = (vehiculo: Vehiculo) => {
+    setSelectedVehiculo(vehiculo);
+    setDetailsModalOpen(true);
   };
 
   return (
@@ -410,6 +417,7 @@ export default function Vehiculos() {
                     <TableHead>Kilometraje</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Estado</TableHead>
+                    <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -432,6 +440,15 @@ export default function Vehiculos() {
                           {formatEstado(vehiculo.estado)}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewDetails(vehiculo)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -440,6 +457,85 @@ export default function Vehiculos() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de detalles */}
+      <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Car className="h-5 w-5" />
+              Detalles del Vehículo
+            </DialogTitle>
+          </DialogHeader>
+          {selectedVehiculo && (
+            <div className="space-y-6">
+              {/* Información del Vehículo */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Información del Vehículo</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Placa</Label>
+                    <p className="font-medium">{selectedVehiculo.placa}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Marca</Label>
+                    <p className="font-medium">{selectedVehiculo.marca}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Modelo</Label>
+                    <p className="font-medium">{selectedVehiculo.modelo}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Año</Label>
+                    <p className="font-medium">{selectedVehiculo.anio}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Color</Label>
+                    <p className="font-medium">{selectedVehiculo.color}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">VIN</Label>
+                    <p className="font-medium font-mono text-xs">{selectedVehiculo.vin}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Kilometraje</Label>
+                    <p className="font-medium">{selectedVehiculo.kilometraje.toLocaleString()} km</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Estado</Label>
+                    <div className="mt-1">
+                      <Badge variant={getEstadoBadgeVariant(selectedVehiculo.estado)}>
+                        {formatEstado(selectedVehiculo.estado)}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Información del Cliente */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Información del Cliente</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Nombre</Label>
+                    <p className="font-medium">{selectedVehiculo.clientes.nombre}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Apellido</Label>
+                    <p className="font-medium">{selectedVehiculo.clientes.apellido}</p>
+                  </div>
+                  {selectedVehiculo.clientes.nombre_empresa && (
+                    <div className="md:col-span-2">
+                      <Label className="text-muted-foreground">Nombre de Empresa</Label>
+                      <p className="font-medium">{selectedVehiculo.clientes.nombre_empresa}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
