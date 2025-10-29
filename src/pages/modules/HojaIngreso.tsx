@@ -12,6 +12,16 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Upload, X } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { useUserRole } from "@/hooks/useUserRole";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ItemState {
   cantidad: string;
@@ -73,6 +83,7 @@ const HojaIngreso = () => {
   const [imagenesExistentes, setImagenesExistentes] = useState<string[]>([]);
   const [hojaIngresoId, setHojaIngresoId] = useState<string | null>(null);
   const [firmaEncargadoExistente, setFirmaEncargadoExistente] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (tallerId) {
@@ -296,11 +307,8 @@ const HojaIngreso = () => {
   const handleDelete = async () => {
     if (!hojaIngresoId) return;
 
-    if (!confirm("¿Estás seguro de que deseas eliminar esta hoja de ingreso?")) {
-      return;
-    }
-
     setLoading(true);
+    setShowDeleteDialog(false);
 
     try {
       const { error } = await supabase
@@ -701,17 +709,10 @@ const HojaIngreso = () => {
             <Button
               type="button"
               variant="destructive"
-              onClick={handleDelete}
+              onClick={() => setShowDeleteDialog(true)}
               disabled={loading}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Eliminando...
-                </>
-              ) : (
-                "Eliminar Hoja de Ingreso"
-              )}
+              Eliminar Hoja de Ingreso
             </Button>
           )}
           <div className="flex gap-4 ml-auto">
@@ -736,6 +737,23 @@ const HojaIngreso = () => {
           </div>
         </div>
       </form>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente la hoja de ingreso.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
