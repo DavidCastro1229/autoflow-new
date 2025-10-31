@@ -139,6 +139,304 @@ export type Database = {
         }
         Relationships: []
       }
+      flota_comunicacion_externa: {
+        Row: {
+          celular: string | null
+          correo: string
+          created_at: string
+          departamento_id: string
+          id: string
+          nombre: string
+          telefono_fijo: string | null
+          tipo: Database["public"]["Enums"]["tipo_comunicacion_externa"]
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          celular?: string | null
+          correo: string
+          created_at?: string
+          departamento_id: string
+          id?: string
+          nombre: string
+          telefono_fijo?: string | null
+          tipo: Database["public"]["Enums"]["tipo_comunicacion_externa"]
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          celular?: string | null
+          correo?: string
+          created_at?: string
+          departamento_id?: string
+          id?: string
+          nombre?: string
+          telefono_fijo?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_comunicacion_externa"]
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_comunicacion_externa_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "flota_departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flota_comunicacion_interna: {
+        Row: {
+          celular: string | null
+          correo: string
+          created_at: string
+          departamento_id: string
+          id: string
+          nombre: string
+          telefono_fijo: string | null
+          tipo: Database["public"]["Enums"]["tipo_comunicacion_interna"]
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          celular?: string | null
+          correo: string
+          created_at?: string
+          departamento_id: string
+          id?: string
+          nombre: string
+          telefono_fijo?: string | null
+          tipo: Database["public"]["Enums"]["tipo_comunicacion_interna"]
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          celular?: string | null
+          correo?: string
+          created_at?: string
+          departamento_id?: string
+          id?: string
+          nombre?: string
+          telefono_fijo?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_comunicacion_interna"]
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_comunicacion_interna_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "flota_departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flota_departamentos: {
+        Row: {
+          created_at: string
+          flota_id: string
+          id: string
+          nombre_departamento: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          flota_id: string
+          id?: string
+          nombre_departamento: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          flota_id?: string
+          id?: string
+          nombre_departamento?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_departamentos_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: false
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flota_jefe: {
+        Row: {
+          cargo_posicion: string
+          correo: string
+          created_at: string
+          flota_id: string
+          horarios_trabajo: string
+          id: string
+          nombre: string
+          telefono: string
+          updated_at: string
+        }
+        Insert: {
+          cargo_posicion: string
+          correo: string
+          created_at?: string
+          flota_id: string
+          horarios_trabajo: string
+          id?: string
+          nombre: string
+          telefono: string
+          updated_at?: string
+        }
+        Update: {
+          cargo_posicion?: string
+          correo?: string
+          created_at?: string
+          flota_id?: string
+          horarios_trabajo?: string
+          id?: string
+          nombre?: string
+          telefono?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_jefe_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: true
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flota_propietarios: {
+        Row: {
+          cantidad_vehiculos: number
+          correo: string
+          created_at: string
+          flota_id: string
+          id: string
+          nombre_propietario: string
+          razon_social: string
+          rtn: string
+          telefono: string
+          updated_at: string
+        }
+        Insert: {
+          cantidad_vehiculos?: number
+          correo: string
+          created_at?: string
+          flota_id: string
+          id?: string
+          nombre_propietario: string
+          razon_social: string
+          rtn: string
+          telefono: string
+          updated_at?: string
+        }
+        Update: {
+          cantidad_vehiculos?: number
+          correo?: string
+          created_at?: string
+          flota_id?: string
+          id?: string
+          nombre_propietario?: string
+          razon_social?: string
+          rtn?: string
+          telefono?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_propietarios_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: false
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flotas: {
+        Row: {
+          cantidad_vehiculos: number
+          categoria_vehiculos: string[] | null
+          correo_contacto: string
+          created_at: string
+          direccion_escrita: string | null
+          direccion_fisica: string
+          direccion_google_maps: string | null
+          direccion_google_maps_parqueo: string | null
+          direccion_parqueo: string | null
+          estado: Database["public"]["Enums"]["estado_flota"]
+          fecha_registro: string
+          horarios_atencion: string | null
+          id: string
+          logo_url: string | null
+          nombre_flota: string
+          numero_flota: string
+          numero_rtn: string
+          razon_social: string
+          rubro_empresa: string
+          sitio_web: string | null
+          taller_id: string
+          telefono_contacto: string
+          tipo_flota: Database["public"]["Enums"]["tipo_flota"]
+          updated_at: string
+        }
+        Insert: {
+          cantidad_vehiculos?: number
+          categoria_vehiculos?: string[] | null
+          correo_contacto: string
+          created_at?: string
+          direccion_escrita?: string | null
+          direccion_fisica: string
+          direccion_google_maps?: string | null
+          direccion_google_maps_parqueo?: string | null
+          direccion_parqueo?: string | null
+          estado?: Database["public"]["Enums"]["estado_flota"]
+          fecha_registro?: string
+          horarios_atencion?: string | null
+          id?: string
+          logo_url?: string | null
+          nombre_flota: string
+          numero_flota: string
+          numero_rtn: string
+          razon_social: string
+          rubro_empresa: string
+          sitio_web?: string | null
+          taller_id: string
+          telefono_contacto: string
+          tipo_flota: Database["public"]["Enums"]["tipo_flota"]
+          updated_at?: string
+        }
+        Update: {
+          cantidad_vehiculos?: number
+          categoria_vehiculos?: string[] | null
+          correo_contacto?: string
+          created_at?: string
+          direccion_escrita?: string | null
+          direccion_fisica?: string
+          direccion_google_maps?: string | null
+          direccion_google_maps_parqueo?: string | null
+          direccion_parqueo?: string | null
+          estado?: Database["public"]["Enums"]["estado_flota"]
+          fecha_registro?: string
+          horarios_atencion?: string | null
+          id?: string
+          logo_url?: string | null
+          nombre_flota?: string
+          numero_flota?: string
+          numero_rtn?: string
+          razon_social?: string
+          rubro_empresa?: string
+          sitio_web?: string | null
+          taller_id?: string
+          telefono_contacto?: string
+          tipo_flota?: Database["public"]["Enums"]["tipo_flota"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hojas_ingreso: {
         Row: {
           comentarios: string | null
@@ -688,6 +986,7 @@ export type Database = {
         | "cliente"
         | "tecnico"
       area_tecnico: "tecnico" | "tecnico_senior"
+      estado_flota: "activa" | "en_renovacion" | "inactiva"
       estado_orden:
         | "pendiente"
         | "en_proceso"
@@ -698,6 +997,16 @@ export type Database = {
       prioridad_orden: "baja" | "media" | "alta" | "urgente"
       taller_status: "pendiente" | "aprobado" | "rechazado"
       tipo_cliente: "individual" | "empresa" | "flota"
+      tipo_comunicacion_externa:
+        | "aseguradora"
+        | "arrendadora"
+        | "taller_externo"
+      tipo_comunicacion_interna:
+        | "gerencia"
+        | "ventas"
+        | "produccion"
+        | "suministro"
+      tipo_flota: "propia" | "alquilada" | "mixta"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -834,6 +1143,7 @@ export const Constants = {
         "tecnico",
       ],
       area_tecnico: ["tecnico", "tecnico_senior"],
+      estado_flota: ["activa", "en_renovacion", "inactiva"],
       estado_orden: [
         "pendiente",
         "en_proceso",
@@ -845,6 +1155,18 @@ export const Constants = {
       prioridad_orden: ["baja", "media", "alta", "urgente"],
       taller_status: ["pendiente", "aprobado", "rechazado"],
       tipo_cliente: ["individual", "empresa", "flota"],
+      tipo_comunicacion_externa: [
+        "aseguradora",
+        "arrendadora",
+        "taller_externo",
+      ],
+      tipo_comunicacion_interna: [
+        "gerencia",
+        "ventas",
+        "produccion",
+        "suministro",
+      ],
+      tipo_flota: ["propia", "alquilada", "mixta"],
     },
   },
 } as const
