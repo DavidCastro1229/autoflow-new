@@ -68,6 +68,27 @@ export type Database = {
         }
         Relationships: []
       }
+      categorias_servicio: {
+        Row: {
+          created_at: string
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           apellido: string
@@ -233,6 +254,103 @@ export type Database = {
           },
         ]
       }
+      flota_datos_bancarios: {
+        Row: {
+          created_at: string
+          cuenta_bancaria: string
+          entidad_bancaria: string
+          flota_id: string
+          id: string
+          moneda: string
+          tipo_cuenta: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cuenta_bancaria: string
+          entidad_bancaria: string
+          flota_id: string
+          id?: string
+          moneda: string
+          tipo_cuenta: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cuenta_bancaria?: string
+          entidad_bancaria?: string
+          flota_id?: string
+          id?: string
+          moneda?: string
+          tipo_cuenta?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_datos_bancarios_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: false
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flota_datos_negociacion: {
+        Row: {
+          created_at: string
+          credito_autorizado_por: string | null
+          descuento_pronto_pago: number | null
+          dias_credito_autorizado: number | null
+          duracion_contrato: string
+          fecha_inicio: string
+          flota_id: string
+          id: string
+          porcentaje_cobro_mora: number | null
+          tarifa_descuento: number | null
+          tarifa_precios: number | null
+          tipo_contrato: Database["public"]["Enums"]["tipo_contrato"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credito_autorizado_por?: string | null
+          descuento_pronto_pago?: number | null
+          dias_credito_autorizado?: number | null
+          duracion_contrato: string
+          fecha_inicio: string
+          flota_id: string
+          id?: string
+          porcentaje_cobro_mora?: number | null
+          tarifa_descuento?: number | null
+          tarifa_precios?: number | null
+          tipo_contrato: Database["public"]["Enums"]["tipo_contrato"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credito_autorizado_por?: string | null
+          descuento_pronto_pago?: number | null
+          dias_credito_autorizado?: number | null
+          duracion_contrato?: string
+          fecha_inicio?: string
+          flota_id?: string
+          id?: string
+          porcentaje_cobro_mora?: number | null
+          tarifa_descuento?: number | null
+          tarifa_precios?: number | null
+          tipo_contrato?: Database["public"]["Enums"]["tipo_contrato"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_datos_negociacion_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: false
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flota_departamentos: {
         Row: {
           created_at: string
@@ -349,6 +467,92 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "flota_propietarios_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: false
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flota_tarifas_servicio: {
+        Row: {
+          categoria_servicio_id: string
+          created_at: string
+          flota_id: string
+          id: string
+          tarifa: number
+          updated_at: string
+        }
+        Insert: {
+          categoria_servicio_id: string
+          created_at?: string
+          flota_id: string
+          id?: string
+          tarifa?: number
+          updated_at?: string
+        }
+        Update: {
+          categoria_servicio_id?: string
+          created_at?: string
+          flota_id?: string
+          id?: string
+          tarifa?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_tarifas_servicio_categoria_servicio_id_fkey"
+            columns: ["categoria_servicio_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_servicio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flota_tarifas_servicio_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: false
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flota_terminos_politicas: {
+        Row: {
+          created_at: string
+          flota_id: string
+          id: string
+          politicas_combustible: string[] | null
+          politicas_condiciones_uso: string[] | null
+          politicas_renovacion: string[] | null
+          politicas_uso_vehiculos: string[] | null
+          seguros_covertura: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          flota_id: string
+          id?: string
+          politicas_combustible?: string[] | null
+          politicas_condiciones_uso?: string[] | null
+          politicas_renovacion?: string[] | null
+          politicas_uso_vehiculos?: string[] | null
+          seguros_covertura?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          flota_id?: string
+          id?: string
+          politicas_combustible?: string[] | null
+          politicas_condiciones_uso?: string[] | null
+          politicas_renovacion?: string[] | null
+          politicas_uso_vehiculos?: string[] | null
+          seguros_covertura?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_terminos_politicas_flota_id_fkey"
             columns: ["flota_id"]
             isOneToOne: false
             referencedRelation: "flotas"
@@ -1006,6 +1210,7 @@ export type Database = {
         | "ventas"
         | "produccion"
         | "suministro"
+      tipo_contrato: "arrendamiento" | "propiedad" | "subcontratacion"
       tipo_flota: "propia" | "alquilada" | "mixta"
     }
     CompositeTypes: {
@@ -1166,6 +1371,7 @@ export const Constants = {
         "produccion",
         "suministro",
       ],
+      tipo_contrato: ["arrendamiento", "propiedad", "subcontratacion"],
       tipo_flota: ["propia", "alquilada", "mixta"],
     },
   },

@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Building2, Users, Phone, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Users, Phone, X, CreditCard, FileText, Scale, Upload } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 type TipoFlota = "propia" | "alquilada" | "mixta";
@@ -67,6 +67,40 @@ interface Departamento {
   comunicacion_externa: ComunicacionExterna;
 }
 
+interface DatosBancarios {
+  entidad_bancaria: string;
+  cuenta_bancaria: string;
+  tipo_cuenta: string;
+  moneda: string;
+}
+
+interface TarifaServicio {
+  categoria_servicio_id: string;
+  categoria_nombre?: string;
+  tarifa: number;
+}
+
+interface DatosNegociacion {
+  tipo_contrato: "arrendamiento" | "propiedad" | "subcontratacion";
+  fecha_inicio: string;
+  duracion_contrato: string;
+  tarifa_precios: number;
+  tarifa_descuento: number;
+  descuento_pronto_pago: number;
+  credito_autorizado_por: string;
+  dias_credito_autorizado: number;
+  porcentaje_cobro_mora: number;
+  tarifas_servicio: TarifaServicio[];
+}
+
+interface TerminosPoliticas {
+  politicas_uso_vehiculos: string[];
+  politicas_combustible: string[];
+  seguros_covertura: string[];
+  politicas_renovacion: string[];
+  politicas_condiciones_uso: string[];
+}
+
 interface Flota {
   id?: string;
   numero_flota: string;
@@ -93,6 +127,9 @@ interface Flota {
   propietarios?: Propietario[];
   jefe_flota?: JefeFlota;
   departamentos?: Departamento[];
+  datos_bancarios?: DatosBancarios;
+  datos_negociacion?: DatosNegociacion;
+  terminos_politicas?: TerminosPoliticas;
 }
 
 const initialFormData: Flota = {
@@ -126,6 +163,31 @@ const initialFormData: Flota = {
     horarios_trabajo: "",
   },
   departamentos: [],
+  datos_bancarios: {
+    entidad_bancaria: "",
+    cuenta_bancaria: "",
+    tipo_cuenta: "",
+    moneda: "HNL",
+  },
+  datos_negociacion: {
+    tipo_contrato: "propiedad",
+    fecha_inicio: new Date().toISOString().split('T')[0],
+    duracion_contrato: "",
+    tarifa_precios: 0,
+    tarifa_descuento: 0,
+    descuento_pronto_pago: 0,
+    credito_autorizado_por: "",
+    dias_credito_autorizado: 0,
+    porcentaje_cobro_mora: 0,
+    tarifas_servicio: [],
+  },
+  terminos_politicas: {
+    politicas_uso_vehiculos: [],
+    politicas_combustible: [],
+    seguros_covertura: [],
+    politicas_renovacion: [],
+    politicas_condiciones_uso: [],
+  },
 };
 
 export default function Flotas() {
@@ -137,12 +199,29 @@ export default function Flotas() {
   const [formData, setFormData] = useState<Flota>(initialFormData);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [categoriaInput, setCategoriaInput] = useState("");
+  const [categoriasServicio, setCategoriasServicio] = useState<any[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
 
   useEffect(() => {
     if (tallerId) {
       fetchFlotas();
+      fetchCategoriasServicio();
     }
   }, [tallerId]);
+
+  const fetchCategoriasServicio = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categorias_servicio")
+        .select("*")
+        .order("nombre");
+      
+      if (error) throw error;
+      setCategoriasServicio(data || []);
+    } catch (error) {
+      console.error("Error fetching categorias servicio:", error);
+    }
+  };
 
   const fetchFlotas = async () => {
     try {
@@ -295,6 +374,81 @@ export default function Flotas() {
             if (extError) throw extError;
           }
         }
+      }
+
+      // Save datos bancarios
+      if (formData.datos_bancarios) {
+        if (editingId) {
+          await supabase.from("flota_datos_bancarios").delete().eq("flota_id", flotaId);
+        }
+
+        const { error: bancError } = await supabase
+          .from("flota_datos_bancarios")
+          .insert([{
+            flota_id: flotaId,
+            ...formData.datos_bancarios,
+          }]);
+
+        if (bancError) throw bancError;
+      }
+
+      // Save datos negociacion
+      if (formData.datos_negociacion) {
+        if (editingId) {
+          await supabase.from("flota_datos_negociacion").delete().eq("flota_id", flotaId);
+        }
+
+        const { error: negError } = await supabase
+          .from("flota_datos_negociacion")
+          .insert([{
+            flota_id: flotaId,
+            tipo_contrato: formData.datos_negociacion.tipo_contrato,
+            fecha_inicio: formData.datos_negociacion.fecha_inicio,
+            duracion_contrato: formData.datos_negociacion.duracion_contrato,
+            tarifa_precios: formData.datos_negociacion.tarifa_precios,
+            tarifa_descuento: formData.datos_negociacion.tarifa_descuento,
+            descuento_pronto_pago: formData.datos_negociacion.descuento_pronto_pago,
+            credito_autorizado_por: formData.datos_negociacion.credito_autorizado_por,
+            dias_credito_autorizado: formData.datos_negociacion.dias_credito_autorizado,
+            porcentaje_cobro_mora: formData.datos_negociacion.porcentaje_cobro_mora,
+          }]);
+
+        if (negError) throw negError;
+
+        // Save tarifas servicio
+        if (formData.datos_negociacion.tarifas_servicio.length > 0) {
+          if (editingId) {
+            await supabase.from("flota_tarifas_servicio").delete().eq("flota_id", flotaId);
+          }
+
+          const tarifasData = formData.datos_negociacion.tarifas_servicio.map(t => ({
+            flota_id: flotaId,
+            categoria_servicio_id: t.categoria_servicio_id,
+            tarifa: t.tarifa,
+          }));
+
+          const { error: tarifasError } = await supabase
+            .from("flota_tarifas_servicio")
+            .insert(tarifasData);
+
+          if (tarifasError) throw tarifasError;
+        }
+      }
+
+      // Save terminos y politicas
+      if (formData.terminos_politicas) {
+        if (editingId) {
+          await supabase.from("flota_terminos_politicas").delete().eq("flota_id", flotaId);
+        }
+
+        const { error: termError } = await supabase
+          .from("flota_terminos_politicas")
+          .insert([{
+            flota_id: flotaId,
+            ...formData.terminos_politicas,
+          }]);
+
+        if (termError) throw termError;
       }
 
       toast({
@@ -487,6 +641,87 @@ export default function Flotas() {
     });
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, tipo: keyof TerminosPoliticas) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !formData.id) return;
+
+    setUploadingFiles(true);
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (const file of Array.from(files)) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${formData.id}/${tipo}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from('flota-politicas')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('flota-politicas')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(publicUrl);
+      }
+
+      setFormData({
+        ...formData,
+        terminos_politicas: {
+          ...formData.terminos_politicas!,
+          [tipo]: [...(formData.terminos_politicas?.[tipo] || []), ...uploadedUrls],
+        },
+      });
+
+      toast({
+        title: "Éxito",
+        description: "Archivos subidos correctamente",
+      });
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron subir los archivos",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const removeFile = (tipo: keyof TerminosPoliticas, index: number) => {
+    setFormData({
+      ...formData,
+      terminos_politicas: {
+        ...formData.terminos_politicas!,
+        [tipo]: formData.terminos_politicas?.[tipo].filter((_, i) => i !== index) || [],
+      },
+    });
+  };
+
+  const updateTarifaServicio = (categoriaId: string, tarifa: number) => {
+    const tarifas = formData.datos_negociacion?.tarifas_servicio || [];
+    const existingIndex = tarifas.findIndex(t => t.categoria_servicio_id === categoriaId);
+    
+    if (existingIndex >= 0) {
+      tarifas[existingIndex].tarifa = tarifa;
+    } else {
+      tarifas.push({
+        categoria_servicio_id: categoriaId,
+        tarifa,
+      });
+    }
+
+    setFormData({
+      ...formData,
+      datos_negociacion: {
+        ...formData.datos_negociacion!,
+        tarifas_servicio: tarifas,
+      },
+    });
+  };
+
   if (loading) {
     return <div>Cargando...</div>;
   }
@@ -581,7 +816,7 @@ export default function Flotas() {
 
           <form onSubmit={handleSubmit}>
             <Tabs defaultValue="generales" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="generales">
                   <Building2 className="mr-2 h-4 w-4" />
                   Datos Generales
@@ -593,6 +828,18 @@ export default function Flotas() {
                 <TabsTrigger value="comunicacion">
                   <Phone className="mr-2 h-4 w-4" />
                   Comunicación
+                </TabsTrigger>
+                <TabsTrigger value="bancarios">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Datos Bancarios
+                </TabsTrigger>
+                <TabsTrigger value="negociacion">
+                  <Scale className="mr-2 h-4 w-4" />
+                  Negociación
+                </TabsTrigger>
+                <TabsTrigger value="terminos">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Términos
                 </TabsTrigger>
               </TabsList>
 
@@ -1147,6 +1394,423 @@ export default function Flotas() {
                     </CardContent>
                   </Card>
                 ))}
+              </TabsContent>
+
+              <TabsContent value="bancarios" className="space-y-4">
+                <h4 className="font-semibold">Datos Bancarios</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="entidad_bancaria">Entidad Bancaria *</Label>
+                    <Input
+                      id="entidad_bancaria"
+                      required
+                      value={formData.datos_bancarios?.entidad_bancaria || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          datos_bancarios: { ...formData.datos_bancarios!, entidad_bancaria: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cuenta_bancaria">Cuenta Bancaria *</Label>
+                    <Input
+                      id="cuenta_bancaria"
+                      required
+                      value={formData.datos_bancarios?.cuenta_bancaria || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          datos_bancarios: { ...formData.datos_bancarios!, cuenta_bancaria: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tipo_cuenta">Tipo de Cuenta *</Label>
+                    <Select
+                      value={formData.datos_bancarios?.tipo_cuenta || ""}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          datos_bancarios: { ...formData.datos_bancarios!, tipo_cuenta: value },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ahorro">Ahorro</SelectItem>
+                        <SelectItem value="corriente">Corriente</SelectItem>
+                        <SelectItem value="nomina">Nómina</SelectItem>
+                        <SelectItem value="empresarial">Empresarial</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="moneda">Moneda *</Label>
+                    <Select
+                      value={formData.datos_bancarios?.moneda || "HNL"}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          datos_bancarios: { ...formData.datos_bancarios!, moneda: value },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="HNL">HNL - Lempira Hondureño</SelectItem>
+                        <SelectItem value="USD">USD - Dólar Estadounidense</SelectItem>
+                        <SelectItem value="MXN">MXN - Peso Mexicano</SelectItem>
+                        <SelectItem value="GTQ">GTQ - Quetzal Guatemalteco</SelectItem>
+                        <SelectItem value="NIO">NIO - Córdoba Nicaragüense</SelectItem>
+                        <SelectItem value="CRC">CRC - Colón Costarricense</SelectItem>
+                        <SelectItem value="PAB">PAB - Balboa Panameño</SelectItem>
+                        <SelectItem value="CAD">CAD - Dólar Canadiense</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="negociacion" className="space-y-4">
+                <h4 className="font-semibold">Datos de Negociación</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="tipo_contrato">Tipo de Contrato *</Label>
+                    <Select
+                      value={formData.datos_negociacion?.tipo_contrato || "propiedad"}
+                      onValueChange={(value: "arrendamiento" | "propiedad" | "subcontratacion") =>
+                        setFormData({
+                          ...formData,
+                          datos_negociacion: { ...formData.datos_negociacion!, tipo_contrato: value },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="arrendamiento">Arrendamiento</SelectItem>
+                        <SelectItem value="propiedad">Propiedad</SelectItem>
+                        <SelectItem value="subcontratacion">Subcontratación</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="fecha_inicio">Fecha de Inicio *</Label>
+                    <Input
+                      id="fecha_inicio"
+                      type="date"
+                      required
+                      value={formData.datos_negociacion?.fecha_inicio || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          datos_negociacion: { ...formData.datos_negociacion!, fecha_inicio: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="duracion_contrato">Duración del Contrato *</Label>
+                    <Input
+                      id="duracion_contrato"
+                      placeholder="Ej: 12 meses"
+                      required
+                      value={formData.datos_negociacion?.duracion_contrato || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          datos_negociacion: { ...formData.datos_negociacion!, duracion_contrato: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h5 className="font-medium mb-4">Condiciones de Negociación</h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="tarifa_precios">Tarifa de Precios</Label>
+                      <Input
+                        id="tarifa_precios"
+                        type="number"
+                        step="0.01"
+                        value={formData.datos_negociacion?.tarifa_precios || 0}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            datos_negociacion: { ...formData.datos_negociacion!, tarifa_precios: parseFloat(e.target.value) || 0 },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="tarifa_descuento">Tarifa de Descuento (%)</Label>
+                      <Input
+                        id="tarifa_descuento"
+                        type="number"
+                        step="0.01"
+                        value={formData.datos_negociacion?.tarifa_descuento || 0}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            datos_negociacion: { ...formData.datos_negociacion!, tarifa_descuento: parseFloat(e.target.value) || 0 },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="descuento_pronto_pago">Descuento de Pronto Pago (%)</Label>
+                      <Input
+                        id="descuento_pronto_pago"
+                        type="number"
+                        step="0.01"
+                        value={formData.datos_negociacion?.descuento_pronto_pago || 0}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            datos_negociacion: { ...formData.datos_negociacion!, descuento_pronto_pago: parseFloat(e.target.value) || 0 },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="credito_autorizado_por">Crédito Autorizado Por</Label>
+                      <Input
+                        id="credito_autorizado_por"
+                        value={formData.datos_negociacion?.credito_autorizado_por || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            datos_negociacion: { ...formData.datos_negociacion!, credito_autorizado_por: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="dias_credito_autorizado">Días de Crédito Autorizado</Label>
+                      <Input
+                        id="dias_credito_autorizado"
+                        type="number"
+                        value={formData.datos_negociacion?.dias_credito_autorizado || 0}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            datos_negociacion: { ...formData.datos_negociacion!, dias_credito_autorizado: parseInt(e.target.value) || 0 },
+                          })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="porcentaje_cobro_mora">Porcentaje de Cobro por Mora (%)</Label>
+                      <Input
+                        id="porcentaje_cobro_mora"
+                        type="number"
+                        step="0.01"
+                        value={formData.datos_negociacion?.porcentaje_cobro_mora || 0}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            datos_negociacion: { ...formData.datos_negociacion!, porcentaje_cobro_mora: parseFloat(e.target.value) || 0 },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h5 className="font-medium mb-4">Tarifas de Servicios</h5>
+                  <div className="grid grid-cols-2 gap-4">
+                    {categoriasServicio.map((categoria) => {
+                      const tarifa = formData.datos_negociacion?.tarifas_servicio.find(
+                        t => t.categoria_servicio_id === categoria.id
+                      );
+                      return (
+                        <div key={categoria.id}>
+                          <Label>{categoria.nombre}</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={tarifa?.tarifa || 0}
+                            onChange={(e) => updateTarifaServicio(categoria.id, parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="terminos" className="space-y-4">
+                <h4 className="font-semibold">Términos y Políticas</h4>
+                <p className="text-sm text-muted-foreground">
+                  Suba archivos PDF para cada tipo de política
+                </p>
+
+                <div className="space-y-6">
+                  <div>
+                    <Label htmlFor="politicas_uso">Políticas de Uso de Vehículos</Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        id="politicas_uso"
+                        type="file"
+                        accept=".pdf"
+                        multiple
+                        onChange={(e) => handleFileUpload(e, "politicas_uso_vehiculos")}
+                        disabled={uploadingFiles || !formData.id}
+                      />
+                      <Upload className="h-4 w-4" />
+                    </div>
+                    {formData.terminos_politicas?.politicas_uso_vehiculos?.map((url, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mt-2">
+                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("politicas_uso_vehiculos", idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="politicas_combustible">Políticas de Combustible</Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        id="politicas_combustible"
+                        type="file"
+                        accept=".pdf"
+                        multiple
+                        onChange={(e) => handleFileUpload(e, "politicas_combustible")}
+                        disabled={uploadingFiles || !formData.id}
+                      />
+                      <Upload className="h-4 w-4" />
+                    </div>
+                    {formData.terminos_politicas?.politicas_combustible?.map((url, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mt-2">
+                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("politicas_combustible", idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="seguros_covertura">Seguros y Cobertura</Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        id="seguros_covertura"
+                        type="file"
+                        accept=".pdf"
+                        multiple
+                        onChange={(e) => handleFileUpload(e, "seguros_covertura")}
+                        disabled={uploadingFiles || !formData.id}
+                      />
+                      <Upload className="h-4 w-4" />
+                    </div>
+                    {formData.terminos_politicas?.seguros_covertura?.map((url, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mt-2">
+                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("seguros_covertura", idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="politicas_renovacion">Políticas de Renovación de Vehículos</Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        id="politicas_renovacion"
+                        type="file"
+                        accept=".pdf"
+                        multiple
+                        onChange={(e) => handleFileUpload(e, "politicas_renovacion")}
+                        disabled={uploadingFiles || !formData.id}
+                      />
+                      <Upload className="h-4 w-4" />
+                    </div>
+                    {formData.terminos_politicas?.politicas_renovacion?.map((url, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mt-2">
+                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("politicas_renovacion", idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="politicas_condiciones">Políticas de Condiciones de Uso</Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        id="politicas_condiciones"
+                        type="file"
+                        accept=".pdf"
+                        multiple
+                        onChange={(e) => handleFileUpload(e, "politicas_condiciones_uso")}
+                        disabled={uploadingFiles || !formData.id}
+                      />
+                      <Upload className="h-4 w-4" />
+                    </div>
+                    {formData.terminos_politicas?.politicas_condiciones_uso?.map((url, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mt-2">
+                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("politicas_condiciones_uso", idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {!formData.id && (
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        Nota: Primero debe crear la flota para poder subir archivos PDF.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
 
