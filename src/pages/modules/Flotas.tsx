@@ -2189,6 +2189,22 @@ const EXPECTED_EXCEL_HEADERS = [
                               <TableHead>Año</TableHead>
                               <TableHead>Kilometraje</TableHead>
                               <TableHead>Estado</TableHead>
+                              <TableHead>Último Mant.</TableHead>
+                              <TableHead>Próximo Mant.</TableHead>
+                              <TableHead>Hist. Reparaciones</TableHead>
+                              <TableHead>Conductores</TableHead>
+                              <TableHead>Perm. Explotación</TableHead>
+                              <TableHead>F. Aut. Explotación</TableHead>
+                              <TableHead>F. Venc. Explotación</TableHead>
+                              <TableHead>Perm. Circulación</TableHead>
+                              <TableHead>F. Aut. Circulación</TableHead>
+                              <TableHead>F. Venc. Circulación</TableHead>
+                              <TableHead>Perm. Publicidad</TableHead>
+                              <TableHead>F. Aut. Publicidad</TableHead>
+                              <TableHead>F. Venc. Publicidad</TableHead>
+                              <TableHead>Perm. Especiales</TableHead>
+                              <TableHead>F. Aut. Especiales</TableHead>
+                              <TableHead>F. Venc. Especiales</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -2201,6 +2217,22 @@ const EXPECTED_EXCEL_HEADERS = [
                                 <TableCell>{vehiculo.anio_fabricacion}</TableCell>
                                 <TableCell>{vehiculo.kilometraje_actual}</TableCell>
                                 <TableCell>{vehiculo.estado_vehiculo}</TableCell>
+                                <TableCell>{vehiculo.fecha_ultimo_mantenimiento}</TableCell>
+                                <TableCell>{vehiculo.proximo_mantenimiento_programado}</TableCell>
+                                <TableCell>{vehiculo.historial_reparaciones}</TableCell>
+                                <TableCell>{vehiculo.conductores_asignados}</TableCell>
+                                <TableCell>{vehiculo.permiso_explotacion_unidad}</TableCell>
+                                <TableCell>{vehiculo.fecha_autorizacion_explotacion}</TableCell>
+                                <TableCell>{vehiculo.fecha_vencimiento_explotacion}</TableCell>
+                                <TableCell>{vehiculo.permiso_circulacion}</TableCell>
+                                <TableCell>{vehiculo.fecha_autorizacion_circulacion}</TableCell>
+                                <TableCell>{vehiculo.fecha_vencimiento_circulacion}</TableCell>
+                                <TableCell>{vehiculo.permiso_publicidad}</TableCell>
+                                <TableCell>{vehiculo.fecha_autorizacion_publicidad}</TableCell>
+                                <TableCell>{vehiculo.fecha_vencimiento_publicidad}</TableCell>
+                                <TableCell>{vehiculo.permisos_especiales}</TableCell>
+                                <TableCell>{vehiculo.fecha_autorizacion_especiales}</TableCell>
+                                <TableCell>{vehiculo.fecha_vencimiento_especiales}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -2212,18 +2244,29 @@ const EXPECTED_EXCEL_HEADERS = [
                   <div className="p-4 bg-muted rounded-lg">
                     <h5 className="font-medium mb-2">Estructura Requerida del Excel:</h5>
                     <div className="text-xs text-muted-foreground space-y-1">
-                      <p>1. Número de Unidad</p>
-                      <p>2. Marca y Modelo</p>
-                      <p>3. Número de Placa</p>
-                      <p>4. Número de VIN</p>
-                      <p>5. Año de Fabricación</p>
-                      <p>6. Kilometraje Actual</p>
-                      <p>7. Estado del Vehículo</p>
-                      <p>8. Fecha de Último Mantenimiento</p>
-                      <p>9. Próximo Mantenimiento Programado</p>
-                      <p>10. Historial de Reparaciones</p>
-                      <p>11. Conductores Asignados</p>
-                      <p>12-23. Permisos y Fechas (Explotación, Circulación, Publicidad, Especiales)</p>
+                      <p>1. numero de unidad</p>
+                      <p>2. marca y modelo</p>
+                      <p>3. numero de placa</p>
+                      <p>4. numero de vin</p>
+                      <p>5. ano de fabricacion</p>
+                      <p>6. kilometraje actual</p>
+                      <p>7. estado del vehiculo</p>
+                      <p>8. fecha de ultimo mantenimiento</p>
+                      <p>9. proximo mantenimiento programado</p>
+                      <p>10. historial de reparaciones</p>
+                      <p>11. conductores asignados</p>
+                      <p>12. permiso de explotacion de unidad</p>
+                      <p>13. fecha autorizacion de explotacion de unidad</p>
+                      <p>14. fecha vencimiento de explotacion de unidad</p>
+                      <p>15. permiso de circulacion</p>
+                      <p>16. fecha autorizacion de circulacion</p>
+                      <p>17. fecha vencimiento de circulacion</p>
+                      <p>18. permiso de publicidad</p>
+                      <p>19. fecha autorizacion de publicidad</p>
+                      <p>20. fecha vencimiento de publicidad</p>
+                      <p>21. permisos especiales</p>
+                      <p>22. fecha autorizacion especiales</p>
+                      <p>23. fecha vencimiento especiales</p>
                     </div>
                   </div>
                 </div>
