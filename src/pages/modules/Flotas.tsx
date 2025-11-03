@@ -805,31 +805,31 @@ export default function Flotas() {
     });
   };
 
-  const EXPECTED_EXCEL_HEADERS = [
-    "Número de Unidad",
-    "Marca y Modelo",
-    "Número de Placa",
-    "Número de VIN",
-    "Año de Fabricación",
-    "Kilometraje Actual",
-    "Estado del Vehículo",
-    "Fecha de Último Mantenimiento",
-    "Próximo Mantenimiento Programado",
-    "Historial de Reparaciones",
-    "Conductores Asignados",
-    "Permiso de Explotación de Unidad",
-    "Fecha Autorización de Explotación de Unidad",
-    "Fecha Vencimiento de Explotación de Unidad",
-    "Permiso de Circulación",
-    "Fecha Autorización de Circulación",
-    "Fecha Vencimiento de Circulación",
-    "Permiso de Publicidad",
-    "Fecha Autorización de Publicidad",
-    "Fecha Vencimiento de Publicidad",
-    "Permisos Especiales",
-    "Fecha Autorización Especiales",
-    "Fecha Vencimiento Especiales"
-  ];
+const EXPECTED_EXCEL_HEADERS = [
+  "numero de unidad",
+  "marca y modelo",
+  "numero de placa",
+  "numero de vin",
+  "ano de fabricacion",
+  "kilometraje actual",
+  "estado del vehiculo",
+  "fecha de ultimo mantenimiento",
+  "proximo mantenimiento programado",
+  "historial de reparaciones",
+  "conductores asignados",
+  "permiso de explotacion de unidad",
+  "fecha autorizacion de explotacion de unidad",
+  "fecha vencimiento de explotacion de unidad",
+  "permiso de circulacion",
+  "fecha autorizacion de circulacion",
+  "fecha vencimiento de circulacion",
+  "permiso de publicidad",
+  "fecha autorizacion de publicidad",
+  "fecha vencimiento de publicidad",
+  "permisos especiales",
+  "fecha autorizacion especiales",
+  "fecha vencimiento especiales"
+];
 
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
