@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import * as XLSX from 'xlsx';
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Building2, Users, Phone, X, CreditCard, FileText, Scale, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Users, Phone, X, CreditCard, FileText, Scale, Upload, Truck, UserCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 type TipoFlota = "propia" | "alquilada" | "mixta";
@@ -101,6 +102,59 @@ interface TerminosPoliticas {
   politicas_condiciones_uso: string[];
 }
 
+interface VehiculoFlota {
+  numero_unidad: string;
+  marca_modelo: string;
+  numero_placa: string;
+  numero_vin: string;
+  anio_fabricacion: number;
+  kilometraje_actual: number;
+  estado_vehiculo: string;
+  fecha_ultimo_mantenimiento?: string;
+  proximo_mantenimiento_programado?: string;
+  historial_reparaciones?: string;
+  conductores_asignados?: string;
+  permiso_explotacion_unidad?: string;
+  fecha_autorizacion_explotacion?: string;
+  fecha_vencimiento_explotacion?: string;
+  permiso_circulacion?: string;
+  fecha_autorizacion_circulacion?: string;
+  fecha_vencimiento_circulacion?: string;
+  permiso_publicidad?: string;
+  fecha_autorizacion_publicidad?: string;
+  fecha_vencimiento_publicidad?: string;
+  permisos_especiales?: string;
+  fecha_autorizacion_especiales?: string;
+  fecha_vencimiento_especiales?: string;
+}
+
+interface Conductor {
+  id?: string;
+  nombre: string;
+  apellido: string;
+  cedula_identidad: string;
+  fecha_nacimiento: string;
+  direccion: string;
+  telefono: string;
+  correo?: string;
+  estado_civil?: string;
+  contacto_emergencia_nombre?: string;
+  contacto_emergencia_telefono?: string;
+  numero_licencia: string;
+  tipo_licencia: string;
+  fecha_emision_licencia: string;
+  fecha_vencimiento_licencia: string;
+  restricciones_licencia?: string;
+  fecha_ingreso: string;
+  vehiculo_asignado_actual?: string;
+  historial_asignaciones?: string;
+  calificacion_desempeno?: number;
+  observaciones_desempeno?: string;
+  viaticos_autorizados?: number;
+  limite_diario_viaticos?: number;
+  notas_viaticos?: string;
+}
+
 interface Flota {
   id?: string;
   numero_flota: string;
@@ -130,6 +184,8 @@ interface Flota {
   datos_bancarios?: DatosBancarios;
   datos_negociacion?: DatosNegociacion;
   terminos_politicas?: TerminosPoliticas;
+  vehiculos?: VehiculoFlota[];
+  conductores?: Conductor[];
 }
 
 const initialFormData: Flota = {
@@ -188,6 +244,8 @@ const initialFormData: Flota = {
     politicas_renovacion: [],
     politicas_condiciones_uso: [],
   },
+  vehiculos: [],
+  conductores: [],
 };
 
 export default function Flotas() {
@@ -201,6 +259,11 @@ export default function Flotas() {
   const [categoriaInput, setCategoriaInput] = useState("");
   const [categoriasServicio, setCategoriasServicio] = useState<any[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [excelVehiculos, setExcelVehiculos] = useState<VehiculoFlota[]>([]);
+  const [excelError, setExcelError] = useState<string>("");
+  const [conductorDialogOpen, setConductorDialogOpen] = useState(false);
+  const [conductorFormData, setConductorFormData] = useState<Conductor | null>(null);
+  const [editingConductorId, setEditingConductorId] = useState<string | null>(null);
 
   useEffect(() => {
     if (tallerId) {
@@ -451,6 +514,11 @@ export default function Flotas() {
         if (termError) throw termError;
       }
 
+      // Save vehiculos inventario if Excel data exists
+      if (excelVehiculos.length > 0) {
+        await saveVehiculosInventario(flotaId);
+      }
+
       toast({
         title: "Éxito",
         description: `Flota ${editingId ? "actualizada" : "creada"} correctamente`,
@@ -470,10 +538,25 @@ export default function Flotas() {
     }
   };
 
-  const handleEdit = (flota: Flota) => {
-    setFormData(flota);
-    setEditingId(flota.id!);
-    setDialogOpen(true);
+  const handleEdit = async (flota: Flota) => {
+    try {
+      // Load conductores for this flota
+      const { data: conductores } = await supabase
+        .from("flota_conductores")
+        .select("*")
+        .eq("flota_id", flota.id!);
+
+      setFormData({ ...flota, conductores: conductores || [] });
+      setEditingId(flota.id!);
+      setDialogOpen(true);
+    } catch (error) {
+      console.error("Error loading flota data:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos de la flota",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -722,6 +805,251 @@ export default function Flotas() {
     });
   };
 
+  const EXPECTED_EXCEL_HEADERS = [
+    "Número de Unidad",
+    "Marca y Modelo",
+    "Número de Placa",
+    "Número de VIN",
+    "Año de Fabricación",
+    "Kilometraje Actual",
+    "Estado del Vehículo",
+    "Fecha de Último Mantenimiento",
+    "Próximo Mantenimiento Programado",
+    "Historial de Reparaciones",
+    "Conductores Asignados",
+    "Permiso de Explotación de Unidad",
+    "Fecha Autorización de Explotación de Unidad",
+    "Fecha Vencimiento de Explotación de Unidad",
+    "Permiso de Circulación",
+    "Fecha Autorización de Circulación",
+    "Fecha Vencimiento de Circulación",
+    "Permiso de Publicidad",
+    "Fecha Autorización de Publicidad",
+    "Fecha Vencimiento de Publicidad",
+    "Permisos Especiales",
+    "Fecha Autorización Especiales",
+    "Fecha Vencimiento Especiales"
+  ];
+
+  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        if (jsonData.length === 0) {
+          setExcelError("El archivo está vacío");
+          setExcelVehiculos([]);
+          return;
+        }
+
+        const headers = jsonData[0] as string[];
+        
+        // Validar headers
+        const isValid = EXPECTED_EXCEL_HEADERS.every((expected, index) => {
+          return headers[index] === expected;
+        });
+
+        if (!isValid || headers.length !== EXPECTED_EXCEL_HEADERS.length) {
+          setExcelError("La estructura del archivo no es correcta. Asegúrese de que las columnas coincidan exactamente con la estructura requerida.");
+          setExcelVehiculos([]);
+          return;
+        }
+
+        // Procesar datos
+        const vehiculos: VehiculoFlota[] = jsonData.slice(1).map((row: any) => ({
+          numero_unidad: row[0]?.toString() || "",
+          marca_modelo: row[1]?.toString() || "",
+          numero_placa: row[2]?.toString() || "",
+          numero_vin: row[3]?.toString() || "",
+          anio_fabricacion: parseInt(row[4]) || 0,
+          kilometraje_actual: parseInt(row[5]) || 0,
+          estado_vehiculo: row[6]?.toString() || "",
+          fecha_ultimo_mantenimiento: row[7] ? new Date(row[7]).toISOString().split('T')[0] : undefined,
+          proximo_mantenimiento_programado: row[8] ? new Date(row[8]).toISOString().split('T')[0] : undefined,
+          historial_reparaciones: row[9]?.toString() || "",
+          conductores_asignados: row[10]?.toString() || "",
+          permiso_explotacion_unidad: row[11]?.toString() || "",
+          fecha_autorizacion_explotacion: row[12] ? new Date(row[12]).toISOString().split('T')[0] : undefined,
+          fecha_vencimiento_explotacion: row[13] ? new Date(row[13]).toISOString().split('T')[0] : undefined,
+          permiso_circulacion: row[14]?.toString() || "",
+          fecha_autorizacion_circulacion: row[15] ? new Date(row[15]).toISOString().split('T')[0] : undefined,
+          fecha_vencimiento_circulacion: row[16] ? new Date(row[16]).toISOString().split('T')[0] : undefined,
+          permiso_publicidad: row[17]?.toString() || "",
+          fecha_autorizacion_publicidad: row[18] ? new Date(row[18]).toISOString().split('T')[0] : undefined,
+          fecha_vencimiento_publicidad: row[19] ? new Date(row[19]).toISOString().split('T')[0] : undefined,
+          permisos_especiales: row[20]?.toString() || "",
+          fecha_autorizacion_especiales: row[21] ? new Date(row[21]).toISOString().split('T')[0] : undefined,
+          fecha_vencimiento_especiales: row[22] ? new Date(row[22]).toISOString().split('T')[0] : undefined,
+        }));
+
+        setExcelVehiculos(vehiculos);
+        setExcelError("");
+        
+        toast({
+          title: "Éxito",
+          description: `${vehiculos.length} vehículos cargados correctamente`,
+        });
+      } catch (error) {
+        console.error("Error processing Excel:", error);
+        setExcelError("Error al procesar el archivo. Verifique que sea un archivo Excel válido.");
+        setExcelVehiculos([]);
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
+
+  const saveVehiculosInventario = async (flotaId: string) => {
+    if (excelVehiculos.length === 0) return;
+
+    try {
+      // Delete existing vehiculos
+      await supabase.from("flota_vehiculos").delete().eq("flota_id", flotaId);
+
+      // Insert new vehiculos
+      const vehiculosData = excelVehiculos.map(v => ({
+        flota_id: flotaId,
+        ...v,
+      }));
+
+      const { error } = await supabase
+        .from("flota_vehiculos")
+        .insert(vehiculosData);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Inventario de vehículos guardado correctamente",
+      });
+    } catch (error) {
+      console.error("Error saving vehiculos:", error);
+      throw error;
+    }
+  };
+
+  const addConductor = () => {
+    setConductorFormData({
+      nombre: "",
+      apellido: "",
+      cedula_identidad: "",
+      fecha_nacimiento: "",
+      direccion: "",
+      telefono: "",
+      correo: "",
+      estado_civil: "",
+      contacto_emergencia_nombre: "",
+      contacto_emergencia_telefono: "",
+      numero_licencia: "",
+      tipo_licencia: "",
+      fecha_emision_licencia: "",
+      fecha_vencimiento_licencia: "",
+      restricciones_licencia: "",
+      fecha_ingreso: new Date().toISOString().split('T')[0],
+      vehiculo_asignado_actual: "",
+      historial_asignaciones: "",
+      calificacion_desempeno: 0,
+      observaciones_desempeno: "",
+      viaticos_autorizados: 0,
+      limite_diario_viaticos: 0,
+      notas_viaticos: "",
+    });
+    setEditingConductorId(null);
+    setConductorDialogOpen(true);
+  };
+
+  const handleConductorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.id || !conductorFormData) return;
+
+    try {
+      const conductorData = {
+        flota_id: formData.id,
+        ...conductorFormData,
+      };
+
+      if (editingConductorId) {
+        const { error } = await supabase
+          .from("flota_conductores")
+          .update(conductorData)
+          .eq("id", editingConductorId);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("flota_conductores")
+          .insert([conductorData]);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Éxito",
+        description: `Conductor ${editingConductorId ? "actualizado" : "creado"} correctamente`,
+      });
+
+      setConductorDialogOpen(false);
+      setConductorFormData(null);
+      setEditingConductorId(null);
+      
+      // Reload conductores
+      const { data } = await supabase
+        .from("flota_conductores")
+        .select("*")
+        .eq("flota_id", formData.id);
+      
+      setFormData({ ...formData, conductores: data || [] });
+    } catch (error) {
+      console.error("Error saving conductor:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar el conductor",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteConductor = async (id: string) => {
+    if (!confirm("¿Está seguro de eliminar este conductor?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("flota_conductores")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Conductor eliminado correctamente",
+      });
+
+      // Reload conductores
+      const { data } = await supabase
+        .from("flota_conductores")
+        .select("*")
+        .eq("flota_id", formData.id!);
+      
+      setFormData({ ...formData, conductores: data || [] });
+    } catch (error) {
+      console.error("Error deleting conductor:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el conductor",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div>Cargando...</div>;
   }
@@ -816,7 +1144,7 @@ export default function Flotas() {
 
           <form onSubmit={handleSubmit}>
             <Tabs defaultValue="generales" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-8">
                 <TabsTrigger value="generales">
                   <Building2 className="mr-2 h-4 w-4" />
                   Datos Generales
@@ -840,6 +1168,14 @@ export default function Flotas() {
                 <TabsTrigger value="terminos">
                   <FileText className="mr-2 h-4 w-4" />
                   Términos
+                </TabsTrigger>
+                <TabsTrigger value="inventario">
+                  <Truck className="mr-2 h-4 w-4" />
+                  Inventario
+                </TabsTrigger>
+                <TabsTrigger value="conductores">
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  Conductores
                 </TabsTrigger>
               </TabsList>
 
@@ -1812,6 +2148,161 @@ export default function Flotas() {
                   )}
                 </div>
               </TabsContent>
+
+              <TabsContent value="inventario" className="space-y-4">
+                <h4 className="font-semibold">Inventario de Unidades de la Flota</h4>
+                <p className="text-sm text-muted-foreground">
+                  Suba un archivo Excel con el inventario de vehículos. La estructura debe coincidir exactamente con las columnas requeridas.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="excel_vehiculos">Archivo Excel de Inventario</Label>
+                    <Input
+                      id="excel_vehiculos"
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleExcelUpload}
+                      className="mt-2"
+                    />
+                  </div>
+
+                  {excelError && (
+                    <div className="p-4 bg-destructive/10 border border-destructive rounded-lg">
+                      <p className="text-sm text-destructive font-medium">{excelError}</p>
+                    </div>
+                  )}
+
+                  {excelVehiculos.length > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {excelVehiculos.length} vehículos cargados. Haga clic en "Guardar" para almacenar el inventario.
+                      </p>
+                      <div className="border rounded-lg overflow-auto max-h-96">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Número</TableHead>
+                              <TableHead>Marca y Modelo</TableHead>
+                              <TableHead>Placa</TableHead>
+                              <TableHead>VIN</TableHead>
+                              <TableHead>Año</TableHead>
+                              <TableHead>Kilometraje</TableHead>
+                              <TableHead>Estado</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {excelVehiculos.map((vehiculo, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell>{vehiculo.numero_unidad}</TableCell>
+                                <TableCell>{vehiculo.marca_modelo}</TableCell>
+                                <TableCell>{vehiculo.numero_placa}</TableCell>
+                                <TableCell>{vehiculo.numero_vin}</TableCell>
+                                <TableCell>{vehiculo.anio_fabricacion}</TableCell>
+                                <TableCell>{vehiculo.kilometraje_actual}</TableCell>
+                                <TableCell>{vehiculo.estado_vehiculo}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h5 className="font-medium mb-2">Estructura Requerida del Excel:</h5>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>1. Número de Unidad</p>
+                      <p>2. Marca y Modelo</p>
+                      <p>3. Número de Placa</p>
+                      <p>4. Número de VIN</p>
+                      <p>5. Año de Fabricación</p>
+                      <p>6. Kilometraje Actual</p>
+                      <p>7. Estado del Vehículo</p>
+                      <p>8. Fecha de Último Mantenimiento</p>
+                      <p>9. Próximo Mantenimiento Programado</p>
+                      <p>10. Historial de Reparaciones</p>
+                      <p>11. Conductores Asignados</p>
+                      <p>12-23. Permisos y Fechas (Explotación, Circulación, Publicidad, Especiales)</p>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="conductores" className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-semibold">Conductores de la Flota</h4>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={addConductor}
+                    disabled={!formData.id}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Conductor
+                  </Button>
+                </div>
+
+                {!formData.id && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Primero debe crear la flota para poder agregar conductores.
+                    </p>
+                  </div>
+                )}
+
+                {formData.conductores && formData.conductores.length > 0 && (
+                  <div className="border rounded-lg overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead>Cédula</TableHead>
+                          <TableHead>Teléfono</TableHead>
+                          <TableHead>Licencia</TableHead>
+                          <TableHead>Vehículo Asignado</TableHead>
+                          <TableHead>Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {formData.conductores.map((conductor) => (
+                          <TableRow key={conductor.id}>
+                            <TableCell>{`${conductor.nombre} ${conductor.apellido}`}</TableCell>
+                            <TableCell>{conductor.cedula_identidad}</TableCell>
+                            <TableCell>{conductor.telefono}</TableCell>
+                            <TableCell>{conductor.numero_licencia}</TableCell>
+                            <TableCell>{conductor.vehiculo_asignado_actual || "Sin asignar"}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setConductorFormData(conductor);
+                                    setEditingConductorId(conductor.id!);
+                                    setConductorDialogOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteConductor(conductor.id!)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
             </Tabs>
 
             <DialogFooter className="mt-6">
@@ -1819,6 +2310,246 @@ export default function Flotas() {
                 Cancelar
               </Button>
               <Button type="submit">{editingId ? "Actualizar" : "Crear"} Flota</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={conductorDialogOpen} onOpenChange={setConductorDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingConductorId ? "Editar" : "Nuevo"} Conductor</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleConductorSubmit}>
+            <Tabs defaultValue="generales" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="generales">Datos Generales</TabsTrigger>
+                <TabsTrigger value="licencia">Licencia</TabsTrigger>
+                <TabsTrigger value="desempeno">Desempeño</TabsTrigger>
+                <TabsTrigger value="viaticos">Viáticos</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="generales" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Nombre *</Label>
+                    <Input
+                      required
+                      value={conductorFormData?.nombre || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, nombre: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Apellido *</Label>
+                    <Input
+                      required
+                      value={conductorFormData?.apellido || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, apellido: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Cédula de Identidad *</Label>
+                    <Input
+                      required
+                      value={conductorFormData?.cedula_identidad || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, cedula_identidad: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Fecha de Nacimiento *</Label>
+                    <Input
+                      type="date"
+                      required
+                      value={conductorFormData?.fecha_nacimiento || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, fecha_nacimiento: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Dirección *</Label>
+                    <Input
+                      required
+                      value={conductorFormData?.direccion || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, direccion: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Teléfono *</Label>
+                    <Input
+                      required
+                      value={conductorFormData?.telefono || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, telefono: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Correo</Label>
+                    <Input
+                      type="email"
+                      value={conductorFormData?.correo || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, correo: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Estado Civil</Label>
+                    <Select
+                      value={conductorFormData?.estado_civil || ""}
+                      onValueChange={(value) => setConductorFormData({ ...conductorFormData!, estado_civil: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="soltero">Soltero</SelectItem>
+                        <SelectItem value="casado">Casado</SelectItem>
+                        <SelectItem value="divorciado">Divorciado</SelectItem>
+                        <SelectItem value="viudo">Viudo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Contacto de Emergencia</Label>
+                    <Input
+                      value={conductorFormData?.contacto_emergencia_nombre || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, contacto_emergencia_nombre: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Teléfono de Emergencia</Label>
+                    <Input
+                      value={conductorFormData?.contacto_emergencia_telefono || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, contacto_emergencia_telefono: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="licencia" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Número de Licencia *</Label>
+                    <Input
+                      required
+                      value={conductorFormData?.numero_licencia || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, numero_licencia: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Tipo de Licencia *</Label>
+                    <Input
+                      required
+                      value={conductorFormData?.tipo_licencia || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, tipo_licencia: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Fecha de Emisión *</Label>
+                    <Input
+                      type="date"
+                      required
+                      value={conductorFormData?.fecha_emision_licencia || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, fecha_emision_licencia: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Fecha de Vencimiento *</Label>
+                    <Input
+                      type="date"
+                      required
+                      value={conductorFormData?.fecha_vencimiento_licencia || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, fecha_vencimiento_licencia: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Restricciones</Label>
+                    <Textarea
+                      value={conductorFormData?.restricciones_licencia || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, restricciones_licencia: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="desempeno" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Fecha de Ingreso *</Label>
+                    <Input
+                      type="date"
+                      required
+                      value={conductorFormData?.fecha_ingreso || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, fecha_ingreso: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Vehículo Asignado Actual</Label>
+                    <Input
+                      value={conductorFormData?.vehiculo_asignado_actual || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, vehiculo_asignado_actual: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Historial de Asignaciones</Label>
+                    <Textarea
+                      value={conductorFormData?.historial_asignaciones || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, historial_asignaciones: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Calificación de Desempeño (0-100)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={conductorFormData?.calificacion_desempeno || 0}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, calificacion_desempeno: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Observaciones de Desempeño</Label>
+                    <Textarea
+                      value={conductorFormData?.observaciones_desempeno || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, observaciones_desempeno: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="viaticos" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Viáticos Autorizados</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={conductorFormData?.viaticos_autorizados || 0}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, viaticos_autorizados: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Límite Diario de Viáticos</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={conductorFormData?.limite_diario_viaticos || 0}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, limite_diario_viaticos: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Notas sobre Viáticos</Label>
+                    <Textarea
+                      value={conductorFormData?.notas_viaticos || ""}
+                      onChange={(e) => setConductorFormData({ ...conductorFormData!, notas_viaticos: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setConductorDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">{editingConductorId ? "Actualizar" : "Crear"} Conductor</Button>
             </DialogFooter>
           </form>
         </DialogContent>

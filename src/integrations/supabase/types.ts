@@ -254,6 +254,104 @@ export type Database = {
           },
         ]
       }
+      flota_conductores: {
+        Row: {
+          apellido: string
+          calificacion_desempeno: number | null
+          cedula_identidad: string
+          contacto_emergencia_nombre: string | null
+          contacto_emergencia_telefono: string | null
+          correo: string | null
+          created_at: string
+          direccion: string
+          estado_civil: string | null
+          fecha_emision_licencia: string
+          fecha_ingreso: string
+          fecha_nacimiento: string
+          fecha_vencimiento_licencia: string
+          flota_id: string
+          historial_asignaciones: string | null
+          id: string
+          limite_diario_viaticos: number | null
+          nombre: string
+          notas_viaticos: string | null
+          numero_licencia: string
+          observaciones_desempeno: string | null
+          restricciones_licencia: string | null
+          telefono: string
+          tipo_licencia: string
+          updated_at: string
+          vehiculo_asignado_actual: string | null
+          viaticos_autorizados: number | null
+        }
+        Insert: {
+          apellido: string
+          calificacion_desempeno?: number | null
+          cedula_identidad: string
+          contacto_emergencia_nombre?: string | null
+          contacto_emergencia_telefono?: string | null
+          correo?: string | null
+          created_at?: string
+          direccion: string
+          estado_civil?: string | null
+          fecha_emision_licencia: string
+          fecha_ingreso: string
+          fecha_nacimiento: string
+          fecha_vencimiento_licencia: string
+          flota_id: string
+          historial_asignaciones?: string | null
+          id?: string
+          limite_diario_viaticos?: number | null
+          nombre: string
+          notas_viaticos?: string | null
+          numero_licencia: string
+          observaciones_desempeno?: string | null
+          restricciones_licencia?: string | null
+          telefono: string
+          tipo_licencia: string
+          updated_at?: string
+          vehiculo_asignado_actual?: string | null
+          viaticos_autorizados?: number | null
+        }
+        Update: {
+          apellido?: string
+          calificacion_desempeno?: number | null
+          cedula_identidad?: string
+          contacto_emergencia_nombre?: string | null
+          contacto_emergencia_telefono?: string | null
+          correo?: string | null
+          created_at?: string
+          direccion?: string
+          estado_civil?: string | null
+          fecha_emision_licencia?: string
+          fecha_ingreso?: string
+          fecha_nacimiento?: string
+          fecha_vencimiento_licencia?: string
+          flota_id?: string
+          historial_asignaciones?: string | null
+          id?: string
+          limite_diario_viaticos?: number | null
+          nombre?: string
+          notas_viaticos?: string | null
+          numero_licencia?: string
+          observaciones_desempeno?: string | null
+          restricciones_licencia?: string | null
+          telefono?: string
+          tipo_licencia?: string
+          updated_at?: string
+          vehiculo_asignado_actual?: string | null
+          viaticos_autorizados?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_conductores_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: false
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flota_datos_bancarios: {
         Row: {
           created_at: string
@@ -553,6 +651,104 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "flota_terminos_politicas_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: false
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flota_vehiculos: {
+        Row: {
+          anio_fabricacion: number
+          conductores_asignados: string | null
+          created_at: string
+          estado_vehiculo: string
+          fecha_autorizacion_circulacion: string | null
+          fecha_autorizacion_especiales: string | null
+          fecha_autorizacion_explotacion: string | null
+          fecha_autorizacion_publicidad: string | null
+          fecha_ultimo_mantenimiento: string | null
+          fecha_vencimiento_circulacion: string | null
+          fecha_vencimiento_especiales: string | null
+          fecha_vencimiento_explotacion: string | null
+          fecha_vencimiento_publicidad: string | null
+          flota_id: string
+          historial_reparaciones: string | null
+          id: string
+          kilometraje_actual: number
+          marca_modelo: string
+          numero_placa: string
+          numero_unidad: string
+          numero_vin: string
+          permiso_circulacion: string | null
+          permiso_explotacion_unidad: string | null
+          permiso_publicidad: string | null
+          permisos_especiales: string | null
+          proximo_mantenimiento_programado: string | null
+          updated_at: string
+        }
+        Insert: {
+          anio_fabricacion: number
+          conductores_asignados?: string | null
+          created_at?: string
+          estado_vehiculo: string
+          fecha_autorizacion_circulacion?: string | null
+          fecha_autorizacion_especiales?: string | null
+          fecha_autorizacion_explotacion?: string | null
+          fecha_autorizacion_publicidad?: string | null
+          fecha_ultimo_mantenimiento?: string | null
+          fecha_vencimiento_circulacion?: string | null
+          fecha_vencimiento_especiales?: string | null
+          fecha_vencimiento_explotacion?: string | null
+          fecha_vencimiento_publicidad?: string | null
+          flota_id: string
+          historial_reparaciones?: string | null
+          id?: string
+          kilometraje_actual?: number
+          marca_modelo: string
+          numero_placa: string
+          numero_unidad: string
+          numero_vin: string
+          permiso_circulacion?: string | null
+          permiso_explotacion_unidad?: string | null
+          permiso_publicidad?: string | null
+          permisos_especiales?: string | null
+          proximo_mantenimiento_programado?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anio_fabricacion?: number
+          conductores_asignados?: string | null
+          created_at?: string
+          estado_vehiculo?: string
+          fecha_autorizacion_circulacion?: string | null
+          fecha_autorizacion_especiales?: string | null
+          fecha_autorizacion_explotacion?: string | null
+          fecha_autorizacion_publicidad?: string | null
+          fecha_ultimo_mantenimiento?: string | null
+          fecha_vencimiento_circulacion?: string | null
+          fecha_vencimiento_especiales?: string | null
+          fecha_vencimiento_explotacion?: string | null
+          fecha_vencimiento_publicidad?: string | null
+          flota_id?: string
+          historial_reparaciones?: string | null
+          id?: string
+          kilometraje_actual?: number
+          marca_modelo?: string
+          numero_placa?: string
+          numero_unidad?: string
+          numero_vin?: string
+          permiso_circulacion?: string | null
+          permiso_explotacion_unidad?: string | null
+          permiso_publicidad?: string | null
+          permisos_especiales?: string | null
+          proximo_mantenimiento_programado?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_vehiculos_flota_id_fkey"
             columns: ["flota_id"]
             isOneToOne: false
             referencedRelation: "flotas"
