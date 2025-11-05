@@ -264,6 +264,15 @@ export default function Flotas() {
   const [conductorDialogOpen, setConductorDialogOpen] = useState(false);
   const [conductorFormData, setConductorFormData] = useState<Conductor | null>(null);
   const [editingConductorId, setEditingConductorId] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [politicasFiles, setPoliticasFiles] = useState<Record<keyof TerminosPoliticas, File[]>>({
+    politicas_uso_vehiculos: [],
+    politicas_combustible: [],
+    seguros_covertura: [],
+    politicas_renovacion: [],
+    politicas_condiciones_uso: [],
+  });
+  const [tempConductores, setTempConductores] = useState<Conductor[]>([]);
 
   useEffect(() => {
     if (tallerId) {
@@ -321,8 +330,29 @@ export default function Flotas() {
     }
 
     try {
+      let logoUrl = formData.logo_url;
+
+      // Upload logo if a new file was selected
+      if (logoFile) {
+        const fileExt = logoFile.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('flota-logos')
+          .upload(fileName, logoFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('flota-logos')
+          .getPublicUrl(fileName);
+
+        logoUrl = publicUrl;
+      }
+
       const flotaData = {
         ...formData,
+        logo_url: logoUrl,
         taller_id: tallerId,
       };
 
@@ -498,25 +528,65 @@ export default function Flotas() {
         }
       }
 
-      // Save terminos y politicas
-      if (formData.terminos_politicas) {
-        if (editingId) {
-          await supabase.from("flota_terminos_politicas").delete().eq("flota_id", flotaId);
+      // Upload politicas files
+      const uploadedPoliticas: TerminosPoliticas = {
+        politicas_uso_vehiculos: [...(formData.terminos_politicas?.politicas_uso_vehiculos || [])],
+        politicas_combustible: [...(formData.terminos_politicas?.politicas_combustible || [])],
+        seguros_covertura: [...(formData.terminos_politicas?.seguros_covertura || [])],
+        politicas_renovacion: [...(formData.terminos_politicas?.politicas_renovacion || [])],
+        politicas_condiciones_uso: [...(formData.terminos_politicas?.politicas_condiciones_uso || [])],
+      };
+
+      for (const [tipo, files] of Object.entries(politicasFiles) as [keyof TerminosPoliticas, File[]][]) {
+        for (const file of files) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${flotaId}/${tipo}/${Date.now()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('flota-politicas')
+            .upload(fileName, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('flota-politicas')
+            .getPublicUrl(fileName);
+
+          uploadedPoliticas[tipo].push(publicUrl);
         }
-
-        const { error: termError } = await supabase
-          .from("flota_terminos_politicas")
-          .insert([{
-            flota_id: flotaId,
-            ...formData.terminos_politicas,
-          }]);
-
-        if (termError) throw termError;
       }
+
+      // Save terminos y politicas
+      if (editingId) {
+        await supabase.from("flota_terminos_politicas").delete().eq("flota_id", flotaId);
+      }
+
+      const { error: termError } = await supabase
+        .from("flota_terminos_politicas")
+        .insert([{
+          flota_id: flotaId,
+          ...uploadedPoliticas,
+        }]);
+
+      if (termError) throw termError;
 
       // Save vehiculos inventario if Excel data exists
       if (excelVehiculos.length > 0) {
         await saveVehiculosInventario(flotaId);
+      }
+
+      // Save temp conductores
+      if (tempConductores.length > 0) {
+        const conductoresData = tempConductores.map(c => ({
+          flota_id: flotaId,
+          ...c,
+        }));
+
+        const { error: condError } = await supabase
+          .from("flota_conductores")
+          .insert(conductoresData);
+
+        if (condError) throw condError;
       }
 
       toast({
@@ -527,6 +597,16 @@ export default function Flotas() {
       setDialogOpen(false);
       setFormData(initialFormData);
       setEditingId(null);
+      setLogoFile(null);
+      setPoliticasFiles({
+        politicas_uso_vehiculos: [],
+        politicas_combustible: [],
+        seguros_covertura: [],
+        politicas_renovacion: [],
+        politicas_condiciones_uso: [],
+      });
+      setTempConductores([]);
+      setExcelVehiculos([]);
       fetchFlotas();
     } catch (error) {
       console.error("Error saving flota:", error);
@@ -548,6 +628,8 @@ export default function Flotas() {
 
       setFormData({ ...flota, conductores: conductores || [] });
       setEditingId(flota.id!);
+      setLogoFile(null);
+      setTempConductores([]);
       setDialogOpen(true);
     } catch (error) {
       console.error("Error loading flota data:", error);
@@ -724,63 +806,39 @@ export default function Flotas() {
     });
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, tipo: keyof TerminosPoliticas) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, tipo: keyof TerminosPoliticas) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !formData.id) return;
+    if (!files || files.length === 0) return;
 
-    setUploadingFiles(true);
-    try {
-      const uploadedUrls: string[] = [];
+    const newFiles = Array.from(files);
+    setPoliticasFiles(prev => ({
+      ...prev,
+      [tipo]: [...prev[tipo], ...newFiles],
+    }));
 
-      for (const file of Array.from(files)) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${formData.id}/${tipo}/${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError, data } = await supabase.storage
-          .from('flota-politicas')
-          .upload(fileName, file);
+    toast({
+      title: "Archivos seleccionados",
+      description: `${newFiles.length} archivo(s) seleccionado(s). Se subirán al guardar la flota.`,
+    });
+  };
 
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('flota-politicas')
-          .getPublicUrl(fileName);
-
-        uploadedUrls.push(publicUrl);
-      }
-
+  const removeFile = (tipo: keyof TerminosPoliticas, index: number) => {
+    // Remove from uploaded files
+    if (formData.terminos_politicas?.[tipo]?.[index]) {
       setFormData({
         ...formData,
         terminos_politicas: {
           ...formData.terminos_politicas!,
-          [tipo]: [...(formData.terminos_politicas?.[tipo] || []), ...uploadedUrls],
+          [tipo]: formData.terminos_politicas?.[tipo].filter((_, i) => i !== index) || [],
         },
       });
-
-      toast({
-        title: "Éxito",
-        description: "Archivos subidos correctamente",
-      });
-    } catch (error) {
-      console.error("Error uploading files:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron subir los archivos",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingFiles(false);
+    } else {
+      // Remove from pending files
+      setPoliticasFiles(prev => ({
+        ...prev,
+        [tipo]: prev[tipo].filter((_, i) => i !== (index - (formData.terminos_politicas?.[tipo]?.length || 0))),
+      }));
     }
-  };
-
-  const removeFile = (tipo: keyof TerminosPoliticas, index: number) => {
-    setFormData({
-      ...formData,
-      terminos_politicas: {
-        ...formData.terminos_politicas!,
-        [tipo]: formData.terminos_politicas?.[tipo].filter((_, i) => i !== index) || [],
-      },
-    });
   };
 
   const updateTarifaServicio = (categoriaId: string, tarifa: number) => {
@@ -968,58 +1026,89 @@ const EXPECTED_EXCEL_HEADERS = [
 
   const handleConductorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.id || !conductorFormData) return;
+    if (!conductorFormData) return;
 
-    try {
-      const conductorData = {
-        flota_id: formData.id,
-        ...conductorFormData,
-      };
+    // If flota already exists, save to database
+    if (formData.id) {
+      try {
+        const conductorData = {
+          flota_id: formData.id,
+          ...conductorFormData,
+        };
 
+        if (editingConductorId) {
+          const { error } = await supabase
+            .from("flota_conductores")
+            .update(conductorData)
+            .eq("id", editingConductorId);
+
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("flota_conductores")
+            .insert([conductorData]);
+
+          if (error) throw error;
+        }
+
+        toast({
+          title: "Éxito",
+          description: `Conductor ${editingConductorId ? "actualizado" : "creado"} correctamente`,
+        });
+
+        // Reload conductores
+        const { data } = await supabase
+          .from("flota_conductores")
+          .select("*")
+          .eq("flota_id", formData.id);
+        
+        setFormData({ ...formData, conductores: data || [] });
+      } catch (error) {
+        console.error("Error saving conductor:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo guardar el conductor",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Store in temp state until flota is created
       if (editingConductorId) {
-        const { error } = await supabase
-          .from("flota_conductores")
-          .update(conductorData)
-          .eq("id", editingConductorId);
-
-        if (error) throw error;
+        setTempConductores(prev => 
+          prev.map(c => c.id === editingConductorId ? { ...conductorFormData, id: editingConductorId } : c)
+        );
       } else {
-        const { error } = await supabase
-          .from("flota_conductores")
-          .insert([conductorData]);
-
-        if (error) throw error;
+        setTempConductores(prev => [...prev, { ...conductorFormData, id: Date.now().toString() }]);
       }
 
       toast({
         title: "Éxito",
-        description: `Conductor ${editingConductorId ? "actualizado" : "creado"} correctamente`,
-      });
-
-      setConductorDialogOpen(false);
-      setConductorFormData(null);
-      setEditingConductorId(null);
-      
-      // Reload conductores
-      const { data } = await supabase
-        .from("flota_conductores")
-        .select("*")
-        .eq("flota_id", formData.id);
-      
-      setFormData({ ...formData, conductores: data || [] });
-    } catch (error) {
-      console.error("Error saving conductor:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo guardar el conductor",
-        variant: "destructive",
+        description: `Conductor ${editingConductorId ? "actualizado" : "agregado"}. Se guardará al crear la flota.`,
       });
     }
+
+    setConductorDialogOpen(false);
+    setConductorFormData(null);
+    setEditingConductorId(null);
   };
 
   const deleteConductor = async (id: string) => {
     if (!confirm("¿Está seguro de eliminar este conductor?")) return;
 
+    // Check if it's a temp conductor
+    const isTempConductor = tempConductores.some(c => c.id === id);
+    
+    if (isTempConductor) {
+      setTempConductores(prev => prev.filter(c => c.id !== id));
+      toast({
+        title: "Éxito",
+        description: "Conductor eliminado",
+      });
+      return;
+    }
+
+    // Otherwise delete from database
     try {
       const { error } = await supabase
         .from("flota_conductores")
@@ -1210,12 +1299,21 @@ const EXPECTED_EXCEL_HEADERS = [
                     />
                   </div>
                   <div>
-                    <Label htmlFor="logo_url">Logo URL</Label>
+                    <Label htmlFor="logo">Logo de la Flota</Label>
                     <Input
-                      id="logo_url"
-                      value={formData.logo_url}
-                      onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                      id="logo"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setLogoFile(file);
+                      }}
                     />
+                    {(logoFile || formData.logo_url) && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {logoFile ? `Archivo seleccionado: ${logoFile.name}` : "Logo actual guardado"}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="tipo_flota">Tipo de Flota *</Label>
@@ -2008,18 +2106,30 @@ const EXPECTED_EXCEL_HEADERS = [
                         accept=".pdf"
                         multiple
                         onChange={(e) => handleFileUpload(e, "politicas_uso_vehiculos")}
-                        disabled={uploadingFiles || !formData.id}
                       />
                       <Upload className="h-4 w-4" />
                     </div>
                     {formData.terminos_politicas?.politicas_uso_vehiculos?.map((url, idx) => (
                       <div key={idx} className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Badge variant="secondary">Archivo guardado {idx + 1}</Badge>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFile("politicas_uso_vehiculos", idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {politicasFiles.politicas_uso_vehiculos?.map((file, idx) => (
+                      <div key={`pending-${idx}`} className="flex items-center gap-2 mt-2">
+                        <Badge variant="outline">{file.name}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("politicas_uso_vehiculos", (formData.terminos_politicas?.politicas_uso_vehiculos?.length || 0) + idx)}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -2036,18 +2146,30 @@ const EXPECTED_EXCEL_HEADERS = [
                         accept=".pdf"
                         multiple
                         onChange={(e) => handleFileUpload(e, "politicas_combustible")}
-                        disabled={uploadingFiles || !formData.id}
                       />
                       <Upload className="h-4 w-4" />
                     </div>
                     {formData.terminos_politicas?.politicas_combustible?.map((url, idx) => (
                       <div key={idx} className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Badge variant="secondary">Archivo guardado {idx + 1}</Badge>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFile("politicas_combustible", idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {politicasFiles.politicas_combustible?.map((file, idx) => (
+                      <div key={`pending-${idx}`} className="flex items-center gap-2 mt-2">
+                        <Badge variant="outline">{file.name}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("politicas_combustible", (formData.terminos_politicas?.politicas_combustible?.length || 0) + idx)}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -2064,18 +2186,30 @@ const EXPECTED_EXCEL_HEADERS = [
                         accept=".pdf"
                         multiple
                         onChange={(e) => handleFileUpload(e, "seguros_covertura")}
-                        disabled={uploadingFiles || !formData.id}
                       />
                       <Upload className="h-4 w-4" />
                     </div>
                     {formData.terminos_politicas?.seguros_covertura?.map((url, idx) => (
                       <div key={idx} className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Badge variant="secondary">Archivo guardado {idx + 1}</Badge>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFile("seguros_covertura", idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {politicasFiles.seguros_covertura?.map((file, idx) => (
+                      <div key={`pending-${idx}`} className="flex items-center gap-2 mt-2">
+                        <Badge variant="outline">{file.name}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("seguros_covertura", (formData.terminos_politicas?.seguros_covertura?.length || 0) + idx)}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -2092,18 +2226,30 @@ const EXPECTED_EXCEL_HEADERS = [
                         accept=".pdf"
                         multiple
                         onChange={(e) => handleFileUpload(e, "politicas_renovacion")}
-                        disabled={uploadingFiles || !formData.id}
                       />
                       <Upload className="h-4 w-4" />
                     </div>
                     {formData.terminos_politicas?.politicas_renovacion?.map((url, idx) => (
                       <div key={idx} className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Badge variant="secondary">Archivo guardado {idx + 1}</Badge>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFile("politicas_renovacion", idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {politicasFiles.politicas_renovacion?.map((file, idx) => (
+                      <div key={`pending-${idx}`} className="flex items-center gap-2 mt-2">
+                        <Badge variant="outline">{file.name}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("politicas_renovacion", (formData.terminos_politicas?.politicas_renovacion?.length || 0) + idx)}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -2120,13 +2266,12 @@ const EXPECTED_EXCEL_HEADERS = [
                         accept=".pdf"
                         multiple
                         onChange={(e) => handleFileUpload(e, "politicas_condiciones_uso")}
-                        disabled={uploadingFiles || !formData.id}
                       />
                       <Upload className="h-4 w-4" />
                     </div>
                     {formData.terminos_politicas?.politicas_condiciones_uso?.map((url, idx) => (
                       <div key={idx} className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary">Archivo {idx + 1}</Badge>
+                        <Badge variant="secondary">Archivo guardado {idx + 1}</Badge>
                         <Button
                           type="button"
                           variant="ghost"
@@ -2137,15 +2282,20 @@ const EXPECTED_EXCEL_HEADERS = [
                         </Button>
                       </div>
                     ))}
+                    {politicasFiles.politicas_condiciones_uso?.map((file, idx) => (
+                      <div key={`pending-${idx}`} className="flex items-center gap-2 mt-2">
+                        <Badge variant="outline">{file.name}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile("politicas_condiciones_uso", (formData.terminos_politicas?.politicas_condiciones_uso?.length || 0) + idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-
-                  {!formData.id && (
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        Nota: Primero debe crear la flota para poder subir archivos PDF.
-                      </p>
-                    </div>
-                  )}
                 </div>
               </TabsContent>
 
@@ -2279,22 +2429,13 @@ const EXPECTED_EXCEL_HEADERS = [
                     type="button"
                     size="sm"
                     onClick={addConductor}
-                    disabled={!formData.id}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Agregar Conductor
                   </Button>
                 </div>
 
-                {!formData.id && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      Primero debe crear la flota para poder agregar conductores.
-                    </p>
-                  </div>
-                )}
-
-                {formData.conductores && formData.conductores.length > 0 && (
+                {((formData.conductores && formData.conductores.length > 0) || tempConductores.length > 0) && (
                   <div className="border rounded-lg overflow-auto">
                     <Table>
                       <TableHeader>
@@ -2308,9 +2449,45 @@ const EXPECTED_EXCEL_HEADERS = [
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {formData.conductores.map((conductor) => (
+                        {formData.conductores?.map((conductor) => (
                           <TableRow key={conductor.id}>
                             <TableCell>{`${conductor.nombre} ${conductor.apellido}`}</TableCell>
+                            <TableCell>{conductor.cedula_identidad}</TableCell>
+                            <TableCell>{conductor.telefono}</TableCell>
+                            <TableCell>{conductor.numero_licencia}</TableCell>
+                            <TableCell>{conductor.vehiculo_asignado_actual || "Sin asignar"}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setConductorFormData(conductor);
+                                    setEditingConductorId(conductor.id!);
+                                    setConductorDialogOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteConductor(conductor.id!)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {tempConductores.map((conductor) => (
+                          <TableRow key={conductor.id}>
+                            <TableCell>
+                              {`${conductor.nombre} ${conductor.apellido}`}
+                              <Badge variant="outline" className="ml-2">Pendiente</Badge>
+                            </TableCell>
                             <TableCell>{conductor.cedula_identidad}</TableCell>
                             <TableCell>{conductor.telefono}</TableCell>
                             <TableCell>{conductor.numero_licencia}</TableCell>
