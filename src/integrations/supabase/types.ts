@@ -89,6 +89,51 @@ export type Database = {
         }
         Relationships: []
       }
+      citas: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          nota: string | null
+          servicio_id: string
+          taller_id: string
+          tecnico_id: string
+          updated_at: string
+          vehiculo_id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          nota?: string | null
+          servicio_id: string
+          taller_id: string
+          tecnico_id: string
+          updated_at?: string
+          vehiculo_id: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          fecha?: string
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          nota?: string | null
+          servicio_id?: string
+          taller_id?: string
+          tecnico_id?: string
+          updated_at?: string
+          vehiculo_id?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           apellido: string
