@@ -93,6 +93,7 @@ export type Database = {
         Row: {
           cliente_id: string
           created_at: string
+          estado: Database["public"]["Enums"]["estado_cita"]
           fecha: string
           hora_fin: string
           hora_inicio: string
@@ -107,6 +108,7 @@ export type Database = {
         Insert: {
           cliente_id: string
           created_at?: string
+          estado?: Database["public"]["Enums"]["estado_cita"]
           fecha: string
           hora_fin: string
           hora_inicio: string
@@ -121,6 +123,7 @@ export type Database = {
         Update: {
           cliente_id?: string
           created_at?: string
+          estado?: Database["public"]["Enums"]["estado_cita"]
           fecha?: string
           hora_fin?: string
           hora_inicio?: string
@@ -1467,6 +1470,7 @@ export type Database = {
         | "cliente"
         | "tecnico"
       area_tecnico: "tecnico" | "tecnico_senior"
+      estado_cita: "programada" | "confirmada" | "completada" | "cancelada"
       estado_flota: "activa" | "en_renovacion" | "inactiva"
       estado_orden:
         | "pendiente"
@@ -1625,6 +1629,7 @@ export const Constants = {
         "tecnico",
       ],
       area_tecnico: ["tecnico", "tecnico_senior"],
+      estado_cita: ["programada", "confirmada", "completada", "cancelada"],
       estado_flota: ["activa", "en_renovacion", "inactiva"],
       estado_orden: [
         "pendiente",

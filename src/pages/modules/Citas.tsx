@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Calendar, Clock, Trash2 } from "lucide-react";
+import { Calendar, Clock, Trash2, Edit, CheckCircle, Eye } from "lucide-react";
 
 interface Cliente {
   id: string;
@@ -43,9 +44,14 @@ interface Cita {
   hora_inicio: string;
   hora_fin: string;
   nota: string | null;
-  clientes: { nombre: string; apellido: string } | null;
-  vehiculos: { marca: string; modelo: string; placa: string } | null;
-  tecnicos: { nombre: string; apellido: string } | null;
+  estado: string;
+  cliente_id: string;
+  vehiculo_id: string;
+  tecnico_id: string;
+  servicio_id: string;
+  clientes: { nombre: string; apellido: string; email: string; telefono: string } | null;
+  vehiculos: { marca: string; modelo: string; placa: string; color: string; anio: number } | null;
+  tecnicos: { nombre: string; apellido: string; email: string; telefono: string } | null;
   categorias_servicio: { nombre: string } | null;
 }
 
@@ -64,7 +70,10 @@ export default function Citas() {
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [servicios, setServicios] = useState<CategoriaServicio[]>([]);
   const [open, setOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingCita, setEditingCita] = useState<Cita | null>(null);
+  const [selectedCita, setSelectedCita] = useState<Cita | null>(null);
 
   const [formData, setFormData] = useState({
     cliente_id: "",
@@ -103,9 +112,9 @@ export default function Citas() {
       .from("citas")
       .select(`
         *,
-        clientes (nombre, apellido),
-        vehiculos (marca, modelo, placa),
-        tecnicos (nombre, apellido),
+        clientes (nombre, apellido, email, telefono),
+        vehiculos (marca, modelo, placa, color, anio),
+        tecnicos (nombre, apellido, email, telefono),
         categorias_servicio (nombre)
       `)
       .eq("taller_id", tallerId)
@@ -175,33 +184,91 @@ export default function Citas() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.from("citas").insert([
-      {
-        ...formData,
-        taller_id: tallerId
-      }
-    ]);
+    if (editingCita) {
+      const { error } = await supabase
+        .from("citas")
+        .update(formData)
+        .eq("id", editingCita.id);
 
-    if (error) {
-      toast.error("Error al crear la cita");
-      console.error(error);
+      if (error) {
+        toast.error("Error al actualizar la cita");
+        console.error(error);
+      } else {
+        toast.success("Cita actualizada exitosamente");
+        setEditingCita(null);
+        resetForm();
+        setOpen(false);
+        fetchCitas();
+      }
     } else {
-      toast.success("Cita creada exitosamente");
-      setFormData({
-        cliente_id: "",
-        vehiculo_id: "",
-        fecha: "",
-        hora_inicio: "",
-        hora_fin: "",
-        tecnico_id: "",
-        servicio_id: "",
-        nota: ""
-      });
-      setOpen(false);
-      fetchCitas();
+      const { error } = await supabase.from("citas").insert([
+        {
+          ...formData,
+          taller_id: tallerId
+        }
+      ]);
+
+      if (error) {
+        toast.error("Error al crear la cita");
+        console.error(error);
+      } else {
+        toast.success("Cita creada exitosamente");
+        resetForm();
+        setOpen(false);
+        fetchCitas();
+      }
     }
 
     setLoading(false);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      cliente_id: "",
+      vehiculo_id: "",
+      fecha: "",
+      hora_inicio: "",
+      hora_fin: "",
+      tecnico_id: "",
+      servicio_id: "",
+      nota: ""
+    });
+    setEditingCita(null);
+  };
+
+  const handleEdit = (cita: Cita) => {
+    setEditingCita(cita);
+    setFormData({
+      cliente_id: cita.cliente_id,
+      vehiculo_id: cita.vehiculo_id,
+      fecha: cita.fecha,
+      hora_inicio: cita.hora_inicio,
+      hora_fin: cita.hora_fin,
+      tecnico_id: cita.tecnico_id,
+      servicio_id: cita.servicio_id,
+      nota: cita.nota || ""
+    });
+    setOpen(true);
+  };
+
+  const handleConfirm = async (id: string) => {
+    const { error } = await supabase
+      .from("citas")
+      .update({ estado: "confirmada" })
+      .eq("id", id);
+
+    if (error) {
+      toast.error("Error al confirmar la cita");
+      console.error(error);
+    } else {
+      toast.success("Cita confirmada");
+      fetchCitas();
+    }
+  };
+
+  const handleViewDetails = (cita: Cita) => {
+    setSelectedCita(cita);
+    setDetailsOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -223,7 +290,12 @@ export default function Citas() {
           <h1 className="text-3xl font-bold tracking-tight">Citas</h1>
           <p className="text-muted-foreground">Gestión de citas y calendario</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            resetForm();
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Calendar className="mr-2 h-4 w-4" />
@@ -232,9 +304,9 @@ export default function Citas() {
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Registrar Nueva Cita</DialogTitle>
+              <DialogTitle>{editingCita ? "Editar Cita" : "Registrar Nueva Cita"}</DialogTitle>
               <DialogDescription>
-                Complete los datos de la cita
+                {editingCita ? "Modifique los datos de la cita" : "Complete los datos de la cita"}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -384,11 +456,14 @@ export default function Citas() {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => {
+                  setOpen(false);
+                  resetForm();
+                }}>
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Guardando..." : "Guardar Cita"}
+                  {loading ? "Guardando..." : editingCita ? "Actualizar Cita" : "Guardar Cita"}
                 </Button>
               </div>
             </form>
@@ -411,7 +486,7 @@ export default function Citas() {
                 <TableHead>Vehículo</TableHead>
                 <TableHead>Técnico</TableHead>
                 <TableHead>Servicio</TableHead>
-                <TableHead>Nota</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -444,15 +519,50 @@ export default function Citas() {
                     <TableCell>
                       {cita.categorias_servicio?.nombre || "N/A"}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">{cita.nota || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant={cita.estado === "confirmada" ? "default" : cita.estado === "programada" ? "secondary" : "outline"}>
+                        {cita.estado === "programada" ? "Programada" : 
+                         cita.estado === "confirmada" ? "Confirmada" :
+                         cita.estado === "completada" ? "Completada" : "Cancelada"}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(cita.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewDetails(cita)}
+                          title="Ver detalles"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(cita)}
+                          title="Editar"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        {cita.estado === "programada" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleConfirm(cita.id)}
+                            title="Confirmar"
+                          >
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(cita.id)}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -461,6 +571,126 @@ export default function Citas() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog de Detalles */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Detalles de la Cita</DialogTitle>
+          </DialogHeader>
+          {selectedCita && (
+            <div className="space-y-6">
+              {/* Información de la Cita */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Información General</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Fecha</Label>
+                    <p className="font-medium">{new Date(selectedCita.fecha).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Horario</Label>
+                    <p className="font-medium">{selectedCita.hora_inicio} - {selectedCita.hora_fin}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Servicio</Label>
+                    <p className="font-medium">{selectedCita.categorias_servicio?.nombre || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Estado</Label>
+                    <Badge variant={selectedCita.estado === "confirmada" ? "default" : "secondary"}>
+                      {selectedCita.estado === "programada" ? "Programada" : 
+                       selectedCita.estado === "confirmada" ? "Confirmada" :
+                       selectedCita.estado === "completada" ? "Completada" : "Cancelada"}
+                    </Badge>
+                  </div>
+                  {selectedCita.nota && (
+                    <div className="col-span-2">
+                      <Label className="text-muted-foreground">Nota</Label>
+                      <p className="font-medium">{selectedCita.nota}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Información del Cliente */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Cliente</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Nombre</Label>
+                    <p className="font-medium">
+                      {selectedCita.clientes ? `${selectedCita.clientes.nombre} ${selectedCita.clientes.apellido}` : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Teléfono</Label>
+                    <p className="font-medium">{selectedCita.clientes?.telefono || "N/A"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground">Email</Label>
+                    <p className="font-medium">{selectedCita.clientes?.email || "N/A"}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Información del Vehículo */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Vehículo</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Marca y Modelo</Label>
+                    <p className="font-medium">
+                      {selectedCita.vehiculos ? `${selectedCita.vehiculos.marca} ${selectedCita.vehiculos.modelo}` : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Año</Label>
+                    <p className="font-medium">{selectedCita.vehiculos?.anio || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Placa</Label>
+                    <p className="font-medium">{selectedCita.vehiculos?.placa || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Color</Label>
+                    <p className="font-medium">{selectedCita.vehiculos?.color || "N/A"}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Información del Técnico */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Técnico Asignado</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Nombre</Label>
+                    <p className="font-medium">
+                      {selectedCita.tecnicos ? `${selectedCita.tecnicos.nombre} ${selectedCita.tecnicos.apellido}` : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Teléfono</Label>
+                    <p className="font-medium">{selectedCita.tecnicos?.telefono || "N/A"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground">Email</Label>
+                    <p className="font-medium">{selectedCita.tecnicos?.email || "N/A"}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
