@@ -18,7 +18,9 @@ import {
   MessageSquare,
   WrenchIcon,
   AlertTriangle,
-  FileCheck
+  FileCheck,
+  Briefcase,
+  PackageSearch
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -184,6 +186,18 @@ const menuItems: MenuItem[] = [
     title: "Inventario", 
     url: "/inventario", 
     icon: Package, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
+    title: "Servicios", 
+    url: "/servicios", 
+    icon: Briefcase, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
+    title: "Paquetes", 
+    url: "/paquetes", 
+    icon: PackageSearch, 
     allowedRoles: ["taller", "admin_taller"] 
   },
   { 

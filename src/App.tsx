@@ -31,6 +31,8 @@ import Usuarios from "./pages/modules/Usuarios";
 import Solicitudes from "./pages/modules/Solicitudes";
 import AseguradorasModule from "./pages/modules/AseguradorasModule";
 import HojaIngreso from "./pages/modules/HojaIngreso";
+import Servicios from "./pages/modules/Servicios";
+import Paquetes from "./pages/modules/Paquetes";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,8 @@ const App = () => (
               <Route path="reportes" element={<Reportes />} />
               <Route path="accesos" element={<Accesos />} />
               <Route path="configuraciones" element={<Configuraciones />} />
+              <Route path="servicios" element={<Servicios />} />
+              <Route path="paquetes" element={<Paquetes />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

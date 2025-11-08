@@ -63,7 +63,7 @@ interface Servicio {
 }
 
 export default function Servicios() {
-  const { userRole, tallerId } = useUserRole();
+  const { role, tallerId } = useUserRole();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
