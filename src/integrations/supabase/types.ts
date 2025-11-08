@@ -1124,6 +1124,56 @@ export type Database = {
         }
         Relationships: []
       }
+      servicios: {
+        Row: {
+          categoria_id: string
+          created_at: string
+          descripcion: string | null
+          estado: boolean
+          id: string
+          materiales_requeridos: string[] | null
+          nombre: string
+          precio: number
+          taller_id: string
+          tiempo_estimado: Json
+          updated_at: string
+        }
+        Insert: {
+          categoria_id: string
+          created_at?: string
+          descripcion?: string | null
+          estado?: boolean
+          id?: string
+          materiales_requeridos?: string[] | null
+          nombre: string
+          precio?: number
+          taller_id: string
+          tiempo_estimado?: Json
+          updated_at?: string
+        }
+        Update: {
+          categoria_id?: string
+          created_at?: string
+          descripcion?: string | null
+          estado?: boolean
+          id?: string
+          materiales_requeridos?: string[] | null
+          nombre?: string
+          precio?: number
+          taller_id?: string
+          tiempo_estimado?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicios_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_servicio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       taller_aseguradoras: {
         Row: {
           aseguradora_id: string
