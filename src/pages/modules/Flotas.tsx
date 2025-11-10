@@ -350,8 +350,11 @@ export default function Flotas() {
         logoUrl = publicUrl;
       }
 
+      // Separate flota data from related entities
+      const { vehiculos, conductores, ...flotaMainData } = formData;
+      
       const flotaData = {
-        ...formData,
+        ...flotaMainData,
         logo_url: logoUrl,
         taller_id: tallerId,
       };
