@@ -350,8 +350,18 @@ export default function Flotas() {
         logoUrl = publicUrl;
       }
 
-      // Separate flota data from related entities
-      const { vehiculos, conductores, ...flotaMainData } = formData;
+      // Separate flota data from related entities that go in separate tables
+      const { 
+        vehiculos, 
+        conductores, 
+        propietarios, 
+        jefe_flota, 
+        departamentos, 
+        datos_bancarios, 
+        datos_negociacion, 
+        terminos_politicas,
+        ...flotaMainData 
+      } = formData;
       
       const flotaData = {
         ...flotaMainData,
