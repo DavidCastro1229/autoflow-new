@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Building2, Users, Phone, X, CreditCard, FileText, Scale, Upload, Truck, UserCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Users, Phone, X, CreditCard, FileText, Scale, Upload, Truck, UserCircle, Eye } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 type TipoFlota = "propia" | "alquilada" | "mixta";
@@ -266,6 +266,8 @@ export default function Flotas() {
     politicas_condiciones_uso: [],
   });
   const [tempConductores, setTempConductores] = useState<Conductor[]>([]);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedFlota, setSelectedFlota] = useState<Flota | null>(null);
 
   useEffect(() => {
     if (tallerId) {
@@ -639,13 +641,80 @@ export default function Flotas() {
 
   const handleEdit = async (flota: Flota) => {
     try {
-      // Load conductores for this flota
-      const { data: conductores } = await supabase
-        .from("flota_conductores")
-        .select("*")
-        .eq("flota_id", flota.id!);
+      // Load all related data
+      const [
+        conductoresRes,
+        propietariosRes,
+        jefeRes,
+        departamentosRes,
+        bancarioRes,
+        negociacionRes,
+        terminosRes,
+        vehiculosRes,
+        tarifasRes
+      ] = await Promise.all([
+        supabase.from("flota_conductores").select("*").eq("flota_id", flota.id!),
+        supabase.from("flota_propietarios").select("*").eq("flota_id", flota.id!),
+        supabase.from("flota_jefe").select("*").eq("flota_id", flota.id!).single(),
+        supabase.from("flota_departamentos").select("*").eq("flota_id", flota.id!),
+        supabase.from("flota_datos_bancarios").select("*").eq("flota_id", flota.id!).single(),
+        supabase.from("flota_datos_negociacion").select("*").eq("flota_id", flota.id!).single(),
+        supabase.from("flota_terminos_politicas").select("*").eq("flota_id", flota.id!).single(),
+        supabase.from("flota_vehiculos").select("*").eq("flota_id", flota.id!),
+        supabase.from("flota_tarifas_servicio").select("*, categorias_servicio(nombre)").eq("flota_id", flota.id!)
+      ]);
 
-      setFormData({ ...flota, conductores: conductores || [] });
+      // Load departamentos with their comunicacion interna y externa
+      const departamentosWithComunicacion = await Promise.all(
+        (departamentosRes.data || []).map(async (dept) => {
+          const [internaRes, externaRes] = await Promise.all([
+            supabase.from("flota_comunicacion_interna").select("*").eq("departamento_id", dept.id),
+            supabase.from("flota_comunicacion_externa").select("*").eq("departamento_id", dept.id)
+          ]);
+
+          const comunicacionInterna: ComunicacionInterna = {
+            gerencia: internaRes.data?.filter(c => c.tipo === 'gerencia') || [],
+            ventas: internaRes.data?.filter(c => c.tipo === 'ventas') || [],
+            produccion: internaRes.data?.filter(c => c.tipo === 'produccion') || [],
+            suministro: internaRes.data?.filter(c => c.tipo === 'suministro') || [],
+          };
+
+          const comunicacionExterna: ComunicacionExterna = {
+            aseguradora: externaRes.data?.filter(c => c.tipo === 'aseguradora') || [],
+            arrendadora: externaRes.data?.filter(c => c.tipo === 'arrendadora') || [],
+            taller_externo: externaRes.data?.filter(c => c.tipo === 'taller_externo') || [],
+          };
+
+          return {
+            ...dept,
+            comunicacion_interna: comunicacionInterna,
+            comunicacion_externa: comunicacionExterna,
+          };
+        })
+      );
+
+      // Build datos_negociacion with tarifas
+      const datosNegociacion = negociacionRes.data ? {
+        ...negociacionRes.data,
+        tarifas_servicio: (tarifasRes.data || []).map(t => ({
+          categoria_servicio_id: t.categoria_servicio_id,
+          categoria_nombre: t.categorias_servicio?.nombre,
+          tarifa: t.tarifa
+        }))
+      } : undefined;
+
+      setFormData({
+        ...flota,
+        conductores: conductoresRes.data || [],
+        propietarios: propietariosRes.data || [],
+        jefe_flota: jefeRes.data || undefined,
+        departamentos: departamentosWithComunicacion || [],
+        datos_bancarios: bancarioRes.data || undefined,
+        datos_negociacion: datosNegociacion,
+        terminos_politicas: terminosRes.data || undefined,
+        vehiculos: vehiculosRes.data || [],
+      });
+      
       setEditingId(flota.id!);
       setLogoFile(null);
       setTempConductores([]);
@@ -655,6 +724,91 @@ export default function Flotas() {
       toast({
         title: "Error",
         description: "No se pudieron cargar los datos de la flota",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewDetails = async (flota: Flota) => {
+    try {
+      // Load all related data for viewing
+      const [
+        conductoresRes,
+        propietariosRes,
+        jefeRes,
+        departamentosRes,
+        bancarioRes,
+        negociacionRes,
+        terminosRes,
+        vehiculosRes,
+        tarifasRes
+      ] = await Promise.all([
+        supabase.from("flota_conductores").select("*").eq("flota_id", flota.id!),
+        supabase.from("flota_propietarios").select("*").eq("flota_id", flota.id!),
+        supabase.from("flota_jefe").select("*").eq("flota_id", flota.id!).single(),
+        supabase.from("flota_departamentos").select("*").eq("flota_id", flota.id!),
+        supabase.from("flota_datos_bancarios").select("*").eq("flota_id", flota.id!).single(),
+        supabase.from("flota_datos_negociacion").select("*").eq("flota_id", flota.id!).single(),
+        supabase.from("flota_terminos_politicas").select("*").eq("flota_id", flota.id!).single(),
+        supabase.from("flota_vehiculos").select("*").eq("flota_id", flota.id!),
+        supabase.from("flota_tarifas_servicio").select("*, categorias_servicio(nombre)").eq("flota_id", flota.id!)
+      ]);
+
+      const departamentosWithComunicacion = await Promise.all(
+        (departamentosRes.data || []).map(async (dept) => {
+          const [internaRes, externaRes] = await Promise.all([
+            supabase.from("flota_comunicacion_interna").select("*").eq("departamento_id", dept.id),
+            supabase.from("flota_comunicacion_externa").select("*").eq("departamento_id", dept.id)
+          ]);
+
+          const comunicacionInterna: ComunicacionInterna = {
+            gerencia: internaRes.data?.filter(c => c.tipo === 'gerencia') || [],
+            ventas: internaRes.data?.filter(c => c.tipo === 'ventas') || [],
+            produccion: internaRes.data?.filter(c => c.tipo === 'produccion') || [],
+            suministro: internaRes.data?.filter(c => c.tipo === 'suministro') || [],
+          };
+
+          const comunicacionExterna: ComunicacionExterna = {
+            aseguradora: externaRes.data?.filter(c => c.tipo === 'aseguradora') || [],
+            arrendadora: externaRes.data?.filter(c => c.tipo === 'arrendadora') || [],
+            taller_externo: externaRes.data?.filter(c => c.tipo === 'taller_externo') || [],
+          };
+
+          return {
+            ...dept,
+            comunicacion_interna: comunicacionInterna,
+            comunicacion_externa: comunicacionExterna,
+          };
+        })
+      );
+
+      const datosNegociacion = negociacionRes.data ? {
+        ...negociacionRes.data,
+        tarifas_servicio: (tarifasRes.data || []).map(t => ({
+          categoria_servicio_id: t.categoria_servicio_id,
+          categoria_nombre: t.categorias_servicio?.nombre,
+          tarifa: t.tarifa
+        }))
+      } : undefined;
+
+      setSelectedFlota({
+        ...flota,
+        conductores: conductoresRes.data || [],
+        propietarios: propietariosRes.data || [],
+        jefe_flota: jefeRes.data || undefined,
+        departamentos: departamentosWithComunicacion || [],
+        datos_bancarios: bancarioRes.data || undefined,
+        datos_negociacion: datosNegociacion,
+        terminos_politicas: terminosRes.data || undefined,
+        vehiculos: vehiculosRes.data || [],
+      });
+      
+      setDetailsDialogOpen(true);
+    } catch (error) {
+      console.error("Error loading flota details:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los detalles de la flota",
         variant: "destructive",
       });
     }
@@ -1218,10 +1372,13 @@ const EXPECTED_EXCEL_HEADERS = [
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(flota)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleViewDetails(flota)} title="Ver detalles">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(flota)} title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(flota.id!)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(flota.id!)} title="Eliminar">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -2723,6 +2880,366 @@ const EXPECTED_EXCEL_HEADERS = [
               <Button type="submit">{editingConductorId ? "Actualizar" : "Crear"} Conductor</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detalle de Flota Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalle de Flota: {selectedFlota?.nombre_flota}</DialogTitle>
+            <DialogDescription>
+              Información completa de la flota {selectedFlota?.numero_flota}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedFlota && (
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="contactos">Contactos</TabsTrigger>
+                <TabsTrigger value="financiero">Financiero</TabsTrigger>
+                <TabsTrigger value="operativo">Operativo</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="general" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Información General</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Número de Flota</p>
+                      <p className="text-base font-semibold">{selectedFlota.numero_flota}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Nombre</p>
+                      <p className="text-base">{selectedFlota.nombre_flota}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Tipo</p>
+                      <Badge variant="outline">{selectedFlota.tipo_flota}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Estado</p>
+                      <Badge variant={selectedFlota.estado === 'activa' ? 'default' : 'secondary'}>
+                        {selectedFlota.estado}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Razón Social</p>
+                      <p className="text-base">{selectedFlota.razon_social}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">RTN</p>
+                      <p className="text-base">{selectedFlota.numero_rtn}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Cantidad de Vehículos</p>
+                      <p className="text-base font-semibold">{selectedFlota.cantidad_vehiculos}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Rubro Empresa</p>
+                      <p className="text-base">{selectedFlota.rubro_empresa}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium text-muted-foreground">Dirección</p>
+                      <p className="text-base">{selectedFlota.direccion_fisica}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Teléfono</p>
+                      <p className="text-base">{selectedFlota.telefono_contacto}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Correo</p>
+                      <p className="text-base">{selectedFlota.correo_contacto}</p>
+                    </div>
+                    {selectedFlota.sitio_web && (
+                      <div className="col-span-2">
+                        <p className="text-sm font-medium text-muted-foreground">Sitio Web</p>
+                        <a href={selectedFlota.sitio_web} target="_blank" rel="noopener noreferrer" className="text-base text-primary hover:underline">
+                          {selectedFlota.sitio_web}
+                        </a>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {selectedFlota.propietarios && selectedFlota.propietarios.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Propietarios</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {selectedFlota.propietarios.map((prop, idx) => (
+                          <div key={idx} className="border-b pb-3 last:border-0">
+                            <p className="font-semibold">{prop.nombre_propietario}</p>
+                            <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                              <p><span className="text-muted-foreground">RTN:</span> {prop.rtn}</p>
+                              <p><span className="text-muted-foreground">Teléfono:</span> {prop.telefono}</p>
+                              <p><span className="text-muted-foreground">Correo:</span> {prop.correo}</p>
+                              <p><span className="text-muted-foreground">Vehículos:</span> {prop.cantidad_vehiculos}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="contactos" className="space-y-6">
+                {selectedFlota.jefe_flota && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Jefe de Flota</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Nombre</p>
+                        <p className="text-base font-semibold">{selectedFlota.jefe_flota.nombre}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Cargo</p>
+                        <p className="text-base">{selectedFlota.jefe_flota.cargo_posicion}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Teléfono</p>
+                        <p className="text-base">{selectedFlota.jefe_flota.telefono}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Correo</p>
+                        <p className="text-base">{selectedFlota.jefe_flota.correo}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-sm font-medium text-muted-foreground">Horarios de Trabajo</p>
+                        <p className="text-base">{selectedFlota.jefe_flota.horarios_trabajo}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedFlota.departamentos && selectedFlota.departamentos.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Departamentos y Comunicación</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {selectedFlota.departamentos.map((dept, idx) => (
+                          <div key={idx} className="border rounded-lg p-4">
+                            <h4 className="font-semibold text-lg mb-4">{dept.nombre_departamento}</h4>
+                            
+                            <div className="space-y-4">
+                              <div>
+                                <h5 className="font-medium text-sm text-muted-foreground mb-2">Comunicación Interna</h5>
+                                {Object.entries(dept.comunicacion_interna).map(([tipo, contactos]) => 
+                                  contactos.length > 0 && (
+                                    <div key={tipo} className="ml-4 mb-2">
+                                      <p className="text-sm font-medium capitalize">{tipo}</p>
+                                      {contactos.map((c: any, cidx: number) => (
+                                        <p key={cidx} className="text-sm text-muted-foreground">
+                                          {c.nombre} - {c.telefono}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+
+                              <div>
+                                <h5 className="font-medium text-sm text-muted-foreground mb-2">Comunicación Externa</h5>
+                                {Object.entries(dept.comunicacion_externa).map(([tipo, contactos]) => 
+                                  contactos.length > 0 && (
+                                    <div key={tipo} className="ml-4 mb-2">
+                                      <p className="text-sm font-medium capitalize">{tipo.replace('_', ' ')}</p>
+                                      {contactos.map((c: any, cidx: number) => (
+                                        <p key={cidx} className="text-sm text-muted-foreground">
+                                          {c.nombre} - {c.telefono}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="financiero" className="space-y-6">
+                {selectedFlota.datos_bancarios && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Datos Bancarios</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Entidad Bancaria</p>
+                        <p className="text-base font-semibold">{selectedFlota.datos_bancarios.entidad_bancaria}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Cuenta</p>
+                        <p className="text-base">{selectedFlota.datos_bancarios.cuenta_bancaria}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Tipo de Cuenta</p>
+                        <Badge>{selectedFlota.datos_bancarios.tipo_cuenta}</Badge>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Moneda</p>
+                        <Badge variant="outline">{selectedFlota.datos_bancarios.moneda}</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedFlota.datos_negociacion && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Datos de Negociación</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Tipo de Contrato</p>
+                          <Badge>{selectedFlota.datos_negociacion.tipo_contrato}</Badge>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Fecha de Inicio</p>
+                          <p className="text-base">{new Date(selectedFlota.datos_negociacion.fecha_inicio).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Duración</p>
+                          <p className="text-base">{selectedFlota.datos_negociacion.duracion_contrato}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Días de Crédito</p>
+                          <p className="text-base font-semibold">{selectedFlota.datos_negociacion.dias_credito_autorizado} días</p>
+                        </div>
+                      </div>
+
+                      {selectedFlota.datos_negociacion.tarifas_servicio && selectedFlota.datos_negociacion.tarifas_servicio.length > 0 && (
+                        <div>
+                          <h5 className="font-medium mb-2">Tarifas de Servicio</h5>
+                          <div className="border rounded-lg overflow-hidden">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Servicio</TableHead>
+                                  <TableHead className="text-right">Tarifa</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {selectedFlota.datos_negociacion.tarifas_servicio.map((tarifa, idx) => (
+                                  <TableRow key={idx}>
+                                    <TableCell>{tarifa.categoria_nombre}</TableCell>
+                                    <TableCell className="text-right font-semibold">
+                                      ${tarifa.tarifa.toFixed(2)}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="operativo" className="space-y-6">
+                {selectedFlota.vehiculos && selectedFlota.vehiculos.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Vehículos ({selectedFlota.vehiculos.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="border rounded-lg overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Unidad</TableHead>
+                              <TableHead>Marca/Modelo</TableHead>
+                              <TableHead>Placa</TableHead>
+                              <TableHead>VIN</TableHead>
+                              <TableHead>Estado</TableHead>
+                              <TableHead>Kilometraje</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {selectedFlota.vehiculos.map((vehiculo: any, idx: number) => (
+                              <TableRow key={idx}>
+                                <TableCell className="font-medium">{vehiculo.numero_unidad}</TableCell>
+                                <TableCell>{vehiculo.marca_modelo}</TableCell>
+                                <TableCell>{vehiculo.numero_placa}</TableCell>
+                                <TableCell className="text-xs">{vehiculo.numero_vin}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{vehiculo.estado_vehiculo}</Badge>
+                                </TableCell>
+                                <TableCell>{vehiculo.kilometraje_actual.toLocaleString()} km</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedFlota.conductores && selectedFlota.conductores.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Conductores ({selectedFlota.conductores.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {selectedFlota.conductores.map((conductor: any, idx: number) => (
+                          <div key={idx} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-semibold text-base">
+                                  {conductor.nombre} {conductor.apellido}
+                                </p>
+                                <p className="text-sm text-muted-foreground">Cédula: {conductor.cedula_identidad}</p>
+                              </div>
+                              <Badge variant="outline">{conductor.tipo_licencia}</Badge>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 mt-3 text-sm">
+                              <div>
+                                <p className="text-muted-foreground">Teléfono</p>
+                                <p className="font-medium">{conductor.telefono}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Licencia</p>
+                                <p className="font-medium">{conductor.numero_licencia}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Vence</p>
+                                <p className="font-medium">{new Date(conductor.fecha_vencimiento_licencia).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsDialogOpen(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
