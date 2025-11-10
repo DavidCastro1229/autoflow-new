@@ -223,6 +223,105 @@ export type Database = {
           },
         ]
       }
+      cotizacion_partes: {
+        Row: {
+          cantidad: number
+          categoria_id: string
+          cotizacion_id: string
+          created_at: string
+          descripcion: string
+          dias: number
+          horas: number
+          id: string
+          mano_obra: number
+          materiales: number
+          operacion: Database["public"]["Enums"]["operacion_parte"]
+          repuestos: number
+          subtotal: number
+          tipo_material: string
+          tipo_reparacion: string
+          updated_at: string
+        }
+        Insert: {
+          cantidad?: number
+          categoria_id: string
+          cotizacion_id: string
+          created_at?: string
+          descripcion: string
+          dias?: number
+          horas?: number
+          id?: string
+          mano_obra?: number
+          materiales?: number
+          operacion: Database["public"]["Enums"]["operacion_parte"]
+          repuestos?: number
+          subtotal?: number
+          tipo_material: string
+          tipo_reparacion: string
+          updated_at?: string
+        }
+        Update: {
+          cantidad?: number
+          categoria_id?: string
+          cotizacion_id?: string
+          created_at?: string
+          descripcion?: string
+          dias?: number
+          horas?: number
+          id?: string
+          mano_obra?: number
+          materiales?: number
+          operacion?: Database["public"]["Enums"]["operacion_parte"]
+          repuestos?: number
+          subtotal?: number
+          tipo_material?: string
+          tipo_reparacion?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cotizaciones: {
+        Row: {
+          cliente_id: string
+          codigo_cotizacion: string
+          created_at: string
+          estado: Database["public"]["Enums"]["estado_cotizacion"]
+          fecha: string
+          id: string
+          observaciones: string | null
+          taller_id: string
+          total: number
+          updated_at: string
+          vehiculo_id: string
+        }
+        Insert: {
+          cliente_id: string
+          codigo_cotizacion: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_cotizacion"]
+          fecha?: string
+          id?: string
+          observaciones?: string | null
+          taller_id: string
+          total?: number
+          updated_at?: string
+          vehiculo_id: string
+        }
+        Update: {
+          cliente_id?: string
+          codigo_cotizacion?: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_cotizacion"]
+          fecha?: string
+          id?: string
+          observaciones?: string | null
+          taller_id?: string
+          total?: number
+          updated_at?: string
+          vehiculo_id?: string
+        }
+        Relationships: []
+      }
       especialidades_taller: {
         Row: {
           created_at: string
@@ -1664,6 +1763,7 @@ export type Database = {
     }
     Functions: {
       approve_taller: { Args: { taller_id_param: string }; Returns: undefined }
+      generate_codigo_cotizacion: { Args: never; Returns: string }
       generate_numero_factura: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -1684,6 +1784,11 @@ export type Database = {
         | "tecnico"
       area_tecnico: "tecnico" | "tecnico_senior"
       estado_cita: "programada" | "confirmada" | "completada" | "cancelada"
+      estado_cotizacion:
+        | "pendiente"
+        | "aprobada"
+        | "rechazada"
+        | "convertida_a_orden"
       estado_factura:
         | "pendiente"
         | "pagada"
@@ -1705,6 +1810,7 @@ export type Database = {
         | "transferencia"
         | "cheque"
         | "otro"
+      operacion_parte: "corregir" | "reparar" | "cambiar"
       prioridad_orden: "baja" | "media" | "alta" | "urgente"
       taller_status: "pendiente" | "aprobado" | "rechazado"
       tipo_cliente: "individual" | "empresa" | "flota"
@@ -1856,6 +1962,12 @@ export const Constants = {
       ],
       area_tecnico: ["tecnico", "tecnico_senior"],
       estado_cita: ["programada", "confirmada", "completada", "cancelada"],
+      estado_cotizacion: [
+        "pendiente",
+        "aprobada",
+        "rechazada",
+        "convertida_a_orden",
+      ],
       estado_factura: [
         "pendiente",
         "pagada",
@@ -1880,6 +1992,7 @@ export const Constants = {
         "cheque",
         "otro",
       ],
+      operacion_parte: ["corregir", "reparar", "cambiar"],
       prioridad_orden: ["baja", "media", "alta", "urgente"],
       taller_status: ["pendiente", "aprobado", "rechazado"],
       tipo_cliente: ["individual", "empresa", "flota"],

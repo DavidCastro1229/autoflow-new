@@ -140,7 +140,7 @@ export default function Facturacion() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Factura[];
+      return data as any;
     },
     enabled: !!tallerId,
   });
