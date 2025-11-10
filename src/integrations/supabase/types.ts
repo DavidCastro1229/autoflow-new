@@ -1671,6 +1671,47 @@ export type Database = {
         }
         Relationships: []
       }
+      tecnico_horarios: {
+        Row: {
+          activo: boolean
+          created_at: string
+          dia_semana: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          tecnico_id: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          dia_semana: string
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          tecnico_id: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          dia_semana?: string
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          tecnico_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tecnico_horarios_tecnico_id_fkey"
+            columns: ["tecnico_id"]
+            isOneToOne: false
+            referencedRelation: "tecnicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tecnicos: {
         Row: {
           apellido: string

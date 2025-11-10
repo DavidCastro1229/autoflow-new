@@ -7,11 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Wrench, Award, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Wrench, Award, User, Clock, ClipboardList, Pencil, Trash2, Mail, Phone, MapPin, Calendar } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 type AreaTecnico = "tecnico" | "tecnico_senior";
@@ -39,6 +40,30 @@ interface Tecnico {
   };
 }
 
+interface Horario {
+  id: string;
+  dia_semana: string;
+  hora_inicio: string;
+  hora_fin: string;
+  activo: boolean;
+}
+
+interface Orden {
+  id: string;
+  descripcion: string;
+  estado: string;
+  fecha_ingreso: string;
+  clientes: {
+    nombre: string;
+    apellido: string;
+  };
+  vehiculos: {
+    marca: string;
+    modelo: string;
+    placa: string;
+  };
+}
+
 interface TecnicoFormData {
   nombre: string;
   apellido: string;
@@ -53,6 +78,22 @@ interface TecnicoFormData {
   password: string;
 }
 
+interface HorarioFormData {
+  dia_semana: string;
+  hora_inicio: string;
+  hora_fin: string;
+}
+
+const diasSemana = [
+  { value: "lunes", label: "Lunes" },
+  { value: "martes", label: "Martes" },
+  { value: "miercoles", label: "Miércoles" },
+  { value: "jueves", label: "Jueves" },
+  { value: "viernes", label: "Viernes" },
+  { value: "sabado", label: "Sábado" },
+  { value: "domingo", label: "Domingo" },
+];
+
 export default function Tecnicos() {
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
@@ -60,12 +101,19 @@ export default function Tecnicos() {
   const [submitting, setSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTecnico, setSelectedTecnico] = useState<Tecnico | null>(null);
+  const [horarios, setHorarios] = useState<Horario[]>([]);
+  const [ordenes, setOrdenes] = useState<Orden[]>([]);
+  const [loadingHorarios, setLoadingHorarios] = useState(false);
+  const [loadingOrdenes, setLoadingOrdenes] = useState(false);
+  const [editingHorario, setEditingHorario] = useState<Horario | null>(null);
+  
   const { toast } = useToast();
-  const { register, handleSubmit, reset, setValue, watch } = useForm<TecnicoFormData>();
+  const { register, handleSubmit, reset, setValue } = useForm<TecnicoFormData>();
   const editForm = useForm<Omit<TecnicoFormData, 'password'>>();
+  const horarioForm = useForm<HorarioFormData>();
 
   useEffect(() => {
     fetchTecnicos();
@@ -112,6 +160,66 @@ export default function Tecnicos() {
     }
   };
 
+  const fetchHorarios = async (tecnicoId: string) => {
+    setLoadingHorarios(true);
+    try {
+      const { data, error } = await supabase
+        .from("tecnico_horarios")
+        .select("*")
+        .eq("tecnico_id", tecnicoId)
+        .order("dia_semana");
+
+      if (error) throw error;
+      setHorarios(data || []);
+    } catch (error: any) {
+      console.error("Error fetching horarios:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los horarios",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingHorarios(false);
+    }
+  };
+
+  const fetchOrdenes = async (tecnicoId: string) => {
+    setLoadingOrdenes(true);
+    try {
+      const { data, error } = await supabase
+        .from("ordenes")
+        .select(`
+          id,
+          descripcion,
+          estado,
+          fecha_ingreso,
+          clientes (
+            nombre,
+            apellido
+          ),
+          vehiculos (
+            marca,
+            modelo,
+            placa
+          )
+        `)
+        .eq("tecnico_id", tecnicoId)
+        .order("fecha_ingreso", { ascending: false });
+
+      if (error) throw error;
+      setOrdenes(data as any || []);
+    } catch (error: any) {
+      console.error("Error fetching ordenes:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las órdenes",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingOrdenes(false);
+    }
+  };
+
   const onSubmit = async (formData: TecnicoFormData) => {
     setSubmitting(true);
     try {
@@ -148,15 +256,6 @@ export default function Tecnicos() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const getAreaBadgeVariant = (area: AreaTecnico): "default" | "secondary" => {
-    return area === "tecnico_senior" ? "secondary" : "default";
-  };
-
-  const handleViewDetail = (tecnico: Tecnico) => {
-    setSelectedTecnico(tecnico);
-    setDetailDialogOpen(true);
   };
 
   const handleEdit = (tecnico: Tecnico) => {
@@ -263,6 +362,117 @@ export default function Tecnicos() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleViewProfile = (tecnico: Tecnico) => {
+    setSelectedTecnico(tecnico);
+    fetchHorarios(tecnico.id);
+    fetchOrdenes(tecnico.id);
+    setProfileDialogOpen(true);
+  };
+
+  const onHorarioSubmit = async (formData: HorarioFormData) => {
+    if (!selectedTecnico) return;
+
+    setSubmitting(true);
+    try {
+      if (editingHorario) {
+        // Update existing horario
+        const { error } = await supabase
+          .from("tecnico_horarios")
+          .update({
+            hora_inicio: formData.hora_inicio,
+            hora_fin: formData.hora_fin,
+          })
+          .eq("id", editingHorario.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Horario actualizado",
+          description: "El horario se ha actualizado exitosamente",
+        });
+      } else {
+        // Create new horario
+        const { error } = await supabase
+          .from("tecnico_horarios")
+          .insert({
+            tecnico_id: selectedTecnico.id,
+            dia_semana: formData.dia_semana,
+            hora_inicio: formData.hora_inicio,
+            hora_fin: formData.hora_fin,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Horario agregado",
+          description: "El horario se ha agregado exitosamente",
+        });
+      }
+
+      horarioForm.reset();
+      setEditingHorario(null);
+      fetchHorarios(selectedTecnico.id);
+    } catch (error: any) {
+      console.error("Error saving horario:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo guardar el horario",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditHorario = (horario: Horario) => {
+    setEditingHorario(horario);
+    horarioForm.reset({
+      dia_semana: horario.dia_semana,
+      hora_inicio: horario.hora_inicio,
+      hora_fin: horario.hora_fin,
+    });
+  };
+
+  const handleDeleteHorario = async (horarioId: string) => {
+    if (!selectedTecnico) return;
+
+    try {
+      const { error } = await supabase
+        .from("tecnico_horarios")
+        .delete()
+        .eq("id", horarioId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Horario eliminado",
+        description: "El horario se ha eliminado exitosamente",
+      });
+
+      fetchHorarios(selectedTecnico.id);
+    } catch (error: any) {
+      console.error("Error deleting horario:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el horario",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getAreaBadgeVariant = (area: AreaTecnico): "default" | "secondary" => {
+    return area === "tecnico_senior" ? "secondary" : "default";
+  };
+
+  const getEstadoOrdenBadge = (estado: string) => {
+    const variants: Record<string, { variant: "default" | "secondary" | "outline", label: string }> = {
+      pendiente: { variant: "outline", label: "Pendiente" },
+      en_proceso: { variant: "default", label: "En Proceso" },
+      completada: { variant: "secondary", label: "Completada" },
+    };
+    return variants[estado] || { variant: "outline", label: estado };
   };
 
   return (
@@ -422,183 +632,387 @@ export default function Tecnicos() {
         </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wrench className="h-5 w-5" />
-            Lista de Técnicos
-          </CardTitle>
-          <CardDescription>
-            {tecnicos.length} técnico{tecnicos.length !== 1 ? "s" : ""} registrado{tecnicos.length !== 1 ? "s" : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-center py-8 text-muted-foreground">Cargando técnicos...</p>
-          ) : tecnicos.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <p className="text-muted-foreground">Cargando técnicos...</p>
+        </div>
+      ) : tecnicos.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Wrench className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-center text-muted-foreground">
               No hay técnicos registrados. Crea uno usando el botón "Nuevo Técnico"
             </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Área</TableHead>
-                  <TableHead>Especialidad</TableHead>
-                  <TableHead>Experiencia</TableHead>
-                  <TableHead>Teléfono</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tecnicos.map((tecnico) => (
-                  <TableRow key={tecnico.id}>
-                    <TableCell className="font-medium">
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {tecnicos.map((tecnico) => (
+            <Card key={tecnico.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <User className="h-5 w-5 text-primary" />
                       {tecnico.nombre} {tecnico.apellido}
-                    </TableCell>
-                    <TableCell>
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-2">
                       <Badge variant={getAreaBadgeVariant(tecnico.area)}>
                         {tecnico.area === "tecnico_senior" ? "Técnico Senior" : "Técnico"}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="flex items-center gap-1 w-fit">
-                        <Award className="h-3 w-3" />
-                        {tecnico.especialidades_taller?.nombre || "N/A"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{tecnico.experiencia}</TableCell>
-                    <TableCell>{tecnico.telefono}</TableCell>
-                    <TableCell>{tecnico.email}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewDetail(tecnico)}
-                          title="Ver detalles"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(tecnico)}
-                          title="Editar"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(tecnico)}
-                          title="Eliminar"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Award className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Especialidad:</span>
+                    <Badge variant="outline" className="ml-auto">
+                      {tecnico.especialidades_taller?.nombre || "N/A"}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Experiencia:</span>
+                    <span className="text-muted-foreground ml-auto">{tecnico.experiencia}</span>
+                  </div>
 
-      {/* Dialog de detalle del técnico */}
-      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{tecnico.telefono}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground truncate">{tecnico.email}</span>
+                  </div>
+
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <span className="text-muted-foreground line-clamp-2">{tecnico.direccion}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleViewProfile(tecnico)}
+                    className="flex-1"
+                  >
+                    Ver Perfil
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEdit(tecnico)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteClick(tecnico)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Profile Dialog with Tabs */}
+      <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalle del Técnico</DialogTitle>
-            <DialogDescription>
-              Información completa del técnico
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Perfil de {selectedTecnico?.nombre} {selectedTecnico?.apellido}
+            </DialogTitle>
           </DialogHeader>
+          
           {selectedTecnico && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Nombre Completo</Label>
-                  <p className="font-medium">{selectedTecnico.nombre} {selectedTecnico.apellido}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Área</Label>
-                  <div>
-                    <Badge variant={getAreaBadgeVariant(selectedTecnico.area)}>
-                      {selectedTecnico.area === "tecnico_senior" ? "Técnico Senior" : "Técnico"}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
+            <Tabs defaultValue="info" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="info">Información</TabsTrigger>
+                <TabsTrigger value="horarios">Horarios</TabsTrigger>
+                <TabsTrigger value="ordenes">Órdenes Asignadas</TabsTrigger>
+              </TabsList>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Especialidad</Label>
-                  <div>
-                    <Badge variant="outline" className="flex items-center gap-1 w-fit">
-                      <Award className="h-3 w-3" />
-                      {selectedTecnico.especialidades_taller?.nombre || "N/A"}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Experiencia</Label>
-                  <p className="font-medium">{selectedTecnico.experiencia}</p>
-                </div>
-              </div>
+              <TabsContent value="info" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Información Personal</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Nombre Completo</Label>
+                        <p className="font-medium">{selectedTecnico.nombre} {selectedTecnico.apellido}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Área</Label>
+                        <div>
+                          <Badge variant={getAreaBadgeVariant(selectedTecnico.area)}>
+                            {selectedTecnico.area === "tecnico_senior" ? "Técnico Senior" : "Técnico"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Teléfono</Label>
-                  <p className="font-medium">{selectedTecnico.telefono}</p>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-medium">{selectedTecnico.email}</p>
-                </div>
-              </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Especialidad</Label>
+                        <div>
+                          <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                            <Award className="h-3 w-3" />
+                            {selectedTecnico.especialidades_taller?.nombre || "N/A"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Experiencia</Label>
+                        <p className="font-medium">{selectedTecnico.experiencia}</p>
+                      </div>
+                    </div>
 
-              <div className="space-y-1">
-                <Label className="text-muted-foreground">Dirección</Label>
-                <p className="font-medium">{selectedTecnico.direccion}</p>
-              </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Teléfono</Label>
+                        <p className="font-medium">{selectedTecnico.telefono}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Email</Label>
+                        <p className="font-medium">{selectedTecnico.email}</p>
+                      </div>
+                    </div>
 
-              {selectedTecnico.habilidades && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Habilidades</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedTecnico.habilidades.split(',').map((habilidad, index) => (
-                      <Badge key={index} variant="secondary">
-                        {habilidad.trim()}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground">Dirección</Label>
+                      <p className="font-medium">{selectedTecnico.direccion}</p>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {selectedTecnico.certificaciones && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Certificaciones</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedTecnico.certificaciones.split(',').map((cert, index) => (
-                      <Badge key={index} variant="outline" className="flex items-center gap-1">
-                        <Award className="h-3 w-3" />
-                        {cert.trim()}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+                {selectedTecnico.habilidades && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Habilidades</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTecnico.habilidades.split(',').map((habilidad, index) => (
+                          <Badge key={index} variant="secondary">
+                            {habilidad.trim()}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {selectedTecnico.certificaciones && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Certificaciones</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTecnico.certificaciones.split(',').map((cert, index) => (
+                          <Badge key={index} variant="outline" className="flex items-center gap-1">
+                            <Award className="h-3 w-3" />
+                            {cert.trim()}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="horarios" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Gestión de Horarios
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <form onSubmit={horarioForm.handleSubmit(onHorarioSubmit)} className="space-y-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Día de la Semana *</Label>
+                          <Select 
+                            value={horarioForm.watch("dia_semana")}
+                            onValueChange={(value) => horarioForm.setValue("dia_semana", value)}
+                            disabled={!!editingHorario}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar día" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {diasSemana.map((dia) => (
+                                <SelectItem key={dia.value} value={dia.value}>
+                                  {dia.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Hora Inicio *</Label>
+                          <Input
+                            type="time"
+                            {...horarioForm.register("hora_inicio", { required: true })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Hora Fin *</Label>
+                          <Input
+                            type="time"
+                            {...horarioForm.register("hora_fin", { required: true })}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="submit" disabled={submitting}>
+                          {editingHorario ? "Actualizar" : "Agregar"} Horario
+                        </Button>
+                        {editingHorario && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingHorario(null);
+                              horarioForm.reset();
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        )}
+                      </div>
+                    </form>
+
+                    <div className="border-t pt-4">
+                      <h4 className="font-semibold mb-3">Horarios Configurados</h4>
+                      {loadingHorarios ? (
+                        <p className="text-muted-foreground text-sm">Cargando horarios...</p>
+                      ) : horarios.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">No hay horarios configurados</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {diasSemana.map((dia) => {
+                            const horario = horarios.find(h => h.dia_semana === dia.value);
+                            return (
+                              <div key={dia.value} className="flex items-center justify-between p-3 border rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  <span className="font-medium w-24">{dia.label}</span>
+                                  {horario ? (
+                                    <span className="text-sm text-muted-foreground">
+                                      {horario.hora_inicio} - {horario.hora_fin}
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">No configurado</span>
+                                  )}
+                                </div>
+                                {horario && (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEditHorario(horario)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteHorario(horario.id)}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="ordenes" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <ClipboardList className="h-5 w-5" />
+                      Órdenes Asignadas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingOrdenes ? (
+                      <p className="text-muted-foreground text-sm">Cargando órdenes...</p>
+                    ) : ordenes.length === 0 ? (
+                      <p className="text-muted-foreground text-sm">No hay órdenes asignadas a este técnico</p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Cliente</TableHead>
+                            <TableHead>Vehículo</TableHead>
+                            <TableHead>Descripción</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Fecha Ingreso</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {ordenes.map((orden) => (
+                            <TableRow key={orden.id}>
+                              <TableCell>
+                                {orden.clientes?.nombre} {orden.clientes?.apellido}
+                              </TableCell>
+                              <TableCell>
+                                {orden.vehiculos?.marca} {orden.vehiculos?.modelo}
+                                <br />
+                                <span className="text-xs text-muted-foreground">
+                                  {orden.vehiculos?.placa}
+                                </span>
+                              </TableCell>
+                              <TableCell className="max-w-xs truncate">
+                                {orden.descripcion}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={getEstadoOrdenBadge(orden.estado).variant}>
+                                  {getEstadoOrdenBadge(orden.estado).label}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {new Date(orden.fecha_ingreso).toLocaleDateString()}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de edición */}
+      {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -738,7 +1152,7 @@ export default function Tecnicos() {
         </DialogContent>
       </Dialog>
 
-      {/* Alert Dialog de confirmación de eliminación */}
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
