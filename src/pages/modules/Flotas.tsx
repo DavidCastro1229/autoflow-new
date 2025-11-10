@@ -146,13 +146,6 @@ interface Conductor {
   fecha_vencimiento_licencia: string;
   restricciones_licencia?: string;
   fecha_ingreso: string;
-  vehiculo_asignado_actual?: string;
-  historial_asignaciones?: string;
-  calificacion_desempeno?: number;
-  observaciones_desempeno?: string;
-  viaticos_autorizados?: number;
-  limite_diario_viaticos?: number;
-  notas_viaticos?: string;
 }
 
 interface Flota {
@@ -588,9 +581,9 @@ export default function Flotas() {
         await saveVehiculosInventario(flotaId);
       }
 
-      // Save temp conductores
+      // Save temp conductores (exclude temp ID)
       if (tempConductores.length > 0) {
-        const conductoresData = tempConductores.map(c => ({
+        const conductoresData = tempConductores.map(({ id, ...c }) => ({
           flota_id: flotaId,
           ...c,
         }));
@@ -1025,13 +1018,6 @@ const EXPECTED_EXCEL_HEADERS = [
       fecha_vencimiento_licencia: "",
       restricciones_licencia: "",
       fecha_ingreso: new Date().toISOString().split('T')[0],
-      vehiculo_asignado_actual: "",
-      historial_asignaciones: "",
-      calificacion_desempeno: 0,
-      observaciones_desempeno: "",
-      viaticos_autorizados: 0,
-      limite_diario_viaticos: 0,
-      notas_viaticos: "",
     });
     setEditingConductorId(null);
     setConductorDialogOpen(true);
@@ -2457,7 +2443,6 @@ const EXPECTED_EXCEL_HEADERS = [
                           <TableHead>Cédula</TableHead>
                           <TableHead>Teléfono</TableHead>
                           <TableHead>Licencia</TableHead>
-                          <TableHead>Vehículo Asignado</TableHead>
                           <TableHead>Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -2468,7 +2453,6 @@ const EXPECTED_EXCEL_HEADERS = [
                             <TableCell>{conductor.cedula_identidad}</TableCell>
                             <TableCell>{conductor.telefono}</TableCell>
                             <TableCell>{conductor.numero_licencia}</TableCell>
-                            <TableCell>{conductor.vehiculo_asignado_actual || "Sin asignar"}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <Button
@@ -2504,7 +2488,6 @@ const EXPECTED_EXCEL_HEADERS = [
                             <TableCell>{conductor.cedula_identidad}</TableCell>
                             <TableCell>{conductor.telefono}</TableCell>
                             <TableCell>{conductor.numero_licencia}</TableCell>
-                            <TableCell>{conductor.vehiculo_asignado_actual || "Sin asignar"}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <Button
@@ -2556,11 +2539,9 @@ const EXPECTED_EXCEL_HEADERS = [
 
           <form onSubmit={handleConductorSubmit}>
             <Tabs defaultValue="generales" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="generales">Datos Generales</TabsTrigger>
                 <TabsTrigger value="licencia">Licencia</TabsTrigger>
-                <TabsTrigger value="desempeno">Desempeño</TabsTrigger>
-                <TabsTrigger value="viaticos">Viáticos</TabsTrigger>
               </TabsList>
 
               <TabsContent value="generales" className="space-y-4">
@@ -2711,67 +2692,6 @@ const EXPECTED_EXCEL_HEADERS = [
                       required
                       value={conductorFormData?.fecha_ingreso || ""}
                       onChange={(e) => setConductorFormData({ ...conductorFormData!, fecha_ingreso: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Vehículo Asignado Actual</Label>
-                    <Input
-                      value={conductorFormData?.vehiculo_asignado_actual || ""}
-                      onChange={(e) => setConductorFormData({ ...conductorFormData!, vehiculo_asignado_actual: e.target.value })}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Historial de Asignaciones</Label>
-                    <Textarea
-                      value={conductorFormData?.historial_asignaciones || ""}
-                      onChange={(e) => setConductorFormData({ ...conductorFormData!, historial_asignaciones: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Calificación de Desempeño (0-100)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={conductorFormData?.calificacion_desempeno || 0}
-                      onChange={(e) => setConductorFormData({ ...conductorFormData!, calificacion_desempeno: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Observaciones de Desempeño</Label>
-                    <Textarea
-                      value={conductorFormData?.observaciones_desempeno || ""}
-                      onChange={(e) => setConductorFormData({ ...conductorFormData!, observaciones_desempeno: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="viaticos" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Viáticos Autorizados</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={conductorFormData?.viaticos_autorizados || 0}
-                      onChange={(e) => setConductorFormData({ ...conductorFormData!, viaticos_autorizados: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Límite Diario de Viáticos</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={conductorFormData?.limite_diario_viaticos || 0}
-                      onChange={(e) => setConductorFormData({ ...conductorFormData!, limite_diario_viaticos: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Notas sobre Viáticos</Label>
-                    <Textarea
-                      value={conductorFormData?.notas_viaticos || ""}
-                      onChange={(e) => setConductorFormData({ ...conductorFormData!, notas_viaticos: e.target.value })}
                     />
                   </div>
                 </div>
