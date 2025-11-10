@@ -1560,6 +1560,7 @@ export type Database = {
           email: string
           estado: string
           id: string
+          logo_url: string | null
           nombre_contacto: string
           nombre_taller: string
           status: Database["public"]["Enums"]["taller_status"]
@@ -1577,6 +1578,7 @@ export type Database = {
           email: string
           estado: string
           id?: string
+          logo_url?: string | null
           nombre_contacto: string
           nombre_taller: string
           status?: Database["public"]["Enums"]["taller_status"]
@@ -1594,6 +1596,7 @@ export type Database = {
           email?: string
           estado?: string
           id?: string
+          logo_url?: string | null
           nombre_contacto?: string
           nombre_taller?: string
           status?: Database["public"]["Enums"]["taller_status"]

@@ -80,6 +80,7 @@ export default function Cotizaciones() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedCotizacion, setSelectedCotizacion] = useState<Cotizacion | null>(null);
+  const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("cliente");
 
   // Form states
@@ -238,68 +239,118 @@ export default function Cotizaciones() {
     }
 
     try {
-      // Generate codigo_cotizacion
-      const { data: codigoData, error: codigoError } = await supabase.rpc(
-        "generate_codigo_cotizacion" as any
-      );
-
-      if (codigoError) throw codigoError;
-
       const total = calculateTotal();
 
-      // Insert cotizacion
-      const { data: cotizacionData, error: cotizacionError } = await supabase
-        .from("cotizaciones" as any)
-        .insert({
-          codigo_cotizacion: codigoData,
-          fecha,
-          cliente_id: clienteId,
-          vehiculo_id: vehiculoId,
-          taller_id: tallerId,
-          total,
-          observaciones: observaciones || null,
-        } as any)
-        .select()
-        .single() as any;
+      if (editMode && selectedCotizacion) {
+        // Update existing cotizacion
+        const { error: cotizacionError } = await supabase
+          .from("cotizaciones" as any)
+          .update({
+            fecha,
+            cliente_id: clienteId,
+            vehiculo_id: vehiculoId,
+            total,
+            observaciones: observaciones || null,
+          } as any)
+          .eq("id", selectedCotizacion.id);
 
-      if (cotizacionError) throw cotizacionError;
+        if (cotizacionError) throw cotizacionError;
 
-      // Insert partes
-      const partesData = partes.map((parte) => ({
-        cotizacion_id: cotizacionData.id,
-        categoria_id: parte.categoria_id,
-        cantidad: parte.cantidad,
-        descripcion: parte.descripcion,
-        operacion: parte.operacion,
-        tipo_material: parte.tipo_material,
-        tipo_reparacion: parte.tipo_reparacion,
-        dias: parte.dias,
-        horas: parte.horas,
-        mano_obra: parte.mano_obra,
-        materiales: parte.materiales,
-        repuestos: parte.repuestos,
-        subtotal: parte.subtotal,
-      }));
+        // Delete old partes
+        await supabase
+          .from("cotizacion_partes" as any)
+          .delete()
+          .eq("cotizacion_id", selectedCotizacion.id);
 
-      const { error: partesError } = await supabase
-        .from("cotizacion_partes" as any)
-        .insert(partesData as any);
+        // Insert new partes
+        const partesData = partes.map((parte) => ({
+          cotizacion_id: selectedCotizacion.id,
+          categoria_id: parte.categoria_id,
+          cantidad: parte.cantidad,
+          descripcion: parte.descripcion,
+          operacion: parte.operacion,
+          tipo_material: parte.tipo_material,
+          tipo_reparacion: parte.tipo_reparacion,
+          dias: parte.dias,
+          horas: parte.horas,
+          mano_obra: parte.mano_obra,
+          materiales: parte.materiales,
+          repuestos: parte.repuestos,
+          subtotal: parte.subtotal,
+        }));
 
-      if (partesError) throw partesError;
+        const { error: partesError } = await supabase
+          .from("cotizacion_partes" as any)
+          .insert(partesData as any);
 
-      toast({
-        title: "Cotización creada",
-        description: `Cotización ${codigoData} creada exitosamente`,
-      });
+        if (partesError) throw partesError;
+
+        toast({
+          title: "Cotización actualizada",
+          description: `Cotización actualizada exitosamente`,
+        });
+      } else {
+        // Generate codigo_cotizacion
+        const { data: codigoData, error: codigoError } = await supabase.rpc(
+          "generate_codigo_cotizacion" as any
+        );
+
+        if (codigoError) throw codigoError;
+
+        // Insert cotizacion
+        const { data: cotizacionData, error: cotizacionError } = await supabase
+          .from("cotizaciones" as any)
+          .insert({
+            codigo_cotizacion: codigoData,
+            fecha,
+            cliente_id: clienteId,
+            vehiculo_id: vehiculoId,
+            taller_id: tallerId,
+            total,
+            observaciones: observaciones || null,
+          } as any)
+          .select()
+          .single() as any;
+
+        if (cotizacionError) throw cotizacionError;
+
+        // Insert partes
+        const partesData = partes.map((parte) => ({
+          cotizacion_id: cotizacionData.id,
+          categoria_id: parte.categoria_id,
+          cantidad: parte.cantidad,
+          descripcion: parte.descripcion,
+          operacion: parte.operacion,
+          tipo_material: parte.tipo_material,
+          tipo_reparacion: parte.tipo_reparacion,
+          dias: parte.dias,
+          horas: parte.horas,
+          mano_obra: parte.mano_obra,
+          materiales: parte.materiales,
+          repuestos: parte.repuestos,
+          subtotal: parte.subtotal,
+        }));
+
+        const { error: partesError } = await supabase
+          .from("cotizacion_partes" as any)
+          .insert(partesData as any);
+
+        if (partesError) throw partesError;
+
+        toast({
+          title: "Cotización creada",
+          description: `Cotización ${codigoData} creada exitosamente`,
+        });
+      }
 
       resetForm();
       setDialogOpen(false);
       fetchCotizaciones();
     } catch (error: any) {
-      console.error("Error creating cotizacion:", error);
+      console.error("Error saving cotizacion:", error);
       toast({
         title: "Error",
-        description: error.message || "No se pudo crear la cotización",
+        description: error.message || "No se pudo guardar la cotización",
         variant: "destructive",
       });
     }
@@ -348,6 +399,37 @@ export default function Cotizaciones() {
     }
   };
 
+  const handleEdit = async (cotizacion: Cotizacion) => {
+    const { data: partesData, error } = await supabase
+      .from("cotizacion_partes" as any)
+      .select(`
+        *,
+        categorias_servicio:categoria_id (
+          id,
+          nombre
+        )
+      `)
+      .eq("cotizacion_id", cotizacion.id);
+
+    if (!error && partesData) {
+      setPartes(
+        partesData.map((p: any) => ({
+          ...p,
+          categoria: p.categorias_servicio,
+        }))
+      );
+    }
+
+    setSelectedCotizacion(cotizacion);
+    setFecha(cotizacion.fecha);
+    setClienteId(cotizacion.cliente_id);
+    setVehiculoId(cotizacion.vehiculo_id);
+    setObservaciones(cotizacion.observaciones || "");
+    setEditMode(true);
+    setActiveTab("cliente");
+    setDialogOpen(true);
+  };
+
   const resetForm = () => {
     setFecha(format(new Date(), "yyyy-MM-dd"));
     setClienteId("");
@@ -355,6 +437,8 @@ export default function Cotizaciones() {
     setObservaciones("");
     setPartes([]);
     setActiveTab("cliente");
+    setEditMode(false);
+    setSelectedCotizacion(null);
   };
 
   const getEstadoBadgeVariant = (estado: EstadoCotizacion) => {
@@ -405,7 +489,9 @@ export default function Cotizaciones() {
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Crear Nueva Cotización</DialogTitle>
+              <DialogTitle>
+                {editMode ? "Editar Cotización" : "Crear Nueva Cotización"}
+              </DialogTitle>
             </DialogHeader>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -848,7 +934,9 @@ export default function Cotizaciones() {
                   <Button variant="outline" onClick={() => setActiveTab("partes")}>
                     Anterior
                   </Button>
-                  <Button onClick={handleSubmit}>Crear Cotización</Button>
+                  <Button onClick={handleSubmit}>
+                    {editMode ? "Actualizar Cotización" : "Crear Cotización"}
+                  </Button>
                 </div>
               </TabsContent>
             </Tabs>
@@ -914,6 +1002,13 @@ export default function Cotizaciones() {
                           onClick={() => handleView(cotizacion)}
                         >
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(cotizacion)}
+                        >
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
