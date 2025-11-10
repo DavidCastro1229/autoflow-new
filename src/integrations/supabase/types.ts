@@ -244,6 +244,96 @@ export type Database = {
         }
         Relationships: []
       }
+      facturas: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          descuento: number | null
+          estado: Database["public"]["Enums"]["estado_factura"]
+          fecha_emision: string
+          fecha_pago: string | null
+          fecha_vencimiento: string | null
+          id: string
+          impuestos: number
+          metodo_pago: Database["public"]["Enums"]["metodo_pago"] | null
+          monto_pagado: number | null
+          nombre_factura: string
+          nota_pago: string | null
+          notas: string | null
+          numero_factura: string
+          orden_id: string | null
+          referencia_pago: string | null
+          subtotal: number
+          taller_id: string
+          tipo_tarjeta: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          descuento?: number | null
+          estado?: Database["public"]["Enums"]["estado_factura"]
+          fecha_emision?: string
+          fecha_pago?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          impuestos?: number
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago"] | null
+          monto_pagado?: number | null
+          nombre_factura: string
+          nota_pago?: string | null
+          notas?: string | null
+          numero_factura: string
+          orden_id?: string | null
+          referencia_pago?: string | null
+          subtotal?: number
+          taller_id: string
+          tipo_tarjeta?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          descuento?: number | null
+          estado?: Database["public"]["Enums"]["estado_factura"]
+          fecha_emision?: string
+          fecha_pago?: string | null
+          fecha_vencimiento?: string | null
+          id?: string
+          impuestos?: number
+          metodo_pago?: Database["public"]["Enums"]["metodo_pago"] | null
+          monto_pagado?: number | null
+          nombre_factura?: string
+          nota_pago?: string | null
+          notas?: string | null
+          numero_factura?: string
+          orden_id?: string | null
+          referencia_pago?: string | null
+          subtotal?: number
+          taller_id?: string
+          tipo_tarjeta?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flota_comunicacion_externa: {
         Row: {
           celular: string | null
@@ -1070,6 +1160,78 @@ export type Database = {
           },
         ]
       }
+      paquete_servicio_items: {
+        Row: {
+          created_at: string
+          id: string
+          paquete_id: string
+          servicio_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          paquete_id: string
+          servicio_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          paquete_id?: string
+          servicio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paquete_servicio_items_paquete_id_fkey"
+            columns: ["paquete_id"]
+            isOneToOne: false
+            referencedRelation: "paquetes_servicios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paquete_servicio_items_servicio_id_fkey"
+            columns: ["servicio_id"]
+            isOneToOne: false
+            referencedRelation: "servicios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paquetes_servicios: {
+        Row: {
+          created_at: string
+          descripcion: string | null
+          descuento: number | null
+          estado: boolean
+          id: string
+          nombre: string
+          precio_total: number
+          taller_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descripcion?: string | null
+          descuento?: number | null
+          estado?: boolean
+          id?: string
+          nombre: string
+          precio_total?: number
+          taller_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string | null
+          descuento?: number | null
+          estado?: boolean
+          id?: string
+          nombre?: string
+          precio_total?: number
+          taller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           apellido_contacto: string
@@ -1502,6 +1664,7 @@ export type Database = {
     }
     Functions: {
       approve_taller: { Args: { taller_id_param: string }; Returns: undefined }
+      generate_numero_factura: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1521,6 +1684,12 @@ export type Database = {
         | "tecnico"
       area_tecnico: "tecnico" | "tecnico_senior"
       estado_cita: "programada" | "confirmada" | "completada" | "cancelada"
+      estado_factura:
+        | "pendiente"
+        | "pagada"
+        | "parcial"
+        | "vencida"
+        | "cancelada"
       estado_flota: "activa" | "en_renovacion" | "inactiva"
       estado_orden:
         | "pendiente"
@@ -1529,6 +1698,13 @@ export type Database = {
         | "entregada"
         | "cancelada"
       estado_vehiculo: "activo" | "en_servicio" | "entregado" | "inactivo"
+      metodo_pago:
+        | "efectivo"
+        | "tarjeta_credito"
+        | "tarjeta_debito"
+        | "transferencia"
+        | "cheque"
+        | "otro"
       prioridad_orden: "baja" | "media" | "alta" | "urgente"
       taller_status: "pendiente" | "aprobado" | "rechazado"
       tipo_cliente: "individual" | "empresa" | "flota"
@@ -1680,6 +1856,13 @@ export const Constants = {
       ],
       area_tecnico: ["tecnico", "tecnico_senior"],
       estado_cita: ["programada", "confirmada", "completada", "cancelada"],
+      estado_factura: [
+        "pendiente",
+        "pagada",
+        "parcial",
+        "vencida",
+        "cancelada",
+      ],
       estado_flota: ["activa", "en_renovacion", "inactiva"],
       estado_orden: [
         "pendiente",
@@ -1689,6 +1872,14 @@ export const Constants = {
         "cancelada",
       ],
       estado_vehiculo: ["activo", "en_servicio", "entregado", "inactivo"],
+      metodo_pago: [
+        "efectivo",
+        "tarjeta_credito",
+        "tarjeta_debito",
+        "transferencia",
+        "cheque",
+        "otro",
+      ],
       prioridad_orden: ["baja", "media", "alta", "urgente"],
       taller_status: ["pendiente", "aprobado", "rechazado"],
       tipo_cliente: ["individual", "empresa", "flota"],
