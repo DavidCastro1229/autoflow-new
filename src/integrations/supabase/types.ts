@@ -1213,6 +1213,71 @@ export type Database = {
           },
         ]
       }
+      inventario: {
+        Row: {
+          categoria_id: string | null
+          codigo: string
+          created_at: string
+          descripcion: string | null
+          estado: Database["public"]["Enums"]["estado_inventario"]
+          fecha_ingreso: string
+          id: string
+          nombre: string
+          precio_compra: number
+          precio_venta: number
+          proveedor: string | null
+          stock_actual: number
+          stock_minimo: number
+          taller_id: string
+          ubicacion_almacen: string | null
+          updated_at: string
+        }
+        Insert: {
+          categoria_id?: string | null
+          codigo: string
+          created_at?: string
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["estado_inventario"]
+          fecha_ingreso?: string
+          id?: string
+          nombre: string
+          precio_compra?: number
+          precio_venta?: number
+          proveedor?: string | null
+          stock_actual?: number
+          stock_minimo?: number
+          taller_id: string
+          ubicacion_almacen?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categoria_id?: string | null
+          codigo?: string
+          created_at?: string
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["estado_inventario"]
+          fecha_ingreso?: string
+          id?: string
+          nombre?: string
+          precio_compra?: number
+          precio_venta?: number
+          proveedor?: string | null
+          stock_actual?: number
+          stock_minimo?: number
+          taller_id?: string
+          ubicacion_almacen?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventario_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_servicio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ordenes: {
         Row: {
           cliente_id: string
@@ -1804,6 +1869,7 @@ export type Database = {
     Functions: {
       approve_taller: { Args: { taller_id_param: string }; Returns: undefined }
       generate_codigo_cotizacion: { Args: never; Returns: string }
+      generate_codigo_producto: { Args: never; Returns: string }
       generate_numero_factura: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -1836,6 +1902,7 @@ export type Database = {
         | "vencida"
         | "cancelada"
       estado_flota: "activa" | "en_renovacion" | "inactiva"
+      estado_inventario: "activo" | "descontinuado" | "agotado"
       estado_orden:
         | "pendiente"
         | "en_proceso"
@@ -2016,6 +2083,7 @@ export const Constants = {
         "cancelada",
       ],
       estado_flota: ["activa", "en_renovacion", "inactiva"],
+      estado_inventario: ["activo", "descontinuado", "agotado"],
       estado_orden: [
         "pendiente",
         "en_proceso",
