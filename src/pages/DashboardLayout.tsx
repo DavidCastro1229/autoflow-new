@@ -38,6 +38,8 @@ const routePermissions: Record<string, UserRole[]> = {
   "/reportes": ["taller", "admin_taller", "aseguradora", "super_admin"],
   "/accesos": ["admin_taller", "super_admin"],
   "/configuraciones": ["admin_taller", "super_admin"],
+  "/servicios": ["taller", "admin_taller", "super_admin"],
+  "/paquetes": ["taller", "admin_taller", "super_admin"],
 };
 
 export default function DashboardLayout() {

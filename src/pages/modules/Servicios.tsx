@@ -112,7 +112,10 @@ export default function Servicios() {
         .eq("taller_id", tallerId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Servicio[];
+      return data.map(servicio => ({
+        ...servicio,
+        tiempo_estimado: servicio.tiempo_estimado as { dias: number; horas: number; minutos: number; }
+      })) as Servicio[];
     },
     enabled: !!tallerId,
   });

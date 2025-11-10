@@ -75,7 +75,7 @@ const Paquetes = () => {
     queryKey: ["paquetes", tallerId],
     queryFn: async () => {
       const { data: paquetesData, error: paquetesError } = await supabase
-        .from("paquetes_servicios")
+        .from("paquetes_servicios" as any)
         .select("*")
         .eq("taller_id", tallerId!)
         .order("created_at", { ascending: false });
@@ -83,9 +83,9 @@ const Paquetes = () => {
       if (paquetesError) throw paquetesError;
 
       const paquetesConServicios = await Promise.all(
-        paquetesData.map(async (paquete) => {
+        (paquetesData || []).map(async (paquete: any) => {
           const { data: items, error: itemsError } = await supabase
-            .from("paquete_servicio_items")
+            .from("paquete_servicio_items" as any)
             .select(`
               servicio_id,
               servicios (id, nombre, precio, descripcion)
@@ -94,7 +94,7 @@ const Paquetes = () => {
           
           if (itemsError) throw itemsError;
           
-          const servicios = items.map((item: any) => item.servicios).filter(Boolean);
+          const servicios = items?.map((item: any) => item.servicios).filter(Boolean) || [];
           
           return {
             ...paquete,
@@ -133,7 +133,7 @@ const Paquetes = () => {
       const precioTotal = calculatePrecioTotal(data.servicios_ids);
       
       const { data: paquete, error: paqueteError } = await supabase
-        .from("paquetes_servicios")
+        .from("paquetes_servicios" as any)
         .insert({
           nombre: data.nombre,
           descripcion: data.descripcion || null,
@@ -148,13 +148,13 @@ const Paquetes = () => {
       if (paqueteError) throw paqueteError;
 
       const items = data.servicios_ids.map(servicioId => ({
-        paquete_id: paquete.id,
+        paquete_id: (paquete as any).id,
         servicio_id: servicioId,
       }));
 
       const { error: itemsError } = await supabase
-        .from("paquete_servicio_items")
-        .insert(items);
+        .from("paquete_servicio_items" as any)
+        .insert(items as any);
 
       if (itemsError) throw itemsError;
 
@@ -176,7 +176,7 @@ const Paquetes = () => {
       const precioTotal = calculatePrecioTotal(data.servicios_ids);
       
       const { error: updateError } = await supabase
-        .from("paquetes_servicios")
+        .from("paquetes_servicios" as any)
         .update({
           nombre: data.nombre,
           descripcion: data.descripcion || null,
@@ -189,7 +189,7 @@ const Paquetes = () => {
       if (updateError) throw updateError;
 
       await supabase
-        .from("paquete_servicio_items")
+        .from("paquete_servicio_items" as any)
         .delete()
         .eq("paquete_id", editingPaquete!);
 
@@ -199,8 +199,8 @@ const Paquetes = () => {
       }));
 
       const { error: itemsError } = await supabase
-        .from("paquete_servicio_items")
-        .insert(items);
+        .from("paquete_servicio_items" as any)
+        .insert(items as any);
 
       if (itemsError) throw itemsError;
     },
@@ -218,7 +218,7 @@ const Paquetes = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("paquetes_servicios")
+        .from("paquetes_servicios" as any)
         .delete()
         .eq("id", id);
 
