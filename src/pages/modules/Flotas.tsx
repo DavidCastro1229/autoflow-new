@@ -381,6 +381,19 @@ export default function Flotas() {
 
         if (error) throw error;
         flotaId = data.id;
+        
+        // Generate automatic numero_flota with format FLOT-year-month-consecutive
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const consecutive = flotaId.substring(0, 8); // Use first 8 chars of UUID
+        const numeroFlota = `FLOT-${year}-${month}-${consecutive}`;
+        
+        // Update flota with generated numero
+        await supabase
+          .from("flotas")
+          .update({ numero_flota: numeroFlota })
+          .eq("id", flotaId);
       }
 
       // Save propietarios if tipo_flota is mixta
@@ -1270,13 +1283,18 @@ const EXPECTED_EXCEL_HEADERS = [
               <TabsContent value="generales" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="numero_flota">Número de Flota *</Label>
+                    <Label htmlFor="numero_flota">Número de Flota</Label>
                     <Input
                       id="numero_flota"
-                      required
-                      value={formData.numero_flota}
-                      onChange={(e) => setFormData({ ...formData, numero_flota: e.target.value })}
+                      value={editingId ? formData.numero_flota : "Se generará automáticamente"}
+                      disabled
+                      className="bg-muted"
                     />
+                    {!editingId && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Formato: FLOT-año-mes-consecutivo
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="fecha_registro">Fecha de Registro *</Label>
