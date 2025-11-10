@@ -17,6 +17,8 @@ import { Plus, Calendar as CalendarIcon, Loader2, Eye, User, Car, Wrench, FileTe
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { ExportButtons } from "@/components/ExportButtons";
+import { formatDateForExport, formatCurrencyForExport } from "@/lib/exportUtils";
 
 interface Cliente {
   id: string;
@@ -307,10 +309,38 @@ export default function Ordenes() {
           <h1 className="text-3xl font-bold tracking-tight">Órdenes de Trabajo</h1>
           <p className="text-muted-foreground">Gestión de órdenes de trabajo del taller</p>
         </div>
-        <Button onClick={() => { resetForm(); setModalOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nueva Orden
-        </Button>
+        <div className="flex gap-2">
+          <ExportButtons
+            data={ordenes.map((orden) => ({
+              cliente: `${orden.clientes?.nombre} ${orden.clientes?.apellido}`,
+              vehiculo: `${orden.vehiculos?.marca} ${orden.vehiculos?.modelo} - ${orden.vehiculos?.placa}`,
+              tecnico: `${orden.tecnicos?.nombre} ${orden.tecnicos?.apellido}`,
+              descripcion: orden.descripcion,
+              estado: orden.estado === "pendiente" ? "Pendiente" : orden.estado === "en_proceso" ? "En Proceso" : "Completada",
+              prioridad: orden.prioridad === "alta" ? "Alta" : orden.prioridad === "media" ? "Media" : "Baja",
+              costo_estimado: orden.costo_estimado ? formatCurrencyForExport(orden.costo_estimado) : "-",
+              fecha_ingreso: formatDateForExport(orden.fecha_ingreso),
+              fecha_entrega: orden.fecha_entrega ? formatDateForExport(orden.fecha_entrega) : "-",
+            }))}
+            columns={[
+              { header: "Cliente", key: "cliente", width: 25 },
+              { header: "Vehículo", key: "vehiculo", width: 25 },
+              { header: "Técnico", key: "tecnico", width: 20 },
+              { header: "Descripción", key: "descripcion", width: 30 },
+              { header: "Estado", key: "estado", width: 12 },
+              { header: "Prioridad", key: "prioridad", width: 10 },
+              { header: "Costo Estimado", key: "costo_estimado", width: 12 },
+              { header: "Fecha Ingreso", key: "fecha_ingreso", width: 12 },
+              { header: "Fecha Entrega", key: "fecha_entrega", width: 12 },
+            ]}
+            fileName="ordenes"
+            title="Reporte de Órdenes de Trabajo"
+          />
+          <Button onClick={() => { resetForm(); setModalOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Orden
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg">

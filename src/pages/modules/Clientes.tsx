@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Users, Building2, Truck, User } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { ExportButtons } from "@/components/ExportButtons";
+import { formatDateForExport } from "@/lib/exportUtils";
 
 type TipoCliente = "individual" | "empresa" | "flota";
 
@@ -137,13 +139,34 @@ export default function Clientes() {
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Clientes</h1>
           <p className="text-muted-foreground">Administración de clientes del taller</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo Cliente
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <ExportButtons
+            data={clientes.map((cliente) => ({
+              nombre: `${cliente.nombre} ${cliente.apellido}`,
+              email: cliente.email,
+              telefono: cliente.telefono,
+              tipo: cliente.tipo_cliente === "individual" ? "Individual" : cliente.tipo_cliente === "empresa" ? "Empresa" : "Flota",
+              empresa: cliente.nombre_empresa || "-",
+              fecha_registro: formatDateForExport(cliente.created_at),
+            }))}
+            columns={[
+              { header: "Nombre", key: "nombre", width: 25 },
+              { header: "Email", key: "email", width: 25 },
+              { header: "Teléfono", key: "telefono", width: 15 },
+              { header: "Tipo", key: "tipo", width: 15 },
+              { header: "Empresa", key: "empresa", width: 25 },
+              { header: "Fecha Registro", key: "fecha_registro", width: 15 },
+            ]}
+            fileName="clientes"
+            title="Reporte de Clientes"
+          />
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nuevo Cliente
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Crear Nuevo Cliente</DialogTitle>
@@ -241,6 +264,7 @@ export default function Clientes() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>

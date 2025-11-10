@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { ExportButtons } from "@/components/ExportButtons";
+import { formatDateForExport, formatCurrencyForExport } from "@/lib/exportUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -238,12 +240,43 @@ export default function Inventario() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Inventario</h1>
-          <p className="text-muted-foreground">Gestión de inventario de repuestos y materiales</p>
+          <p className="text-muted-foreground">Gestión de productos y stock</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Agregar Producto</Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <ExportButtons
+            data={productos.map((producto) => ({
+              codigo: producto.codigo,
+              nombre: producto.nombre,
+              categoria: producto.categorias_servicio?.nombre || "-",
+              estado: producto.estado === "activo" ? "Activo" : producto.estado === "descontinuado" ? "Descontinuado" : "Agotado",
+              precio_compra: formatCurrencyForExport(producto.precio_compra),
+              precio_venta: formatCurrencyForExport(producto.precio_venta),
+              stock_actual: producto.stock_actual,
+              stock_minimo: producto.stock_minimo,
+              proveedor: producto.proveedor || "-",
+              ubicacion: producto.ubicacion_almacen || "-",
+              fecha_ingreso: formatDateForExport(producto.fecha_ingreso),
+            }))}
+            columns={[
+              { header: "Código", key: "codigo", width: 15 },
+              { header: "Nombre", key: "nombre", width: 25 },
+              { header: "Categoría", key: "categoria", width: 15 },
+              { header: "Estado", key: "estado", width: 12 },
+              { header: "Precio Compra", key: "precio_compra", width: 12 },
+              { header: "Precio Venta", key: "precio_venta", width: 12 },
+              { header: "Stock Actual", key: "stock_actual", width: 10 },
+              { header: "Stock Mínimo", key: "stock_minimo", width: 10 },
+              { header: "Proveedor", key: "proveedor", width: 20 },
+              { header: "Ubicación", key: "ubicacion", width: 15 },
+              { header: "Fecha Ingreso", key: "fecha_ingreso", width: 12 },
+            ]}
+            fileName="inventario"
+            title="Reporte de Inventario"
+          />
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" />Agregar Producto</Button>
+            </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editMode ? "Editar Producto" : "Agregar Nuevo Producto"}</DialogTitle>
@@ -364,6 +397,7 @@ export default function Inventario() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>

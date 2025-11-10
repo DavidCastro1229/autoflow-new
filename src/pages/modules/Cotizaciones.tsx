@@ -14,6 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Eye, Edit, Trash2, FileText } from "lucide-react";
 import { format } from "date-fns";
+import { ExportButtons } from "@/components/ExportButtons";
+import { formatDateForExport, formatCurrencyForExport } from "@/lib/exportUtils";
 
 type EstadoCotizacion = "pendiente" | "aprobada" | "rechazada" | "convertida_a_orden";
 type OperacionParte = "corregir" | "reparar" | "cambiar";
@@ -480,13 +482,34 @@ export default function Cotizaciones() {
           <h1 className="text-3xl font-bold tracking-tight">Cotizaciones</h1>
           <p className="text-muted-foreground">Gestión de cotizaciones de servicios</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nueva Cotización
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <ExportButtons
+            data={cotizaciones.map((cot) => ({
+              codigo: cot.codigo_cotizacion,
+              fecha: formatDateForExport(cot.fecha),
+              cliente: `${cot.clientes?.nombre} ${cot.clientes?.apellido}`,
+              vehiculo: `${cot.vehiculos?.marca} ${cot.vehiculos?.modelo} - ${cot.vehiculos?.placa}`,
+              estado: cot.estado,
+              total: formatCurrencyForExport(cot.total),
+            }))}
+            columns={[
+              { header: "Código", key: "codigo", width: 15 },
+              { header: "Fecha", key: "fecha", width: 12 },
+              { header: "Cliente", key: "cliente", width: 25 },
+              { header: "Vehículo", key: "vehiculo", width: 25 },
+              { header: "Estado", key: "estado", width: 15 },
+              { header: "Total", key: "total", width: 12 },
+            ]}
+            fileName="cotizaciones"
+            title="Reporte de Cotizaciones"
+          />
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Cotización
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -942,6 +965,7 @@ export default function Cotizaciones() {
             </Tabs>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>

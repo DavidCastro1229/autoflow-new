@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Wrench, Award, User, Clock, ClipboardList, Pencil, Trash2, Mail, Phone, MapPin, Calendar } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { ExportButtons } from "@/components/ExportButtons";
 
 type AreaTecnico = "tecnico" | "tecnico_senior";
 
@@ -482,13 +483,36 @@ export default function Tecnicos() {
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Técnicos</h1>
           <p className="text-muted-foreground">Administración de técnicos y mecánicos del taller</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo Técnico
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <ExportButtons
+            data={tecnicos.map((tecnico) => ({
+              nombre: `${tecnico.nombre} ${tecnico.apellido}`,
+              area: tecnico.area === "tecnico_senior" ? "Técnico Senior" : "Técnico",
+              especialidad: tecnico.especialidades_taller?.nombre || "-",
+              experiencia: tecnico.experiencia,
+              telefono: tecnico.telefono,
+              email: tecnico.email,
+              direccion: tecnico.direccion,
+            }))}
+            columns={[
+              { header: "Nombre", key: "nombre", width: 25 },
+              { header: "Área", key: "area", width: 15 },
+              { header: "Especialidad", key: "especialidad", width: 20 },
+              { header: "Experiencia", key: "experiencia", width: 15 },
+              { header: "Teléfono", key: "telefono", width: 15 },
+              { header: "Email", key: "email", width: 25 },
+              { header: "Dirección", key: "direccion", width: 30 },
+            ]}
+            fileName="tecnicos"
+            title="Reporte de Técnicos"
+          />
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nuevo Técnico
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Registrar Nuevo Técnico</DialogTitle>
@@ -630,6 +654,7 @@ export default function Tecnicos() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {loading ? (
