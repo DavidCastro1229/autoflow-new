@@ -364,52 +364,132 @@ export default function Dashboard() {
     try {
       const { data } = await supabase
         .from("inventario")
-        .select("nombre, stock_actual, stock_minimo")
-        .filter("stock_actual", "lte", "stock_minimo")
-        .limit(5);
+        .select("nombre, stock_actual, stock_minimo");
 
-      setProductosAlerta(data || []);
+      const productosConStockBajo = data?.filter(
+        (item) => item.stock_actual <= item.stock_minimo
+      ).slice(0, 5) || [];
+
+      setProductosAlerta(productosConStockBajo);
     } catch (error) {
       console.error("Error fetching productos alerta:", error);
     }
   };
 
-  const generateRecentActivity = () => {
-    const activities: RecentActivity[] = [
-      {
-        id: "1",
-        tipo: "orden",
-        descripcion: "Nueva orden de trabajo creada",
-        fecha: "Hace 5 minutos",
-        icon: <FileText className="h-4 w-4" />,
-        color: COLORS.primary,
-      },
-      {
-        id: "2",
-        tipo: "cliente",
-        descripcion: "Nuevo cliente registrado",
-        fecha: "Hace 15 minutos",
-        icon: <Users className="h-4 w-4" />,
-        color: COLORS.success,
-      },
-      {
-        id: "3",
-        tipo: "cita",
-        descripcion: "Cita confirmada para mañana",
-        fecha: "Hace 1 hora",
-        icon: <Calendar className="h-4 w-4" />,
-        color: COLORS.info,
-      },
-      {
-        id: "4",
-        tipo: "inventario",
-        descripcion: "Alerta: Stock bajo en productos",
-        fecha: "Hace 2 horas",
-        icon: <AlertTriangle className="h-4 w-4" />,
-        color: COLORS.warning,
-      },
-    ];
-    setRecentActivity(activities);
+  const generateRecentActivity = async () => {
+    try {
+      const activities: RecentActivity[] = [];
+
+      // Fetch recent orders
+      const { data: recentOrders } = await supabase
+        .from("ordenes")
+        .select("id, created_at, descripcion, clientes(nombre, apellido)")
+        .order("created_at", { ascending: false })
+        .limit(2);
+
+      // Fetch recent clients
+      const { data: recentClients } = await supabase
+        .from("clientes")
+        .select("id, created_at, nombre, apellido")
+        .order("created_at", { ascending: false })
+        .limit(2);
+
+      // Fetch recent appointments
+      const { data: recentCitas } = await supabase
+        .from("citas")
+        .select("id, created_at, fecha, hora_inicio, clientes(nombre, apellido)")
+        .order("created_at", { ascending: false })
+        .limit(2);
+
+      // Fetch inventory with low stock
+      const { data: inventario } = await supabase
+        .from("inventario")
+        .select("id, nombre, stock_actual, stock_minimo, updated_at")
+        .order("updated_at", { ascending: false });
+
+      const lowStockItems = inventario?.filter(
+        (item) => item.stock_actual <= item.stock_minimo
+      ).slice(0, 2) || [];
+
+      // Format activities
+      recentOrders?.forEach((orden: any) => {
+        activities.push({
+          id: `orden-${orden.id}`,
+          tipo: "orden",
+          descripcion: `Nueva orden: ${orden.clientes?.nombre || "Cliente"} - ${orden.descripcion?.substring(0, 30) || "Orden de trabajo"}`,
+          fecha: getTimeAgo(orden.created_at),
+          icon: <FileText className="h-4 w-4" />,
+          color: COLORS.primary,
+        });
+      });
+
+      recentClients?.forEach((cliente: any) => {
+        activities.push({
+          id: `cliente-${cliente.id}`,
+          tipo: "cliente",
+          descripcion: `Nuevo cliente registrado: ${cliente.nombre} ${cliente.apellido}`,
+          fecha: getTimeAgo(cliente.created_at),
+          icon: <Users className="h-4 w-4" />,
+          color: COLORS.success,
+        });
+      });
+
+      recentCitas?.forEach((cita: any) => {
+        activities.push({
+          id: `cita-${cita.id}`,
+          tipo: "cita",
+          descripcion: `Cita programada: ${cita.clientes?.nombre || "Cliente"} - ${new Date(cita.fecha).toLocaleDateString()}`,
+          fecha: getTimeAgo(cita.created_at),
+          icon: <Calendar className="h-4 w-4" />,
+          color: COLORS.info,
+        });
+      });
+
+      lowStockItems.forEach((producto: any) => {
+        activities.push({
+          id: `inventario-${producto.id}`,
+          tipo: "inventario",
+          descripcion: `Alerta: Stock bajo en ${producto.nombre} (${producto.stock_actual}/${producto.stock_minimo})`,
+          fecha: getTimeAgo(producto.updated_at),
+          icon: <AlertTriangle className="h-4 w-4" />,
+          color: COLORS.warning,
+        });
+      });
+
+      // Sort by most recent and limit to 6 items
+      activities.sort((a, b) => {
+        const timeA = a.fecha.includes("segundo") ? 1 : 
+                     a.fecha.includes("minuto") ? 60 : 
+                     a.fecha.includes("hora") ? 3600 : 86400;
+        const timeB = b.fecha.includes("segundo") ? 1 : 
+                     b.fecha.includes("minuto") ? 60 : 
+                     b.fecha.includes("hora") ? 3600 : 86400;
+        return timeA - timeB;
+      });
+
+      setRecentActivity(activities.slice(0, 6));
+    } catch (error) {
+      console.error("Error generating recent activity:", error);
+    }
+  };
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return `Hace ${diffInSeconds} segundo${diffInSeconds !== 1 ? 's' : ''}`;
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `Hace ${minutes} minuto${minutes !== 1 ? 's' : ''}`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `Hace ${hours} hora${hours !== 1 ? 's' : ''}`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `Hace ${days} día${days !== 1 ? 's' : ''}`;
+    }
   };
 
   const getEstadoBadge = (estado: string) => {
