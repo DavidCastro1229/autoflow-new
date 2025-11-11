@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, Building2, MapPin, Phone, Mail, FileText, Image as ImageIcon } from "lucide-react";
+import { Loader2, Upload, Building2, MapPin, Phone, Mail, FileText, Image as ImageIcon, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface TallerConfig {
   id: string;
@@ -27,6 +29,7 @@ interface TallerConfig {
 
 export default function Configuraciones() {
   const { tallerId } = useUserRole();
+  const { trialStatus } = useTrialStatus();
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -209,12 +212,83 @@ export default function Configuraciones() {
     );
   }
 
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Configuraciones</h1>
         <p className="text-muted-foreground">Administra la información de tu taller</p>
       </div>
+
+      {/* Trial Status Alert */}
+      {trialStatus && trialStatus.estado_suscripcion !== "activo" && (
+        <Alert 
+          variant={trialStatus.dias_restantes !== null && trialStatus.dias_restantes <= 3 ? "destructive" : "default"}
+          className="border-2"
+        >
+          <Clock className="h-4 w-4" />
+          <AlertTitle className="font-bold">
+            {trialStatus.estado_suscripcion === "prueba" ? "Período de Prueba" : "Suscripción Expirada"}
+          </AlertTitle>
+          <AlertDescription>
+            {trialStatus.estado_suscripcion === "prueba" ? (
+              <div className="space-y-2">
+                <p>
+                  Te quedan{" "}
+                  <span className="font-bold text-lg">
+                    {trialStatus.dias_restantes} días
+                  </span>{" "}
+                  de prueba gratuita.
+                </p>
+                <p className="text-sm">
+                  Fecha de inicio: {formatDate(trialStatus.fecha_inicio_prueba)} <br />
+                  Fecha de expiración: {formatDate(trialStatus.fecha_fin_prueba)}
+                </p>
+                {trialStatus.dias_restantes !== null && trialStatus.dias_restantes <= 5 && (
+                  <Button 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => window.open("https://autoflowx.com/suscripcion", "_blank")}
+                  >
+                    Activar Suscripción Ahora
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p>Tu período de prueba ha finalizado. Activa una suscripción para continuar.</p>
+                <Button 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => window.open("https://autoflowx.com/suscripcion", "_blank")}
+                >
+                  Activar Suscripción
+                </Button>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {trialStatus && trialStatus.estado_suscripcion === "activo" && (
+        <Alert className="border-2 border-green-500 bg-green-50 dark:bg-green-950">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertTitle className="font-bold text-green-700 dark:text-green-400">
+            Suscripción Activa
+          </AlertTitle>
+          <AlertDescription className="text-green-600 dark:text-green-400">
+            Tu suscripción está activa. Disfruta de todas las funcionalidades del sistema sin límites.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

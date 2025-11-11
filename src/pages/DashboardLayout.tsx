@@ -3,12 +3,15 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useUserRole, UserRole } from "@/hooks/useUserRole";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
+import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { Button } from "@/components/ui/button";
 import { LogOut, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 // Define allowed roles for each route
 const routePermissions: Record<string, UserRole[]> = {
@@ -44,12 +47,29 @@ const routePermissions: Record<string, UserRole[]> = {
 
 export default function DashboardLayout() {
   const { role, loading } = useUserRole();
+  const { trialStatus } = useTrialStatus();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const [showTrialModal, setShowTrialModal] = useState(false);
   
   const currentPath = location.pathname;
   const allowedRoles = routePermissions[currentPath] || [];
+
+  // Check trial status and show modal if expired or about to expire
+  useEffect(() => {
+    if (trialStatus) {
+      const isExpired = trialStatus.estado_suscripcion === "expirado";
+      const isAboutToExpire = 
+        trialStatus.dias_restantes !== null && 
+        trialStatus.dias_restantes <= 3 &&
+        trialStatus.estado_suscripcion === "prueba";
+
+      if (isExpired || isAboutToExpire) {
+        setShowTrialModal(true);
+      }
+    }
+  }, [trialStatus]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -77,6 +97,14 @@ export default function DashboardLayout() {
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <AppSidebar userRole={role} />
+          
+          {/* Trial Expired Modal */}
+          {trialStatus && (
+            <TrialExpiredModal 
+              open={showTrialModal && trialStatus.estado_suscripcion !== "activo"}
+              diasRestantes={trialStatus.dias_restantes}
+            />
+          )}
           
           <div className="flex-1 flex flex-col">
             <header className="h-16 border-b border-border flex items-center justify-between px-6">

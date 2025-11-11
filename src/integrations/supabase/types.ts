@@ -1624,6 +1624,11 @@ export type Database = {
           direccion: string
           email: string
           estado: string
+          estado_suscripcion:
+            | Database["public"]["Enums"]["estado_suscripcion"]
+            | null
+          fecha_fin_prueba: string | null
+          fecha_inicio_prueba: string | null
           id: string
           logo_url: string | null
           nombre_contacto: string
@@ -1642,6 +1647,11 @@ export type Database = {
           direccion: string
           email: string
           estado: string
+          estado_suscripcion?:
+            | Database["public"]["Enums"]["estado_suscripcion"]
+            | null
+          fecha_fin_prueba?: string | null
+          fecha_inicio_prueba?: string | null
           id?: string
           logo_url?: string | null
           nombre_contacto: string
@@ -1660,6 +1670,11 @@ export type Database = {
           direccion?: string
           email?: string
           estado?: string
+          estado_suscripcion?:
+            | Database["public"]["Enums"]["estado_suscripcion"]
+            | null
+          fecha_fin_prueba?: string | null
+          fecha_inicio_prueba?: string | null
           id?: string
           logo_url?: string | null
           nombre_contacto?: string
@@ -1946,6 +1961,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_trial_expired: { Args: { taller_id: string }; Returns: boolean }
       reject_taller: { Args: { taller_id_param: string }; Returns: undefined }
     }
     Enums: {
@@ -1977,6 +1993,7 @@ export type Database = {
         | "completada"
         | "entregada"
         | "cancelada"
+      estado_suscripcion: "prueba" | "activo" | "expirado"
       estado_vehiculo: "activo" | "en_servicio" | "entregado" | "inactivo"
       metodo_pago:
         | "efectivo"
@@ -2159,6 +2176,7 @@ export const Constants = {
         "entregada",
         "cancelada",
       ],
+      estado_suscripcion: ["prueba", "activo", "expirado"],
       estado_vehiculo: ["activo", "en_servicio", "entregado", "inactivo"],
       metodo_pago: [
         "efectivo",
