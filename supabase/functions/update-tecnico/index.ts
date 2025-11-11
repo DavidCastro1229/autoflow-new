@@ -59,7 +59,15 @@ serve(async (req) => {
       direccion,
       habilidades,
       certificaciones,
-      email
+      email,
+      genero,
+      documento_identidad,
+      rtn,
+      fecha_contratacion,
+      fecha_nacimiento,
+      estado,
+      frecuencia_pago,
+      salario
     } = requestBody;
 
     if (!tecnico_id) {
@@ -93,6 +101,14 @@ serve(async (req) => {
         habilidades,
         certificaciones,
         email,
+        genero,
+        documento_identidad,
+        rtn,
+        fecha_contratacion,
+        fecha_nacimiento,
+        estado,
+        frecuencia_pago,
+        salario: parseFloat(salario),
       })
       .eq("id", tecnico_id)
       .select()

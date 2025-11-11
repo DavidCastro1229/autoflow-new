@@ -35,6 +35,15 @@ interface Tecnico {
   habilidades: string | null;
   certificaciones: string | null;
   email: string;
+  genero: string | null;
+  codigo_empleado: string | null;
+  documento_identidad: string | null;
+  rtn: string | null;
+  fecha_contratacion: string | null;
+  fecha_nacimiento: string | null;
+  estado: string | null;
+  frecuencia_pago: string | null;
+  salario: number | null;
   created_at: string;
   especialidades_taller?: {
     nombre: string;
@@ -77,6 +86,14 @@ interface TecnicoFormData {
   certificaciones: string;
   email: string;
   password: string;
+  genero: string;
+  documento_identidad: string;
+  rtn: string;
+  fecha_contratacion: string;
+  fecha_nacimiento: string;
+  estado: string;
+  frecuencia_pago: string;
+  salario: string;
 }
 
 interface HorarioFormData {
@@ -272,6 +289,14 @@ export default function Tecnicos() {
       habilidades: tecnico.habilidades || "",
       certificaciones: tecnico.certificaciones || "",
       email: tecnico.email,
+      genero: tecnico.genero || "",
+      documento_identidad: tecnico.documento_identidad || "",
+      rtn: tecnico.rtn || "",
+      fecha_contratacion: tecnico.fecha_contratacion || "",
+      fecha_nacimiento: tecnico.fecha_nacimiento || "",
+      estado: tecnico.estado || "activo",
+      frecuencia_pago: tecnico.frecuencia_pago || "",
+      salario: tecnico.salario?.toString() || "0",
     });
     setEditDialogOpen(true);
   };
@@ -540,6 +565,58 @@ export default function Tecnicos() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="genero">Género *</Label>
+                  <Select onValueChange={(value) => setValue("genero", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar género" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="masculino">Masculino</SelectItem>
+                      <SelectItem value="femenino">Femenino</SelectItem>
+                      <SelectItem value="otro">Otro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fecha_nacimiento">Fecha Nacimiento *</Label>
+                  <Input
+                    id="fecha_nacimiento"
+                    type="date"
+                    {...register("fecha_nacimiento", { required: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fecha_contratacion">Fecha Contratación *</Label>
+                  <Input
+                    id="fecha_contratacion"
+                    type="date"
+                    {...register("fecha_contratacion", { required: true })}
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="documento_identidad">Documento Identidad *</Label>
+                  <Input
+                    id="documento_identidad"
+                    {...register("documento_identidad", { required: true })}
+                    placeholder="Número de identificación"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rtn">RTN *</Label>
+                  <Input
+                    id="rtn"
+                    {...register("rtn", { required: true })}
+                    placeholder="RTN"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="area">Área *</Label>
@@ -606,6 +683,44 @@ export default function Tecnicos() {
                   {...register("direccion", { required: true })}
                   placeholder="Calle, número, colonia"
                 />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="estado">Estado *</Label>
+                  <Select onValueChange={(value) => setValue("estado", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="activo">Activo</SelectItem>
+                      <SelectItem value="inactivo">Inactivo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="frecuencia_pago">Frecuencia Pago *</Label>
+                  <Select onValueChange={(value) => setValue("frecuencia_pago", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar frecuencia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="semanal">Semanal</SelectItem>
+                      <SelectItem value="quincenal">Quincenal</SelectItem>
+                      <SelectItem value="mensual">Mensual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="salario">Salario *</Label>
+                  <Input
+                    id="salario"
+                    type="number"
+                    step="0.01"
+                    {...register("salario", { required: true })}
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -782,10 +897,59 @@ export default function Tecnicos() {
                         <p className="font-medium">{selectedTecnico.nombre} {selectedTecnico.apellido}</p>
                       </div>
                       <div className="space-y-1">
+                        <Label className="text-muted-foreground">Código Empleado</Label>
+                        <p className="font-medium">{selectedTecnico.codigo_empleado || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Género</Label>
+                        <p className="font-medium capitalize">{selectedTecnico.genero || "N/A"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Fecha Nacimiento</Label>
+                        <p className="font-medium">
+                          {selectedTecnico.fecha_nacimiento 
+                            ? new Date(selectedTecnico.fecha_nacimiento).toLocaleDateString()
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Fecha Contratación</Label>
+                        <p className="font-medium">
+                          {selectedTecnico.fecha_contratacion 
+                            ? new Date(selectedTecnico.fecha_contratacion).toLocaleDateString()
+                            : "N/A"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Documento Identidad</Label>
+                        <p className="font-medium">{selectedTecnico.documento_identidad || "N/A"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">RTN</Label>
+                        <p className="font-medium">{selectedTecnico.rtn || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
                         <Label className="text-muted-foreground">Área</Label>
                         <div>
                           <Badge variant={getAreaBadgeVariant(selectedTecnico.area)}>
                             {selectedTecnico.area === "tecnico_senior" ? "Técnico Senior" : "Técnico"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Estado</Label>
+                        <div>
+                          <Badge variant={selectedTecnico.estado === "activo" ? "default" : "secondary"}>
+                            {selectedTecnico.estado === "activo" ? "Activo" : "Inactivo"}
                           </Badge>
                         </div>
                       </div>
@@ -821,6 +985,21 @@ export default function Tecnicos() {
                     <div className="space-y-1">
                       <Label className="text-muted-foreground">Dirección</Label>
                       <p className="font-medium">{selectedTecnico.direccion}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Frecuencia Pago</Label>
+                        <p className="font-medium capitalize">{selectedTecnico.frecuencia_pago || "N/A"}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Salario</Label>
+                        <p className="font-medium">
+                          {selectedTecnico.salario 
+                            ? `L. ${Number(selectedTecnico.salario).toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : "N/A"}
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1066,6 +1245,60 @@ export default function Tecnicos() {
               </div>
             </div>
 
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-genero">Género *</Label>
+                <Select 
+                  value={editForm.watch("genero")}
+                  onValueChange={(value) => editForm.setValue("genero", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar género" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masculino">Masculino</SelectItem>
+                    <SelectItem value="femenino">Femenino</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-fecha_nacimiento">Fecha Nacimiento *</Label>
+                <Input
+                  id="edit-fecha_nacimiento"
+                  type="date"
+                  {...editForm.register("fecha_nacimiento", { required: true })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-fecha_contratacion">Fecha Contratación *</Label>
+                <Input
+                  id="edit-fecha_contratacion"
+                  type="date"
+                  {...editForm.register("fecha_contratacion", { required: true })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-documento_identidad">Documento Identidad *</Label>
+                <Input
+                  id="edit-documento_identidad"
+                  {...editForm.register("documento_identidad", { required: true })}
+                  placeholder="Número de identificación"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-rtn">RTN *</Label>
+                <Input
+                  id="edit-rtn"
+                  {...editForm.register("rtn", { required: true })}
+                  placeholder="RTN"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-area">Área *</Label>
@@ -1138,6 +1371,50 @@ export default function Tecnicos() {
                 {...editForm.register("direccion", { required: true })}
                 placeholder="Calle, número, colonia"
               />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-estado">Estado *</Label>
+                <Select 
+                  value={editForm.watch("estado")}
+                  onValueChange={(value) => editForm.setValue("estado", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activo">Activo</SelectItem>
+                    <SelectItem value="inactivo">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-frecuencia_pago">Frecuencia Pago *</Label>
+                <Select 
+                  value={editForm.watch("frecuencia_pago")}
+                  onValueChange={(value) => editForm.setValue("frecuencia_pago", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar frecuencia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="semanal">Semanal</SelectItem>
+                    <SelectItem value="quincenal">Quincenal</SelectItem>
+                    <SelectItem value="mensual">Mensual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-salario">Salario *</Label>
+                <Input
+                  id="edit-salario"
+                  type="number"
+                  step="0.01"
+                  {...editForm.register("salario", { required: true })}
+                  placeholder="0.00"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

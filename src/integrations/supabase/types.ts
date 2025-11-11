@@ -1717,14 +1717,23 @@ export type Database = {
           apellido: string
           area: Database["public"]["Enums"]["area_tecnico"]
           certificaciones: string | null
+          codigo_empleado: string | null
           created_at: string
           direccion: string
+          documento_identidad: string | null
           email: string
           especialidad_id: number
+          estado: string | null
           experiencia: string
+          fecha_contratacion: string | null
+          fecha_nacimiento: string | null
+          frecuencia_pago: string | null
+          genero: string | null
           habilidades: string | null
           id: string
           nombre: string
+          rtn: string | null
+          salario: number | null
           taller_id: string
           telefono: string
           updated_at: string
@@ -1734,14 +1743,23 @@ export type Database = {
           apellido: string
           area?: Database["public"]["Enums"]["area_tecnico"]
           certificaciones?: string | null
+          codigo_empleado?: string | null
           created_at?: string
           direccion: string
+          documento_identidad?: string | null
           email: string
           especialidad_id: number
+          estado?: string | null
           experiencia: string
+          fecha_contratacion?: string | null
+          fecha_nacimiento?: string | null
+          frecuencia_pago?: string | null
+          genero?: string | null
           habilidades?: string | null
           id?: string
           nombre: string
+          rtn?: string | null
+          salario?: number | null
           taller_id: string
           telefono: string
           updated_at?: string
@@ -1751,14 +1769,23 @@ export type Database = {
           apellido?: string
           area?: Database["public"]["Enums"]["area_tecnico"]
           certificaciones?: string | null
+          codigo_empleado?: string | null
           created_at?: string
           direccion?: string
+          documento_identidad?: string | null
           email?: string
           especialidad_id?: number
+          estado?: string | null
           experiencia?: string
+          fecha_contratacion?: string | null
+          fecha_nacimiento?: string | null
+          frecuencia_pago?: string | null
+          genero?: string | null
           habilidades?: string | null
           id?: string
           nombre?: string
+          rtn?: string | null
+          salario?: number | null
           taller_id?: string
           telefono?: string
           updated_at?: string

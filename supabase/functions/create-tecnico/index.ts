@@ -65,10 +65,19 @@ serve(async (req) => {
       habilidades,
       certificaciones,
       email, 
-      password 
+      password,
+      genero,
+      documento_identidad,
+      rtn,
+      fecha_contratacion,
+      fecha_nacimiento,
+      estado,
+      frecuencia_pago,
+      salario
     } = requestBody;
 
-    if (!nombre || !apellido || !area || !especialidad_id || !experiencia || !telefono || !direccion || !email || !password) {
+    if (!nombre || !apellido || !area || !especialidad_id || !experiencia || !telefono || !direccion || !email || !password || 
+        !genero || !documento_identidad || !rtn || !fecha_contratacion || !fecha_nacimiento || !estado || !frecuencia_pago || !salario) {
       throw new Error("Faltan campos obligatorios");
     }
 
@@ -106,6 +115,14 @@ serve(async (req) => {
         habilidades,
         certificaciones,
         email,
+        genero,
+        documento_identidad,
+        rtn,
+        fecha_contratacion,
+        fecha_nacimiento,
+        estado,
+        frecuencia_pago,
+        salario: parseFloat(salario),
       })
       .select()
       .single();
@@ -114,6 +131,13 @@ serve(async (req) => {
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
       throw tecnicoError;
     }
+
+    // Generar código de empleado TEC-consecutivo
+    const codigoEmpleado = `TEC-${tecnico.id.substring(0, 8).toUpperCase()}`;
+    await supabaseAdmin
+      .from("tecnicos")
+      .update({ codigo_empleado: codigoEmpleado })
+      .eq("id", tecnico.id);
 
     // Asignar rol de técnico
     const { error: roleError } = await supabaseAdmin
