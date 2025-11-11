@@ -1963,6 +1963,7 @@ export type Database = {
       }
       is_trial_expired: { Args: { taller_id: string }; Returns: boolean }
       reject_taller: { Args: { taller_id_param: string }; Returns: undefined }
+      update_expired_trials: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role:

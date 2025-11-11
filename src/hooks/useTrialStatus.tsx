@@ -35,15 +35,29 @@ export const useTrialStatus = () => {
       }
 
       let diasRestantes = null;
+      let estadoActual = data.estado_suscripcion;
+
       if (data.fecha_fin_prueba && data.estado_suscripcion === "prueba") {
         const fechaFin = new Date(data.fecha_fin_prueba);
         const hoy = new Date();
         const diferencia = Math.ceil((fechaFin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
         diasRestantes = Math.max(0, diferencia);
+
+        // Si el trial ha expirado, actualizar el estado en la base de datos
+        if (diasRestantes === 0 && hoy > fechaFin) {
+          estadoActual = "expirado";
+          
+          // Actualizar en la base de datos
+          await supabase
+            .from("talleres" as any)
+            .update({ estado_suscripcion: "expirado" } as any)
+            .eq("id", tallerId);
+        }
       }
 
       setTrialStatus({
         ...data,
+        estado_suscripcion: estadoActual,
         dias_restantes: diasRestantes,
       });
       setLoading(false);
