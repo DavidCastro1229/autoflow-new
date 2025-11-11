@@ -18,7 +18,15 @@ export const TrialExpiredModal = ({ open, diasRestantes }: TrialExpiredModalProp
   const isExpired = diasRestantes !== null && diasRestantes <= 0;
 
   return (
-    <AlertDialog open={open}>
+    <AlertDialog 
+      open={open}
+      onOpenChange={(isOpen) => {
+        // Si está expirado, no permitir cerrar el modal
+        if (isExpired && !isOpen) {
+          return;
+        }
+      }}
+    >
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -64,9 +72,7 @@ export const TrialExpiredModal = ({ open, diasRestantes }: TrialExpiredModalProp
             <Button 
               variant="outline" 
               className="w-full"
-              onClick={() => {
-                // Cerrar el modal pero el usuario puede seguir usando el sistema
-              }}
+              onClick={() => window.location.reload()}
             >
               Continuar con la Prueba
             </Button>
