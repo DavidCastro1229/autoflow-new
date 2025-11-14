@@ -1989,10 +1989,10 @@ export type Database = {
       estado_flota: "activa" | "en_renovacion" | "inactiva"
       estado_inventario: "activo" | "descontinuado" | "agotado"
       estado_orden:
-        | "pendiente"
+        | "recepcion"
+        | "autorizado"
         | "en_proceso"
-        | "completada"
-        | "entregada"
+        | "finalizada"
         | "cancelada"
       estado_suscripcion: "prueba" | "activo" | "expirado"
       estado_vehiculo: "activo" | "en_servicio" | "entregado" | "inactivo"
@@ -2171,10 +2171,10 @@ export const Constants = {
       estado_flota: ["activa", "en_renovacion", "inactiva"],
       estado_inventario: ["activo", "descontinuado", "agotado"],
       estado_orden: [
-        "pendiente",
+        "recepcion",
+        "autorizado",
         "en_proceso",
-        "completada",
-        "entregada",
+        "finalizada",
         "cancelada",
       ],
       estado_suscripcion: ["prueba", "activo", "expirado"],
