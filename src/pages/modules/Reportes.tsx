@@ -233,8 +233,16 @@ export default function Reportes() {
         return acc;
       }, {});
 
+      const estadoLabels: Record<string, string> = {
+        recepcion: "Recepción",
+        autorizado: "Autorizado",
+        en_proceso: "En Proceso",
+        finalizada: "Finalizada",
+        cancelada: "Cancelada",
+      };
+
       const chartData = Object.entries(estadoCounts || {}).map(([estado, count]) => ({
-        name: estado === "pendiente" ? "Pendiente" : estado === "en_proceso" ? "En Proceso" : "Completada",
+        name: estadoLabels[estado] || estado,
         value: count,
       }));
 

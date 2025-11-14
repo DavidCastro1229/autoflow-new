@@ -221,9 +221,11 @@ export default function Dashboard() {
       }, {});
 
       const chartData = [
-        { name: "Pendientes", value: estadoCounts?.pendiente || 0 },
+        { name: "Recepción", value: estadoCounts?.recepcion || 0 },
+        { name: "Autorizado", value: estadoCounts?.autorizado || 0 },
         { name: "En Proceso", value: estadoCounts?.en_proceso || 0 },
-        { name: "Completadas", value: estadoCounts?.completada || 0 },
+        { name: "Finalizada", value: estadoCounts?.finalizada || 0 },
+        { name: "Cancelada", value: estadoCounts?.cancelada || 0 },
       ];
 
       setOrdenesEstado(chartData);
@@ -494,10 +496,11 @@ export default function Dashboard() {
 
   const getEstadoBadge = (estado: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline"; label: string }> = {
-      pendiente: { variant: "outline", label: "Pendiente" },
+      recepcion: { variant: "secondary", label: "Recepción" },
+      autorizado: { variant: "default", label: "Autorizado" },
       en_proceso: { variant: "default", label: "En Proceso" },
-      completada: { variant: "secondary", label: "Completada" },
-      programada: { variant: "default", label: "Programada" },
+      finalizada: { variant: "secondary", label: "Finalizada" },
+      cancelada: { variant: "outline", label: "Cancelada" },
     };
     return variants[estado] || { variant: "outline", label: estado };
   };
