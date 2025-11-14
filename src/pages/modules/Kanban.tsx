@@ -3,13 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, useDroppable, useDraggable } from "@dnd-kit/core";
-import { Loader2, User, Car, Wrench, Calendar, DollarSign, Eye, FileText } from "lucide-react";
+import { Loader2, User, Car, Wrench, Calendar, DollarSign, Eye, FileText, Search } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -89,6 +90,7 @@ export default function Kanban() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedOrden, setSelectedOrden] = useState<Orden | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -184,7 +186,24 @@ export default function Kanban() {
   };
 
   const getOrdenesPorEstado = (estado: EstadoOrden) => {
-    return ordenes.filter(orden => orden.estado === estado);
+    const ordenesFiltradas = ordenes.filter(orden => orden.estado === estado);
+    
+    if (!searchTerm.trim()) {
+      return ordenesFiltradas;
+    }
+
+    const searchLower = searchTerm.toLowerCase();
+    return ordenesFiltradas.filter(orden => {
+      const clienteNombre = `${orden.clientes.nombre} ${orden.clientes.apellido}`.toLowerCase();
+      const vehiculo = `${orden.vehiculos.marca} ${orden.vehiculos.modelo}`.toLowerCase();
+      const placa = orden.vehiculos.placa.toLowerCase();
+      const descripcion = orden.descripcion.toLowerCase();
+      
+      return clienteNombre.includes(searchLower) ||
+             vehiculo.includes(searchLower) ||
+             placa.includes(searchLower) ||
+             descripcion.includes(searchLower);
+    });
   };
 
   const getPrioridadColor = (prioridad: string) => {
@@ -238,6 +257,29 @@ export default function Kanban() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Kanban - Órdenes de Trabajo</h1>
         <p className="text-muted-foreground">Arrastra las tarjetas para cambiar el estado de las órdenes</p>
+      </div>
+
+      {/* Buscador */}
+      <div className="flex items-center gap-2 max-w-md">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Buscar por cliente, vehículo, placa o descripción..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        {searchTerm && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSearchTerm("")}
+          >
+            Limpiar
+          </Button>
+        )}
       </div>
 
       <DndContext
