@@ -58,7 +58,7 @@ interface Orden {
   fecha_ingreso: string;
   fecha_entrega: string | null;
   prioridad: 'baja' | 'media' | 'alta' | 'urgente';
-  estado: 'pendiente' | 'en_proceso' | 'completada' | 'entregada' | 'cancelada';
+  estado: 'recepcion' | 'autorizado' | 'en_proceso' | 'finalizada' | 'cancelada';
   costo_estimado: number | null;
   observaciones: string | null;
   clientes: Cliente;
@@ -85,7 +85,7 @@ export default function Ordenes() {
     fecha_ingreso: Date;
     fecha_entrega: Date | null;
     prioridad: 'baja' | 'media' | 'alta' | 'urgente';
-    estado: 'pendiente' | 'en_proceso' | 'completada' | 'entregada' | 'cancelada';
+    estado: 'recepcion' | 'autorizado' | 'en_proceso' | 'finalizada' | 'cancelada';
     costo_estimado: string;
     observaciones: string;
   }>({
@@ -97,7 +97,7 @@ export default function Ordenes() {
     fecha_ingreso: new Date(),
     fecha_entrega: null,
     prioridad: "media",
-    estado: "pendiente",
+    estado: "recepcion",
     costo_estimado: "",
     observaciones: "",
   });
@@ -243,7 +243,7 @@ export default function Ordenes() {
       fecha_ingreso: new Date(),
       fecha_entrega: null,
       prioridad: "media",
-      estado: "pendiente",
+      estado: "recepcion",
       costo_estimado: "",
       observaciones: "",
     });
@@ -285,10 +285,10 @@ export default function Ordenes() {
 
   const getEstadoBadge = (estado: string) => {
     const variants = {
-      pendiente: "secondary",
+      recepcion: "secondary",
+      autorizado: "default",
       en_proceso: "default",
-      completada: "default",
-      entregada: "default",
+      finalizada: "default",
       cancelada: "destructive"
     };
     return variants[estado as keyof typeof variants] || "default";
@@ -316,7 +316,10 @@ export default function Ordenes() {
               vehiculo: `${orden.vehiculos?.marca} ${orden.vehiculos?.modelo} - ${orden.vehiculos?.placa}`,
               tecnico: `${orden.tecnicos?.nombre} ${orden.tecnicos?.apellido}`,
               descripcion: orden.descripcion,
-              estado: orden.estado === "pendiente" ? "Pendiente" : orden.estado === "en_proceso" ? "En Proceso" : "Completada",
+              estado: orden.estado === "recepcion" ? "Recepción" : 
+                      orden.estado === "autorizado" ? "Autorizado" : 
+                      orden.estado === "en_proceso" ? "En Proceso" : 
+                      orden.estado === "finalizada" ? "Finalizada" : "Cancelada",
               prioridad: orden.prioridad === "alta" ? "Alta" : orden.prioridad === "media" ? "Media" : "Baja",
               costo_estimado: orden.costo_estimado ? formatCurrencyForExport(orden.costo_estimado) : "-",
               fecha_ingreso: formatDateForExport(orden.fecha_ingreso),
@@ -591,16 +594,18 @@ export default function Ordenes() {
                 <Label htmlFor="estado">Estado *</Label>
                 <Select
                   value={formData.estado}
-                  onValueChange={(value) => setFormData({ ...formData, estado: value as 'pendiente' | 'en_proceso' | 'completada' | 'entregada' | 'cancelada' })}
+                  onValueChange={(value) => setFormData({ ...formData, estado: value as 'recepcion' | 'autorizado' | 'en_proceso' | 'finalizada' | 'cancelada' })}
                   required
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="recepcion">Recepción</SelectItem>
+                    <SelectItem value="autorizado">Autorizado</SelectItem>
                     <SelectItem value="en_proceso">En Proceso</SelectItem>
-                    <SelectItem value="completada">Completada</SelectItem>
+                    <SelectItem value="finalizada">Finalizada</SelectItem>
+                    <SelectItem value="cancelada">Cancelada</SelectItem>
                     <SelectItem value="entregada">Entregada</SelectItem>
                     <SelectItem value="cancelada">Cancelada</SelectItem>
                   </SelectContent>

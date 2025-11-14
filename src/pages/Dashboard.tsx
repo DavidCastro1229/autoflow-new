@@ -141,12 +141,12 @@ export default function Dashboard() {
       const { count: ordenesActivas } = await supabase
         .from("ordenes")
         .select("*", { count: "exact", head: true })
-        .in("estado", ["pendiente", "en_proceso"]);
+        .in("estado", ["recepcion", "autorizado", "en_proceso"]);
 
       const { count: ordenesCompletadas } = await supabase
         .from("ordenes")
         .select("*", { count: "exact", head: true })
-        .eq("estado", "completada");
+        .eq("estado", "finalizada");
 
       // Clientes
       const { count: totalClientes } = await supabase
