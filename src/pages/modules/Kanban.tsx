@@ -4,7 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { 
+  DndContext, 
+  DragEndEvent, 
+  DragOverlay, 
+  DragStartEvent, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  useDroppable,
+  useDraggable
+} from "@dnd-kit/core";
 import { Loader2, User, Car, Wrench, Calendar, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -222,7 +232,6 @@ interface KanbanColumnProps {
 }
 
 function KanbanColumn({ columna, ordenes, getPrioridadColor }: KanbanColumnProps) {
-  const { useDroppable } = require('@dnd-kit/core');
   const { setNodeRef } = useDroppable({ id: columna.id });
 
   return (
@@ -263,7 +272,6 @@ interface DraggableProps {
 }
 
 function Draggable({ id, children }: DraggableProps) {
-  const { useDraggable } = require('@dnd-kit/core');
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
 
   const style = transform
