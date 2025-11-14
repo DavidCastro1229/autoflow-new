@@ -494,9 +494,11 @@ export default function Tecnicos() {
 
   const getEstadoOrdenBadge = (estado: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "outline", label: string }> = {
-      pendiente: { variant: "outline", label: "Pendiente" },
+      recepcion: { variant: "secondary", label: "Recepción" },
+      autorizado: { variant: "default", label: "Autorizado" },
       en_proceso: { variant: "default", label: "En Proceso" },
-      completada: { variant: "secondary", label: "Completada" },
+      finalizada: { variant: "secondary", label: "Finalizada" },
+      cancelada: { variant: "outline", label: "Cancelada" },
     };
     return variants[estado] || { variant: "outline", label: estado };
   };
