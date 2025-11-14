@@ -18,6 +18,10 @@ interface Cliente {
   id: string;
   nombre: string;
   apellido: string;
+  email: string;
+  telefono: string;
+  tipo_cliente: string;
+  nombre_empresa: string | null;
 }
 
 interface Vehiculo {
@@ -25,12 +29,24 @@ interface Vehiculo {
   marca: string;
   modelo: string;
   placa: string;
+  anio: number;
+  color: string;
+  vin: string;
+  kilometraje: number;
+  estado: string;
 }
 
 interface Tecnico {
   id: string;
   nombre: string;
   apellido: string;
+  email: string;
+  telefono: string;
+  area: string;
+  experiencia: string;
+  certificaciones: string | null;
+  habilidades: string | null;
+  direccion: string;
 }
 
 interface TipoOperacion {
@@ -96,7 +112,7 @@ export default function Kanban() {
         .from("user_roles")
         .select("taller_id")
         .eq("user_id", userData.user.id)
-        .single();
+        .maybeSingle();
 
       if (!userRole?.taller_id) return;
 
@@ -104,9 +120,16 @@ export default function Kanban() {
         .from("ordenes")
         .select(`
           *,
-          clientes!ordenes_cliente_id_fkey (id, nombre, apellido),
-          vehiculos!ordenes_vehiculo_id_fkey (id, marca, modelo, placa),
-          tecnicos!ordenes_tecnico_id_fkey (id, nombre, apellido),
+          clientes!ordenes_cliente_id_fkey (
+            id, nombre, apellido, email, telefono, tipo_cliente, nombre_empresa
+          ),
+          vehiculos!ordenes_vehiculo_id_fkey (
+            id, marca, modelo, placa, anio, color, vin, kilometraje, estado
+          ),
+          tecnicos!ordenes_tecnico_id_fkey (
+            id, nombre, apellido, email, telefono, area, experiencia, 
+            certificaciones, habilidades, direccion
+          ),
           tipos_operacion!ordenes_tipo_servicio_id_fkey (id, nombre)
         `)
         .eq("taller_id", userRole.taller_id)
@@ -334,9 +357,27 @@ export default function Kanban() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-muted-foreground">Nombre</Label>
+                      <Label className="text-muted-foreground">Nombre Completo</Label>
                       <p className="font-medium">{selectedOrden.clientes.nombre} {selectedOrden.clientes.apellido}</p>
                     </div>
+                    <div>
+                      <Label className="text-muted-foreground">Tipo de Cliente</Label>
+                      <p className="font-medium capitalize">{selectedOrden.clientes.tipo_cliente}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Email</Label>
+                      <p className="font-medium">{selectedOrden.clientes.email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Teléfono</Label>
+                      <p className="font-medium">{selectedOrden.clientes.telefono}</p>
+                    </div>
+                    {selectedOrden.clientes.nombre_empresa && (
+                      <div className="col-span-2">
+                        <Label className="text-muted-foreground">Nombre de Empresa</Label>
+                        <p className="font-medium">{selectedOrden.clientes.nombre_empresa}</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -358,8 +399,28 @@ export default function Kanban() {
                       <p className="font-medium">{selectedOrden.vehiculos.marca} {selectedOrden.vehiculos.modelo}</p>
                     </div>
                     <div>
+                      <Label className="text-muted-foreground">Año</Label>
+                      <p className="font-medium">{selectedOrden.vehiculos.anio}</p>
+                    </div>
+                    <div>
                       <Label className="text-muted-foreground">Placa</Label>
                       <p className="font-medium">{selectedOrden.vehiculos.placa}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Color</Label>
+                      <p className="font-medium">{selectedOrden.vehiculos.color}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">VIN</Label>
+                      <p className="font-medium">{selectedOrden.vehiculos.vin}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Kilometraje</Label>
+                      <p className="font-medium">{selectedOrden.vehiculos.kilometraje.toLocaleString()} km</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Estado</Label>
+                      <p className="font-medium capitalize">{selectedOrden.vehiculos.estado.replace("_", " ")}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -372,15 +433,47 @@ export default function Kanban() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Wrench className="h-5 w-5" />
-                    Información del Técnico
+                    Información del Técnico Asignado
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-muted-foreground">Nombre</Label>
+                      <Label className="text-muted-foreground">Nombre Completo</Label>
                       <p className="font-medium">{selectedOrden.tecnicos.nombre} {selectedOrden.tecnicos.apellido}</p>
                     </div>
+                    <div>
+                      <Label className="text-muted-foreground">Área</Label>
+                      <p className="font-medium capitalize">{selectedOrden.tecnicos.area.replace("_", " ")}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Email</Label>
+                      <p className="font-medium">{selectedOrden.tecnicos.email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Teléfono</Label>
+                      <p className="font-medium">{selectedOrden.tecnicos.telefono}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Experiencia</Label>
+                      <p className="font-medium">{selectedOrden.tecnicos.experiencia}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Dirección</Label>
+                      <p className="font-medium">{selectedOrden.tecnicos.direccion}</p>
+                    </div>
+                    {selectedOrden.tecnicos.certificaciones && (
+                      <div className="col-span-2">
+                        <Label className="text-muted-foreground">Certificaciones</Label>
+                        <p className="font-medium">{selectedOrden.tecnicos.certificaciones}</p>
+                      </div>
+                    )}
+                    {selectedOrden.tecnicos.habilidades && (
+                      <div className="col-span-2">
+                        <Label className="text-muted-foreground">Habilidades</Label>
+                        <p className="font-medium">{selectedOrden.tecnicos.habilidades}</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
