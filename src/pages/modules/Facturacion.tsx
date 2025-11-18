@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2, Eye, Plus, Search } from "lucide-react";
 import { format } from "date-fns";
+import { ExportButtons } from "@/components/ExportButtons";
 
 interface Cliente {
   id: string;
@@ -397,10 +398,40 @@ export default function Facturacion() {
           <h1 className="text-3xl font-bold tracking-tight">Facturación</h1>
           <p className="text-muted-foreground">Gestión de facturas</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Factura
-        </Button>
+        <div className="flex gap-2">
+          <ExportButtons
+            data={(facturas || []).map((factura) => ({
+              numero: factura.numero_factura,
+              nombre: factura.nombre_factura,
+              cliente: `${factura.clientes.nombre} ${factura.clientes.apellido}`,
+              fecha_emision: format(new Date(factura.fecha_emision), "dd/MM/yyyy"),
+              fecha_vencimiento: factura.fecha_vencimiento ? format(new Date(factura.fecha_vencimiento), "dd/MM/yyyy") : "N/A",
+              subtotal: `L ${factura.subtotal.toLocaleString()}`,
+              impuestos: `L ${factura.impuestos.toLocaleString()}`,
+              total: `L ${factura.total.toLocaleString()}`,
+              estado: factura.estado,
+              metodo_pago: factura.metodo_pago || "N/A",
+            }))}
+            columns={[
+              { header: "Número", key: "numero", width: 15 },
+              { header: "Nombre", key: "nombre", width: 25 },
+              { header: "Cliente", key: "cliente", width: 25 },
+              { header: "Fecha Emisión", key: "fecha_emision", width: 15 },
+              { header: "Fecha Vencimiento", key: "fecha_vencimiento", width: 15 },
+              { header: "Subtotal", key: "subtotal", width: 12 },
+              { header: "Impuestos", key: "impuestos", width: 12 },
+              { header: "Total", key: "total", width: 12 },
+              { header: "Estado", key: "estado", width: 12 },
+              { header: "Método Pago", key: "metodo_pago", width: 15 },
+            ]}
+            fileName="facturas"
+            title="Reporte de Facturación"
+          />
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Factura
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg">

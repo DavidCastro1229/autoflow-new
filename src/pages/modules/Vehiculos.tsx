@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { useToast } from "@/hooks/use-toast";
 import { Car, Loader2, Plus, Eye, Pencil, Trash, FileText, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ExportButtons } from "@/components/ExportButtons";
 
 interface Cliente {
   id: string;
@@ -330,14 +331,47 @@ export default function Vehiculos() {
           <h1 className="text-3xl font-bold tracking-tight">Vehículos</h1>
           <p className="text-muted-foreground">Gestiona los vehículos del taller</p>
         </div>
-        <Dialog open={modalOpen} onOpenChange={handleModalClose}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Registrar Vehículo
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="flex gap-2">
+          <ExportButtons
+            data={vehiculos.map((vehiculo) => ({
+              marca: vehiculo.marca,
+              modelo: vehiculo.modelo,
+              año: vehiculo.anio,
+              placa: vehiculo.placa,
+              color: vehiculo.color,
+              vin: vehiculo.vin,
+              kilometraje: vehiculo.kilometraje,
+              estado: vehiculo.estado,
+              cliente: `${vehiculo.clientes.nombre} ${vehiculo.clientes.apellido}`,
+              tipo_cliente: vehiculo.clientes.tipo_cliente,
+              email_cliente: vehiculo.clientes.email,
+              telefono_cliente: vehiculo.clientes.telefono,
+            }))}
+            columns={[
+              { header: "Marca", key: "marca", width: 15 },
+              { header: "Modelo", key: "modelo", width: 15 },
+              { header: "Año", key: "año", width: 10 },
+              { header: "Placa", key: "placa", width: 12 },
+              { header: "Color", key: "color", width: 12 },
+              { header: "VIN", key: "vin", width: 20 },
+              { header: "Kilometraje", key: "kilometraje", width: 12 },
+              { header: "Estado", key: "estado", width: 12 },
+              { header: "Cliente", key: "cliente", width: 25 },
+              { header: "Tipo Cliente", key: "tipo_cliente", width: 15 },
+              { header: "Email Cliente", key: "email_cliente", width: 25 },
+              { header: "Teléfono Cliente", key: "telefono_cliente", width: 15 },
+            ]}
+            fileName="vehiculos"
+            title="Reporte de Vehículos"
+          />
+          <Dialog open={modalOpen} onOpenChange={handleModalClose}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Registrar Vehículo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Car className="h-5 w-5" />
@@ -500,6 +534,7 @@ export default function Vehiculos() {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
 
       <Card>
         <CardHeader>
