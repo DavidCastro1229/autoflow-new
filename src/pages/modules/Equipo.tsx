@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Plus, Eye, Pencil, Trash2, Users, Mail, Phone, MapPin, Calendar, Briefcase } from "lucide-react";
 import { format } from "date-fns";
+import { ExportButtons } from "@/components/ExportButtons";
 
 interface Cargo {
   id: string;
@@ -31,6 +32,7 @@ interface Miembro {
   direccion: string;
   fecha_nacimiento: string | null;
   documento_identidad: string | null;
+  genero: string | null;
   cargo: string;
   cargo_id: string;
   fecha_contratacion: string;
@@ -68,6 +70,7 @@ export default function Equipo() {
     direccion: "",
     fecha_nacimiento: "",
     documento_identidad: "",
+    genero: "",
     cargo_id: "",
     fecha_contratacion: format(new Date(), "yyyy-MM-dd"),
     salario: "",
@@ -153,6 +156,7 @@ export default function Equipo() {
       direccion: formData.direccion,
       fecha_nacimiento: formData.fecha_nacimiento || null,
       documento_identidad: formData.documento_identidad || null,
+      genero: formData.genero || null,
       cargo: cargo?.nombre || "",
       cargo_id: formData.cargo_id,
       fecha_contratacion: formData.fecha_contratacion,
@@ -222,6 +226,7 @@ export default function Equipo() {
       direccion: "",
       fecha_nacimiento: "",
       documento_identidad: "",
+      genero: "",
       cargo_id: "",
       fecha_contratacion: format(new Date(), "yyyy-MM-dd"),
       salario: "",
@@ -242,6 +247,7 @@ export default function Equipo() {
       direccion: miembro.direccion,
       fecha_nacimiento: miembro.fecha_nacimiento || "",
       documento_identidad: miembro.documento_identidad || "",
+      genero: miembro.genero || "",
       cargo_id: miembro.cargo_id,
       fecha_contratacion: miembro.fecha_contratacion,
       salario: miembro.salario.toString(),
@@ -294,17 +300,46 @@ export default function Equipo() {
           <h1 className="text-3xl font-bold tracking-tight">Equipo Administrativo</h1>
           <p className="text-muted-foreground">Gestión del personal administrativo del taller</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Agregar Miembro
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="flex gap-2">
+          <ExportButtons
+            data={miembros.map((miembro) => ({
+              nombre: `${miembro.nombre} ${miembro.apellido}`,
+              cargo: miembro.cargos_administrativos?.nombre || miembro.cargo,
+              email: miembro.email,
+              telefono: miembro.telefono,
+              genero: miembro.genero || "N/A",
+              direccion: miembro.direccion,
+              salario: `L ${miembro.salario.toLocaleString()}`,
+              frecuencia_pago: miembro.frecuencia_pago,
+              estado: miembro.estado,
+              fecha_contratacion: format(new Date(miembro.fecha_contratacion), "dd/MM/yyyy"),
+            }))}
+            columns={[
+              { header: "Nombre", key: "nombre", width: 25 },
+              { header: "Cargo", key: "cargo", width: 20 },
+              { header: "Email", key: "email", width: 25 },
+              { header: "Teléfono", key: "telefono", width: 15 },
+              { header: "Género", key: "genero", width: 10 },
+              { header: "Dirección", key: "direccion", width: 30 },
+              { header: "Salario", key: "salario", width: 15 },
+              { header: "Frecuencia Pago", key: "frecuencia_pago", width: 15 },
+              { header: "Estado", key: "estado", width: 10 },
+              { header: "Fecha Contratación", key: "fecha_contratacion", width: 15 },
+            ]}
+            fileName="equipo-administrativo"
+            title="Reporte de Equipo Administrativo"
+          />
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar Miembro
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedMiembro ? "Editar Miembro" : "Agregar Nuevo Miembro"}</DialogTitle>
               <DialogDescription>
@@ -375,6 +410,22 @@ export default function Equipo() {
                     value={formData.documento_identidad}
                     onChange={(e) => setFormData({ ...formData, documento_identidad: e.target.value })}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="genero">Género</Label>
+                  <Select
+                    value={formData.genero}
+                    onValueChange={(value) => setFormData({ ...formData, genero: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione género" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="masculino">Masculino</SelectItem>
+                      <SelectItem value="femenino">Femenino</SelectItem>
+                      <SelectItem value="otro">Otro</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cargo_id">Cargo *</Label>
@@ -477,6 +528,7 @@ export default function Equipo() {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
 
       {/* Search bar */}
       <Card>
@@ -618,6 +670,10 @@ export default function Equipo() {
                   <div>
                     <Label className="text-muted-foreground">Documento</Label>
                     <p className="font-medium">{selectedMiembro.documento_identidad || "N/A"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Género</Label>
+                    <p className="font-medium capitalize">{selectedMiembro.genero || "N/A"}</p>
                   </div>
                   <div className="col-span-2">
                     <Label className="text-muted-foreground">Dirección</Label>

@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Calendar, Clock, Trash2, Edit, CheckCircle, Eye } from "lucide-react";
+import { ExportButtons } from "@/components/ExportButtons";
+import { format } from "date-fns";
 
 interface Cliente {
   id: string;
@@ -290,19 +292,44 @@ export default function Citas() {
           <h1 className="text-3xl font-bold tracking-tight">Citas</h1>
           <p className="text-muted-foreground">Gestión de citas y calendario</p>
         </div>
-        <Dialog open={open} onOpenChange={(isOpen) => {
-          setOpen(isOpen);
-          if (!isOpen) {
-            resetForm();
-          }
-        }}>
-          <DialogTrigger asChild>
-            <Button>
-              <Calendar className="mr-2 h-4 w-4" />
-              Nueva Cita
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex gap-2">
+          <ExportButtons
+            data={citas.map((cita) => ({
+              fecha: format(new Date(cita.fecha), "dd/MM/yyyy"),
+              hora: `${cita.hora_inicio} - ${cita.hora_fin}`,
+              cliente: `${cita.clientes.nombre} ${cita.clientes.apellido}`,
+              vehiculo: `${cita.vehiculos.marca} ${cita.vehiculos.modelo} - ${cita.vehiculos.placa}`,
+              tecnico: `${cita.tecnicos.nombre} ${cita.tecnicos.apellido}`,
+              servicio: cita.categorias_servicio.nombre,
+              estado: cita.estado,
+              nota: cita.nota || "Sin notas",
+            }))}
+            columns={[
+              { header: "Fecha", key: "fecha", width: 15 },
+              { header: "Hora", key: "hora", width: 15 },
+              { header: "Cliente", key: "cliente", width: 25 },
+              { header: "Vehículo", key: "vehiculo", width: 30 },
+              { header: "Técnico", key: "tecnico", width: 25 },
+              { header: "Servicio", key: "servicio", width: 20 },
+              { header: "Estado", key: "estado", width: 12 },
+              { header: "Notas", key: "nota", width: 40 },
+            ]}
+            fileName="citas"
+            title="Reporte de Citas"
+          />
+          <Dialog open={open} onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) {
+              resetForm();
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Button>
+                <Calendar className="mr-2 h-4 w-4" />
+                Nueva Cita
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingCita ? "Editar Cita" : "Registrar Nueva Cita"}</DialogTitle>
               <DialogDescription>
@@ -470,6 +497,7 @@ export default function Citas() {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
 
       <Card>
         <CardHeader>

@@ -405,6 +405,7 @@ export type Database = {
           fecha_contratacion: string
           fecha_nacimiento: string | null
           frecuencia_pago: string
+          genero: string | null
           id: string
           nombre: string
           notas: string | null
@@ -425,6 +426,7 @@ export type Database = {
           fecha_contratacion?: string
           fecha_nacimiento?: string | null
           frecuencia_pago?: string
+          genero?: string | null
           id?: string
           nombre: string
           notas?: string | null
@@ -445,6 +447,7 @@ export type Database = {
           fecha_contratacion?: string
           fecha_nacimiento?: string | null
           frecuencia_pago?: string
+          genero?: string | null
           id?: string
           nombre?: string
           notas?: string | null
