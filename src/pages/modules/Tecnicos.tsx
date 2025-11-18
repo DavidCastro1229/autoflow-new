@@ -507,8 +507,8 @@ export default function Tecnicos() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestión de Técnicos</h1>
-          <p className="text-muted-foreground">Administración de técnicos y mecánicos del taller</p>
+          <h1 className="text-3xl font-bold tracking-tight">Equipo Técnico</h1>
+          <p className="text-muted-foreground">Administración del personal técnico del taller</p>
         </div>
         <div className="flex gap-2">
           <ExportButtons
