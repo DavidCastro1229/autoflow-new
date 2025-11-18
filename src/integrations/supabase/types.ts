@@ -359,6 +359,74 @@ export type Database = {
           },
         ]
       }
+      equipo: {
+        Row: {
+          apellido: string
+          cargo: string
+          created_at: string | null
+          direccion: string
+          documento_identidad: string | null
+          email: string
+          estado: string
+          fecha_contratacion: string
+          fecha_nacimiento: string | null
+          frecuencia_pago: string
+          id: string
+          nombre: string
+          notas: string | null
+          salario: number
+          taller_id: string
+          telefono: string
+          updated_at: string | null
+        }
+        Insert: {
+          apellido: string
+          cargo: string
+          created_at?: string | null
+          direccion: string
+          documento_identidad?: string | null
+          email: string
+          estado?: string
+          fecha_contratacion?: string
+          fecha_nacimiento?: string | null
+          frecuencia_pago?: string
+          id?: string
+          nombre: string
+          notas?: string | null
+          salario?: number
+          taller_id: string
+          telefono: string
+          updated_at?: string | null
+        }
+        Update: {
+          apellido?: string
+          cargo?: string
+          created_at?: string | null
+          direccion?: string
+          documento_identidad?: string | null
+          email?: string
+          estado?: string
+          fecha_contratacion?: string
+          fecha_nacimiento?: string | null
+          frecuencia_pago?: string
+          id?: string
+          nombre?: string
+          notas?: string | null
+          salario?: number
+          taller_id?: string
+          telefono?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipo_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       especialidades_taller: {
         Row: {
           created_at: string
