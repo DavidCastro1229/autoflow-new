@@ -123,9 +123,15 @@ const menuItems: MenuItem[] = [
     allowedRoles: ["aseguradora"] 
   },
   { 
-    title: "Equipo", 
+    title: "Equipo Administrativo", 
     url: "/equipo", 
-    icon: Users, 
+    icon: Briefcase, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
+    title: "Equipo Técnico", 
+    url: "/tecnicos", 
+    icon: Wrench, 
     allowedRoles: ["taller", "admin_taller"] 
   },
   { 
@@ -201,13 +207,7 @@ const menuItems: MenuItem[] = [
     allowedRoles: ["taller", "admin_taller"] 
   },
   { 
-    title: "Técnicos", 
-    url: "/tecnicos", 
-    icon: Wrench, 
-    allowedRoles: ["taller", "admin_taller"] 
-  },
-  { 
-    title: "Gestión de Clientes", 
+    title: "Gestión de Clientes",
     url: "/clientes", 
     icon: UserCog, 
     allowedRoles: ["admin_taller"] 

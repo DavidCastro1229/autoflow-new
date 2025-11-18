@@ -114,6 +114,8 @@ const diasSemana = [
 
 export default function Tecnicos() {
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
+  const [filteredTecnicos, setFilteredTecnicos] = useState<Tecnico[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -137,6 +139,22 @@ export default function Tecnicos() {
     fetchTecnicos();
     fetchEspecialidades();
   }, []);
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredTecnicos(tecnicos);
+    } else {
+      const filtered = tecnicos.filter(tecnico => 
+        tecnico.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tecnico.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tecnico.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tecnico.telefono.includes(searchTerm) ||
+        tecnico.especialidades_taller?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (tecnico.area === "tecnico_senior" ? "técnico senior" : "técnico").includes(searchTerm.toLowerCase())
+      );
+      setFilteredTecnicos(filtered);
+    }
+  }, [searchTerm, tecnicos]);
 
   const fetchEspecialidades = async () => {
     try {
@@ -774,22 +792,37 @@ export default function Tecnicos() {
         </div>
       </div>
 
+      {/* Search bar */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Input
+              placeholder="Buscar por nombre, email, especialidad o teléfono..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+            <Wrench className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <p className="text-muted-foreground">Cargando técnicos...</p>
         </div>
-      ) : tecnicos.length === 0 ? (
+      ) : filteredTecnicos.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Wrench className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-center text-muted-foreground">
-              No hay técnicos registrados. Crea uno usando el botón "Nuevo Técnico"
+              {searchTerm ? "No se encontraron técnicos con ese criterio de búsqueda" : "No hay técnicos registrados. Crea uno usando el botón \"Nuevo Técnico\""}
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tecnicos.map((tecnico) => (
+          {filteredTecnicos.map((tecnico) => (
             <Card key={tecnico.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">

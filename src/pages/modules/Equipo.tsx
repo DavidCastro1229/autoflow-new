@@ -51,6 +51,8 @@ const FRECUENCIAS_PAGO = ["Semanal", "Quincenal", "Mensual"];
 export default function Equipo() {
   const { tallerId } = useUserRole();
   const [miembros, setMiembros] = useState<Miembro[]>([]);
+  const [filteredMiembros, setFilteredMiembros] = useState<Miembro[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -80,6 +82,21 @@ export default function Equipo() {
       fetchMiembros();
     }
   }, [tallerId]);
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredMiembros(miembros);
+    } else {
+      const filtered = miembros.filter(miembro => 
+        miembro.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        miembro.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        miembro.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        miembro.cargo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        miembro.telefono.includes(searchTerm)
+      );
+      setFilteredMiembros(filtered);
+    }
+  }, [searchTerm, miembros]);
 
   const fetchCargos = async () => {
     const { data, error } = await supabase
@@ -461,22 +478,37 @@ export default function Equipo() {
         </Dialog>
       </div>
 
+      {/* Search bar */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Input
+              placeholder="Buscar por nombre, email, cargo o teléfono..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+            <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <p className="text-muted-foreground">Cargando miembros...</p>
         </div>
-      ) : miembros.length === 0 ? (
+      ) : filteredMiembros.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-center text-muted-foreground">
-              No hay miembros del equipo administrativo registrados
+              {searchTerm ? "No se encontraron miembros con ese criterio de búsqueda" : "No hay miembros del equipo administrativo registrados"}
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {miembros.map((miembro) => (
+          {filteredMiembros.map((miembro) => (
             <Card key={miembro.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
