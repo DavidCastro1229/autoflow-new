@@ -6,14 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Eye, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, Users, Mail, Phone, MapPin, Calendar, Briefcase } from "lucide-react";
 import { format } from "date-fns";
+
+interface Cargo {
+  id: string;
+  nombre: string;
+  emoji: string;
+  color: string;
+  orden: number;
+}
 
 interface Miembro {
   id: string;
@@ -25,35 +32,26 @@ interface Miembro {
   fecha_nacimiento: string | null;
   documento_identidad: string | null;
   cargo: string;
+  cargo_id: string;
   fecha_contratacion: string;
   salario: number;
   frecuencia_pago: string;
   estado: string;
   notas: string | null;
   created_at: string;
+  cargos_administrativos?: {
+    nombre: string;
+    emoji: string;
+    color: string;
+  };
 }
-
-const CARGOS = [
-  "Jefe de Taller",
-  "Gerente General",
-  "Recepcionista",
-  "Asesor de Servicio",
-  "Mecánico",
-  "Electricista",
-  "Pintor",
-  "Hojalatero",
-  "Contador",
-  "Auxiliar Administrativo",
-  "Supervisor de Calidad",
-  "Almacenista",
-  "Vendedor de Repuestos"
-];
 
 const FRECUENCIAS_PAGO = ["Semanal", "Quincenal", "Mensual"];
 
 export default function Equipo() {
   const { tallerId } = useUserRole();
   const [miembros, setMiembros] = useState<Miembro[]>([]);
+  const [cargos, setCargos] = useState<Cargo[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -68,7 +66,7 @@ export default function Equipo() {
     direccion: "",
     fecha_nacimiento: "",
     documento_identidad: "",
-    cargo: "",
+    cargo_id: "",
     fecha_contratacion: format(new Date(), "yyyy-MM-dd"),
     salario: "",
     frecuencia_pago: "Mensual",
@@ -78,9 +76,25 @@ export default function Equipo() {
 
   useEffect(() => {
     if (tallerId) {
+      fetchCargos();
       fetchMiembros();
     }
   }, [tallerId]);
+
+  const fetchCargos = async () => {
+    const { data, error } = await supabase
+      .from("cargos_administrativos")
+      .select("*")
+      .eq("activo", true)
+      .order("orden", { ascending: true });
+
+    if (error) {
+      toast.error("Error al cargar cargos");
+      console.error(error);
+    } else {
+      setCargos(data || []);
+    }
+  };
 
   const fetchMiembros = async () => {
     if (!tallerId) return;
@@ -88,7 +102,14 @@ export default function Equipo() {
     setLoading(true);
     const { data, error } = await supabase
       .from("equipo")
-      .select("*")
+      .select(`
+        *,
+        cargos_administrativos (
+          nombre,
+          emoji,
+          color
+        )
+      `)
       .eq("taller_id", tallerId)
       .order("created_at", { ascending: false });
 
@@ -105,6 +126,7 @@ export default function Equipo() {
     e.preventDefault();
     if (!tallerId) return;
 
+    const cargo = cargos.find(c => c.id === formData.cargo_id);
     const miembroData = {
       taller_id: tallerId,
       nombre: formData.nombre,
@@ -114,7 +136,8 @@ export default function Equipo() {
       direccion: formData.direccion,
       fecha_nacimiento: formData.fecha_nacimiento || null,
       documento_identidad: formData.documento_identidad || null,
-      cargo: formData.cargo,
+      cargo: cargo?.nombre || "",
+      cargo_id: formData.cargo_id,
       fecha_contratacion: formData.fecha_contratacion,
       salario: parseFloat(formData.salario),
       frecuencia_pago: formData.frecuencia_pago.toLowerCase(),
@@ -182,7 +205,7 @@ export default function Equipo() {
       direccion: "",
       fecha_nacimiento: "",
       documento_identidad: "",
-      cargo: "",
+      cargo_id: "",
       fecha_contratacion: format(new Date(), "yyyy-MM-dd"),
       salario: "",
       frecuencia_pago: "Mensual",
@@ -202,7 +225,7 @@ export default function Equipo() {
       direccion: miembro.direccion,
       fecha_nacimiento: miembro.fecha_nacimiento || "",
       documento_identidad: miembro.documento_identidad || "",
-      cargo: miembro.cargo,
+      cargo_id: miembro.cargo_id,
       fecha_contratacion: miembro.fecha_contratacion,
       salario: miembro.salario.toString(),
       frecuencia_pago: miembro.frecuencia_pago.charAt(0).toUpperCase() + miembro.frecuencia_pago.slice(1),
@@ -228,12 +251,31 @@ export default function Equipo() {
       : <Badge variant="secondary">Inactivo</Badge>;
   };
 
+  const getColorClasses = (color: string) => {
+    const colorMap: Record<string, string> = {
+      purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+      blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+      green: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+      cyan: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
+      yellow: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+      orange: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+      red: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+      indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+      pink: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
+      slate: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300",
+      amber: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+      rose: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+      gray: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300",
+    };
+    return colorMap[color] || colorMap.blue;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Equipo de Trabajo</h1>
-          <p className="text-muted-foreground">Gestión de miembros del equipo</p>
+          <h1 className="text-3xl font-bold tracking-tight">Equipo Administrativo</h1>
+          <p className="text-muted-foreground">Gestión del personal administrativo del taller</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
@@ -318,19 +360,19 @@ export default function Equipo() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cargo">Cargo *</Label>
+                  <Label htmlFor="cargo_id">Cargo *</Label>
                   <Select
-                    value={formData.cargo}
-                    onValueChange={(value) => setFormData({ ...formData, cargo: value })}
+                    value={formData.cargo_id}
+                    onValueChange={(value) => setFormData({ ...formData, cargo_id: value })}
                     required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione un cargo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CARGOS.map((cargo) => (
-                        <SelectItem key={cargo} value={cargo}>
-                          {cargo}
+                      {cargos.map((cargo) => (
+                        <SelectItem key={cargo.id} value={cargo.id}>
+                          {cargo.emoji} {cargo.nombre}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -419,79 +461,104 @@ export default function Equipo() {
         </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Lista de Miembros
-          </CardTitle>
-          <CardDescription>
-            {miembros.length} miembro{miembros.length !== 1 ? 's' : ''} registrado{miembros.length !== 1 ? 's' : ''}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-center py-8 text-muted-foreground">Cargando...</p>
-          ) : miembros.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">No hay miembros registrados</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Cargo</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Teléfono</TableHead>
-                  <TableHead>Salario</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {miembros.map((miembro) => (
-                  <TableRow key={miembro.id}>
-                    <TableCell className="font-medium">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <p className="text-muted-foreground">Cargando miembros...</p>
+        </div>
+      ) : miembros.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Users className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-center text-muted-foreground">
+              No hay miembros del equipo administrativo registrados
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {miembros.map((miembro) => (
+            <Card key={miembro.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1 flex-1">
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary" />
                       {miembro.nombre} {miembro.apellido}
-                    </TableCell>
-                    <TableCell>{miembro.cargo}</TableCell>
-                    <TableCell>{miembro.email}</TableCell>
-                    <TableCell>{miembro.telefono}</TableCell>
-                    <TableCell>
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Badge className={getColorClasses(miembro.cargos_administrativos?.color || "blue")}>
+                        {miembro.cargos_administrativos?.emoji} {miembro.cargos_administrativos?.nombre || miembro.cargo}
+                      </Badge>
+                      {getEstadoBadge(miembro.estado)}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Salario:</span>
+                    <span className="text-muted-foreground ml-auto">
                       L {miembro.salario.toLocaleString()} / {miembro.frecuencia_pago}
-                    </TableCell>
-                    <TableCell>{getEstadoBadge(miembro.estado)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDetailDialog(miembro)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(miembro)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDeleteDialog(miembro.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Contratado:</span>
+                    <span className="text-muted-foreground ml-auto">
+                      {format(new Date(miembro.fecha_contratacion), "dd/MM/yyyy")}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{miembro.telefono}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground truncate">{miembro.email}</span>
+                  </div>
+
+                  <div className="flex items-start gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <span className="text-muted-foreground line-clamp-2">{miembro.direccion}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => openDetailDialog(miembro)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Ver Detalle
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openEditDialog(miembro)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openDeleteDialog(miembro.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
@@ -538,7 +605,9 @@ export default function Equipo() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground">Cargo</Label>
-                    <p className="font-medium">{selectedMiembro.cargo}</p>
+                    <Badge className={getColorClasses(selectedMiembro.cargos_administrativos?.color || "blue")}>
+                      {selectedMiembro.cargos_administrativos?.emoji} {selectedMiembro.cargos_administrativos?.nombre || selectedMiembro.cargo}
+                    </Badge>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Estado</Label>

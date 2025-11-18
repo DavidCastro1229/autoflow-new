@@ -68,6 +68,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cargos_administrativos: {
+        Row: {
+          activo: boolean
+          color: string
+          created_at: string
+          emoji: string
+          id: string
+          nombre: string
+          orden: number
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          color?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          nombre: string
+          orden?: number
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          color?: string
+          created_at?: string
+          emoji?: string
+          id?: string
+          nombre?: string
+          orden?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categorias_servicio: {
         Row: {
           created_at: string
@@ -362,7 +395,8 @@ export type Database = {
       equipo: {
         Row: {
           apellido: string
-          cargo: string
+          cargo: string | null
+          cargo_id: string
           created_at: string | null
           direccion: string
           documento_identidad: string | null
@@ -381,7 +415,8 @@ export type Database = {
         }
         Insert: {
           apellido: string
-          cargo: string
+          cargo?: string | null
+          cargo_id: string
           created_at?: string | null
           direccion: string
           documento_identidad?: string | null
@@ -400,7 +435,8 @@ export type Database = {
         }
         Update: {
           apellido?: string
-          cargo?: string
+          cargo?: string | null
+          cargo_id?: string
           created_at?: string | null
           direccion?: string
           documento_identidad?: string | null
@@ -418,6 +454,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "equipo_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargos_administrativos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "equipo_taller_id_fkey"
             columns: ["taller_id"]
