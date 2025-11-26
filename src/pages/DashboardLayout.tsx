@@ -18,7 +18,6 @@ const routePermissions: Record<string, UserRole[]> = {
   // Rutas específicas de super_admin
   "/usuarios": ["super_admin"],
   "/solicitudes": ["super_admin"],
-  "/aseguradoras": ["super_admin"],
   
   // Rutas compartidas
   "/dashboard": ["admin_taller", "aseguradora", "super_admin"],
@@ -31,7 +30,9 @@ const routePermissions: Record<string, UserRole[]> = {
   "/flotas": ["taller", "admin_taller", "super_admin"],
   "/cotizaciones": ["taller", "admin_taller", "aseguradora", "super_admin"],
   "/facturacion": ["taller", "admin_taller", "aseguradora", "super_admin"],
+  "/aseguradoras": ["taller", "admin_taller", "super_admin"],
   "/mensajes": ["aseguradora", "taller", "admin_taller", "super_admin"],
+  "/solicitudes-afiliacion": ["aseguradora", "super_admin"],
   "/reparaciones": ["aseguradora", "super_admin"],
   "/siniestros": ["aseguradora", "super_admin"],
   "/citas": ["taller", "admin_taller", "super_admin"],
