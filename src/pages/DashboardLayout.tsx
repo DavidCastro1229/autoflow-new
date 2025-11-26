@@ -65,8 +65,15 @@ export default function DashboardLayout() {
         trialStatus.dias_restantes <= 3 &&
         trialStatus.estado_suscripcion === "prueba";
 
-      if (isExpired || isAboutToExpire) {
+      if (isExpired) {
         setShowTrialModal(true);
+      } else if (isAboutToExpire) {
+        const lastDismissed = localStorage.getItem('trial_modal_dismissed');
+        const now = Date.now();
+        // Show modal again after 24 hours
+        if (!lastDismissed || now - parseInt(lastDismissed) > 24 * 60 * 60 * 1000) {
+          setShowTrialModal(true);
+        }
       }
     }
   }, [trialStatus]);

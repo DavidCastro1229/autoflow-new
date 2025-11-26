@@ -61,8 +61,7 @@ export const TrialExpiredModal = ({ open, diasRestantes }: TrialExpiredModalProp
           <Button 
             className="w-full" 
             onClick={() => {
-              // Aquí se implementaría la redirección a la página de suscripción
-              window.open("https://autoflowx.com/suscripcion", "_blank");
+              window.location.href = "/suscripcion";
             }}
           >
             <CreditCard className="h-4 w-4 mr-2" />
@@ -72,7 +71,10 @@ export const TrialExpiredModal = ({ open, diasRestantes }: TrialExpiredModalProp
             <Button 
               variant="outline" 
               className="w-full"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                localStorage.setItem('trial_modal_dismissed', Date.now().toString());
+                window.location.reload();
+              }}
             >
               Continuar con la Prueba
             </Button>

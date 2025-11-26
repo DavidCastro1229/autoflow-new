@@ -33,6 +33,7 @@ import AseguradorasModule from "./pages/modules/AseguradorasModule";
 import HojaIngreso from "./pages/modules/HojaIngreso";
 import Servicios from "./pages/modules/Servicios";
 import Paquetes from "./pages/modules/Paquetes";
+import Suscripcion from "./pages/Suscripcion";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/suscripcion" element={<Suscripcion />} />
             <Route path="/" element={<DashboardLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="usuarios" element={<Usuarios />} />
