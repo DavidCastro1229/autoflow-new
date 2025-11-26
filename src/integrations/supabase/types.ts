@@ -1392,6 +1392,54 @@ export type Database = {
           },
         ]
       }
+      mensajes: {
+        Row: {
+          aseguradora_id: string
+          contenido: string
+          created_at: string
+          id: string
+          leido: boolean
+          sender_type: string
+          taller_id: string
+          updated_at: string
+        }
+        Insert: {
+          aseguradora_id: string
+          contenido: string
+          created_at?: string
+          id?: string
+          leido?: boolean
+          sender_type: string
+          taller_id: string
+          updated_at?: string
+        }
+        Update: {
+          aseguradora_id?: string
+          contenido?: string
+          created_at?: string
+          id?: string
+          leido?: boolean
+          sender_type?: string
+          taller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensajes_aseguradora_id_fkey"
+            columns: ["aseguradora_id"]
+            isOneToOne: false
+            referencedRelation: "aseguradoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensajes_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ordenes: {
         Row: {
           cliente_id: string

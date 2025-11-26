@@ -168,7 +168,7 @@ const menuItems: MenuItem[] = [
     title: "Mensajes", 
     url: "/mensajes", 
     icon: MessageSquare, 
-    allowedRoles: ["aseguradora"] 
+    allowedRoles: ["aseguradora", "taller", "admin_taller"] 
   },
   { 
     title: "Reparaciones", 
