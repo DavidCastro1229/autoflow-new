@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
+import AseguradoraDashboard from "./modules/AseguradoraDashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,6 +75,7 @@ interface RecentActivity {
 }
 
 export default function Dashboard() {
+  const { role } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     totalOrdenes: 0,
@@ -100,6 +103,11 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Si es aseguradora, mostrar el dashboard de aseguradora
+  if (role === "aseguradora") {
+    return <AseguradoraDashboard />;
+  }
 
   const fetchDashboardData = async () => {
     setLoading(true);

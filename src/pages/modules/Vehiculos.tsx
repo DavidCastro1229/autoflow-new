@@ -42,6 +42,9 @@ interface Vehiculo {
     telefono: string;
     tipo_cliente: string;
   };
+  talleres?: {
+    nombre_taller: string;
+  };
 }
 
 export default function Vehiculos() {
@@ -100,15 +103,17 @@ export default function Vehiculos() {
 
   const fetchVehiculos = async () => {
     try {
-      const { data: userRoles } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if user is aseguradora
+      const { data: userRole } = await supabase
         .from("user_roles")
-        .select("taller_id")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "")
+        .select("role, taller_id")
+        .eq("user_id", user.id)
         .single();
 
-      if (!userRoles?.taller_id) return;
-
-      const { data, error } = await supabase
+      let query = supabase
         .from("vehiculos")
         .select(`
           *,
@@ -119,10 +124,48 @@ export default function Vehiculos() {
             email,
             telefono,
             tipo_cliente
+          ),
+          talleres (
+            nombre_taller
           )
-        `)
-        .eq("taller_id", userRoles.taller_id)
-        .order("created_at", { ascending: false });
+        `);
+
+      if (userRole?.role === "aseguradora") {
+        // Si es aseguradora, obtener vehículos de sus talleres afiliados
+        const { data: aseguradoraData } = await supabase
+          .from("aseguradoras")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!aseguradoraData) return;
+
+        const { data: talleresAfiliados } = await supabase
+          .from("taller_aseguradoras")
+          .select("taller_id")
+          .eq("aseguradora_id", aseguradoraData.id);
+
+        if (!talleresAfiliados || talleresAfiliados.length === 0) {
+          setVehiculos([]);
+          setLoadingData(false);
+          return;
+        }
+
+        const tallerIds = talleresAfiliados.map(t => t.taller_id);
+        query = query.in("taller_id", tallerIds);
+      } else {
+        // Si es taller, solo sus vehículos
+        const { data: userRoles } = await supabase
+          .from("user_roles")
+          .select("taller_id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!userRoles?.taller_id) return;
+        query = query.eq("taller_id", userRoles.taller_id);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
       setVehiculos(data || []);

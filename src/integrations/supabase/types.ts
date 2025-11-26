@@ -1651,6 +1651,60 @@ export type Database = {
           },
         ]
       }
+      siniestros: {
+        Row: {
+          created_at: string
+          descripcion: string
+          estado: string
+          fecha_siniestro: string
+          id: string
+          monto_estimado: number
+          numero_siniestro: string
+          taller_id: string
+          updated_at: string
+          vehiculo_id: string
+        }
+        Insert: {
+          created_at?: string
+          descripcion: string
+          estado?: string
+          fecha_siniestro: string
+          id?: string
+          monto_estimado?: number
+          numero_siniestro: string
+          taller_id: string
+          updated_at?: string
+          vehiculo_id: string
+        }
+        Update: {
+          created_at?: string
+          descripcion?: string
+          estado?: string
+          fecha_siniestro?: string
+          id?: string
+          monto_estimado?: number
+          numero_siniestro?: string
+          taller_id?: string
+          updated_at?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siniestros_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siniestros_vehiculo_id_fkey"
+            columns: ["vehiculo_id"]
+            isOneToOne: false
+            referencedRelation: "vehiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       taller_aseguradoras: {
         Row: {
           aseguradora_id: string
