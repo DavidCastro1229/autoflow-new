@@ -120,20 +120,7 @@ export default function SolicitudesAfiliacion() {
     if (!selectedSolicitud) return;
 
     try {
-      const updateData: any = {
-        estado: actionType === "aprobar" ? "aprobada" : "rechazada",
-        respuesta: respuesta || null,
-        fecha_respuesta: new Date().toISOString(),
-      };
-
-      const { error: updateError } = await supabase
-        .from("solicitudes_afiliacion")
-        .update(updateData)
-        .eq("id", selectedSolicitud.id);
-
-      if (updateError) throw updateError;
-
-      // Si se aprueba, crear la relación en taller_aseguradoras
+      // Si se aprueba, crear primero la relación en taller_aseguradoras (antes de cambiar el estado)
       if (actionType === "aprobar") {
         const { error: relationError } = await supabase
           .from("taller_aseguradoras")
@@ -146,6 +133,20 @@ export default function SolicitudesAfiliacion() {
           throw relationError;
         }
       }
+
+      // Luego actualizar el estado de la solicitud
+      const updateData: any = {
+        estado: actionType === "aprobar" ? "aprobada" : "rechazada",
+        respuesta: respuesta || null,
+        fecha_respuesta: new Date().toISOString(),
+      };
+
+      const { error: updateError } = await supabase
+        .from("solicitudes_afiliacion")
+        .update(updateData)
+        .eq("id", selectedSolicitud.id);
+
+      if (updateError) throw updateError;
 
       toast.success(
         actionType === "aprobar" 
