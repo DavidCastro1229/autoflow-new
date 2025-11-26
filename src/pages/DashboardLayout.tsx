@@ -31,7 +31,7 @@ const routePermissions: Record<string, UserRole[]> = {
   "/flotas": ["taller", "admin_taller", "super_admin"],
   "/cotizaciones": ["taller", "admin_taller", "aseguradora", "super_admin"],
   "/facturacion": ["taller", "admin_taller", "aseguradora", "super_admin"],
-  "/mensajes": ["aseguradora", "super_admin"],
+  "/mensajes": ["aseguradora", "taller", "admin_taller", "super_admin"],
   "/reparaciones": ["aseguradora", "super_admin"],
   "/siniestros": ["aseguradora", "super_admin"],
   "/citas": ["taller", "admin_taller", "super_admin"],
