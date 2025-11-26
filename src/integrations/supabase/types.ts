@@ -2224,6 +2224,10 @@ export type Database = {
       generate_codigo_cotizacion: { Args: never; Returns: string }
       generate_codigo_producto: { Args: never; Returns: string }
       generate_numero_factura: { Args: never; Returns: string }
+      get_aseguradora_id_for_user: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
