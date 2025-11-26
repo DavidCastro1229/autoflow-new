@@ -202,7 +202,7 @@ const TallerMensajes = () => {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Mensajes</h1>
         <p className="text-muted-foreground">
-          Comunícate con tus aseguradoras afiliadas
+          Comunícate con las aseguradoras afiliadas
         </p>
       </div>
 
