@@ -226,7 +226,7 @@ export default function SolicitudesAfiliacion() {
                     <div className="flex items-center gap-2 mb-2">
                       <Building2 className="h-5 w-5 text-primary" />
                       <CardTitle className="text-xl">
-                        {solicitud.talleres.nombre_taller}
+                        {solicitud.talleres?.nombre_taller || "Taller no disponible"}
                       </CardTitle>
                     </div>
                     <CardDescription>
@@ -247,23 +247,23 @@ export default function SolicitudesAfiliacion() {
                   <div>
                     <p className="font-medium mb-1">Ubicación</p>
                     <p className="text-muted-foreground">
-                      📍 {solicitud.talleres.ciudad}, {solicitud.talleres.estado}
+                      📍 {solicitud.talleres?.ciudad || "N/A"}, {solicitud.talleres?.estado || "N/A"}
                     </p>
                     <p className="text-muted-foreground">
-                      {solicitud.talleres.direccion}
+                      {solicitud.talleres?.direccion || "N/A"}
                     </p>
                   </div>
                   <div>
                     <p className="font-medium mb-1">Contacto</p>
                     <p className="text-muted-foreground">
-                      📧 {solicitud.talleres.email}
+                      📧 {solicitud.talleres?.email || "N/A"}
                     </p>
                     <p className="text-muted-foreground">
-                      📞 {solicitud.talleres.telefono}
+                      📞 {solicitud.talleres?.telefono || "N/A"}
                     </p>
                   </div>
                 </div>
-                {solicitud.talleres.descripcion && (
+                {solicitud.talleres?.descripcion && (
                   <div>
                     <p className="font-medium mb-1">Descripción del taller</p>
                     <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
@@ -322,7 +322,7 @@ export default function SolicitudesAfiliacion() {
                     <div className="flex items-center gap-2 mb-2">
                       <Building2 className="h-5 w-5 text-primary" />
                       <CardTitle className="text-xl">
-                        {solicitud.talleres.nombre_taller}
+                        {solicitud.talleres?.nombre_taller || "Taller no disponible"}
                       </CardTitle>
                     </div>
                     <CardDescription>
@@ -338,8 +338,8 @@ export default function SolicitudesAfiliacion() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-sm">
-                  <p className="text-muted-foreground">📍 {solicitud.talleres.ciudad}, {solicitud.talleres.estado}</p>
-                  <p className="text-muted-foreground">📧 {solicitud.talleres.email}</p>
+                  <p className="text-muted-foreground">📍 {solicitud.talleres?.ciudad || "N/A"}, {solicitud.talleres?.estado || "N/A"}</p>
+                  <p className="text-muted-foreground">📧 {solicitud.talleres?.email || "N/A"}</p>
                 </div>
                 {solicitud.mensaje && (
                   <div>
