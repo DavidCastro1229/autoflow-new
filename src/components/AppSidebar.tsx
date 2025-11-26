@@ -165,10 +165,22 @@ const menuItems: MenuItem[] = [
     allowedRoles: ["taller", "admin_taller", "aseguradora"] 
   },
   { 
+    title: "Aseguradoras", 
+    url: "/aseguradoras", 
+    icon: Building2, 
+    allowedRoles: ["taller", "admin_taller"] 
+  },
+  { 
     title: "Mensajes", 
     url: "/mensajes", 
     icon: MessageSquare, 
     allowedRoles: ["aseguradora", "taller", "admin_taller"] 
+  },
+  { 
+    title: "Solicitudes Afiliación", 
+    url: "/solicitudes-afiliacion", 
+    icon: FileCheck, 
+    allowedRoles: ["aseguradora"] 
   },
   { 
     title: "Reparaciones", 

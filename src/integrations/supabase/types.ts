@@ -1753,6 +1753,60 @@ export type Database = {
           },
         ]
       }
+      solicitudes_afiliacion: {
+        Row: {
+          aseguradora_id: string
+          created_at: string
+          estado: Database["public"]["Enums"]["estado_solicitud_afiliacion"]
+          fecha_respuesta: string | null
+          fecha_solicitud: string
+          id: string
+          mensaje: string | null
+          respuesta: string | null
+          taller_id: string
+          updated_at: string
+        }
+        Insert: {
+          aseguradora_id: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_solicitud_afiliacion"]
+          fecha_respuesta?: string | null
+          fecha_solicitud?: string
+          id?: string
+          mensaje?: string | null
+          respuesta?: string | null
+          taller_id: string
+          updated_at?: string
+        }
+        Update: {
+          aseguradora_id?: string
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_solicitud_afiliacion"]
+          fecha_respuesta?: string | null
+          fecha_solicitud?: string
+          id?: string
+          mensaje?: string | null
+          respuesta?: string | null
+          taller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitudes_afiliacion_aseguradora_id_fkey"
+            columns: ["aseguradora_id"]
+            isOneToOne: false
+            referencedRelation: "aseguradoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitudes_afiliacion_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       taller_aseguradoras: {
         Row: {
           aseguradora_id: string
@@ -2210,6 +2264,7 @@ export type Database = {
         | "en_proceso"
         | "finalizada"
         | "cancelada"
+      estado_solicitud_afiliacion: "pendiente" | "aprobada" | "rechazada"
       estado_suscripcion: "prueba" | "activo" | "expirado"
       estado_vehiculo: "activo" | "en_servicio" | "entregado" | "inactivo"
       metodo_pago:
@@ -2393,6 +2448,7 @@ export const Constants = {
         "finalizada",
         "cancelada",
       ],
+      estado_solicitud_afiliacion: ["pendiente", "aprobada", "rechazada"],
       estado_suscripcion: ["prueba", "activo", "expirado"],
       estado_vehiculo: ["activo", "en_servicio", "entregado", "inactivo"],
       metodo_pago: [

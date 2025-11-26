@@ -25,11 +25,13 @@ import Accesos from "./pages/modules/Accesos";
 import Configuraciones from "./pages/modules/Configuraciones";
 import Talleres from "./pages/modules/Talleres";
 import Mensajes from "./pages/modules/Mensajes";
+import TallerMensajes from "./pages/modules/TallerMensajes";
 import Reparaciones from "./pages/modules/Reparaciones";
 import Siniestros from "./pages/modules/Siniestros";
 import Usuarios from "./pages/modules/Usuarios";
 import Solicitudes from "./pages/modules/Solicitudes";
 import AseguradorasModule from "./pages/modules/AseguradorasModule";
+import SolicitudesAfiliacion from "./pages/modules/SolicitudesAfiliacion";
 import HojaIngreso from "./pages/modules/HojaIngreso";
 import Servicios from "./pages/modules/Servicios";
 import Paquetes from "./pages/modules/Paquetes";
@@ -53,6 +55,7 @@ const App = () => (
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="solicitudes" element={<Solicitudes />} />
               <Route path="aseguradoras" element={<AseguradorasModule />} />
+              <Route path="solicitudes-afiliacion" element={<SolicitudesAfiliacion />} />
               <Route path="kanban" element={<Kanban />} />
               <Route path="talleres" element={<Talleres />} />
               <Route path="equipo" element={<Equipo />} />
@@ -62,7 +65,7 @@ const App = () => (
               <Route path="flotas" element={<Flotas />} />
               <Route path="cotizaciones" element={<Cotizaciones />} />
               <Route path="facturacion" element={<Facturacion />} />
-              <Route path="mensajes" element={<Mensajes />} />
+              <Route path="mensajes" element={<TallerMensajes />} />
               <Route path="reparaciones" element={<Reparaciones />} />
               <Route path="siniestros" element={<Siniestros />} />
               <Route path="citas" element={<Citas />} />
