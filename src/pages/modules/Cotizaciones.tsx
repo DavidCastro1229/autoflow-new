@@ -119,9 +119,17 @@ export default function Cotizaciones() {
   }, [clienteId]);
 
   const fetchCotizaciones = async () => {
-    if (!tallerId) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    const { data, error } = await supabase
+    // Check if user is aseguradora
+    const { data: userRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .single();
+
+    let query = supabase
       .from("cotizaciones" as any)
       .select(`
         *,
@@ -138,10 +146,41 @@ export default function Cotizaciones() {
           marca,
           modelo,
           anio
+        ),
+        talleres:taller_id (
+          nombre_taller
         )
-      `)
-      .eq("taller_id", tallerId)
-      .order("created_at", { ascending: false });
+      `);
+
+    if (userRole?.role === "aseguradora") {
+      // Si es aseguradora, obtener cotizaciones de sus talleres afiliados
+      const { data: aseguradoraData } = await supabase
+        .from("aseguradoras")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!aseguradoraData) return;
+
+      const { data: talleresAfiliados } = await supabase
+        .from("taller_aseguradoras")
+        .select("taller_id")
+        .eq("aseguradora_id", aseguradoraData.id);
+
+      if (!talleresAfiliados || talleresAfiliados.length === 0) {
+        setCotizaciones([]);
+        setLoading(false);
+        return;
+      }
+
+      const tallerIds = talleresAfiliados.map(t => t.taller_id);
+      query = query.in("taller_id", tallerIds);
+    } else if (tallerId) {
+      // Si es taller, solo sus cotizaciones
+      query = query.eq("taller_id", tallerId);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching cotizaciones:", error);

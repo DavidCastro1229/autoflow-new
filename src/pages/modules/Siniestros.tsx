@@ -73,7 +73,7 @@ const Siniestros = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setSiniestros(data || []);
+      setSiniestros((data as any) || []);
     } catch (error) {
       console.error("Error fetching siniestros:", error);
       toast({
@@ -98,7 +98,7 @@ const Siniestros = () => {
     try {
       const { error } = await supabase
         .from("siniestros")
-        .insert([formData]);
+        .insert([formData as any]);
 
       if (error) throw error;
 

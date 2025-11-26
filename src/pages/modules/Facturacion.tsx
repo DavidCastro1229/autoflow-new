@@ -128,22 +128,50 @@ export default function Facturacion() {
   });
 
   const { data: facturas = [], isLoading } = useQuery({
-    queryKey: ["facturas", tallerId],
+    queryKey: ["facturas", tallerId, role],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      let query = supabase
         .from("facturas" as any)
         .select(`
           *,
           clientes (id, nombre, apellido, email, telefono),
-          ordenes (id, descripcion, fecha_ingreso, estado)
-        `)
-        .eq("taller_id", tallerId!)
-        .order("created_at", { ascending: false });
+          ordenes (id, descripcion, fecha_ingreso, estado),
+          talleres:taller_id (nombre_taller)
+        `);
+
+      if (role === "aseguradora") {
+        // Si es aseguradora, obtener facturas de sus talleres afiliados
+        const { data: aseguradoraData } = await supabase
+          .from("aseguradoras")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!aseguradoraData) return [];
+
+        const { data: talleresAfiliados } = await supabase
+          .from("taller_aseguradoras")
+          .select("taller_id")
+          .eq("aseguradora_id", aseguradoraData.id);
+
+        if (!talleresAfiliados || talleresAfiliados.length === 0) return [];
+
+        const tallerIds = talleresAfiliados.map(t => t.taller_id);
+        query = query.in("taller_id", tallerIds);
+      } else if (tallerId) {
+        // Si es taller, solo sus facturas
+        query = query.eq("taller_id", tallerId);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as any;
     },
-    enabled: !!tallerId,
+    enabled: !!(tallerId || role === "aseguradora"),
   });
 
   const { data: clientes = [] } = useQuery({
