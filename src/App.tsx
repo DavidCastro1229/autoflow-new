@@ -24,8 +24,7 @@ import Reportes from "./pages/modules/Reportes";
 import Accesos from "./pages/modules/Accesos";
 import Configuraciones from "./pages/modules/Configuraciones";
 import Talleres from "./pages/modules/Talleres";
-import Mensajes from "./pages/modules/Mensajes";
-import TallerMensajes from "./pages/modules/TallerMensajes";
+import MensajesWrapper from "./pages/modules/MensajesWrapper";
 import Reparaciones from "./pages/modules/Reparaciones";
 import Siniestros from "./pages/modules/Siniestros";
 import Usuarios from "./pages/modules/Usuarios";
@@ -65,7 +64,7 @@ const App = () => (
               <Route path="flotas" element={<Flotas />} />
               <Route path="cotizaciones" element={<Cotizaciones />} />
               <Route path="facturacion" element={<Facturacion />} />
-              <Route path="mensajes" element={<TallerMensajes />} />
+              <Route path="mensajes" element={<MensajesWrapper />} />
               <Route path="reparaciones" element={<Reparaciones />} />
               <Route path="siniestros" element={<Siniestros />} />
               <Route path="citas" element={<Citas />} />
