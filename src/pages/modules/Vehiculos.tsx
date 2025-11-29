@@ -62,6 +62,7 @@ export default function Vehiculos() {
   const [loadingHoja, setLoadingHoja] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [hojaIngresoModalOpen, setHojaIngresoModalOpen] = useState(false);
   const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [vehiculoToDelete, setVehiculoToDelete] = useState<string | null>(null);
@@ -309,12 +310,15 @@ export default function Vehiculos() {
     return tipos[tipo] || tipo;
   };
 
-  const handleViewDetails = async (vehiculo: Vehiculo) => {
+  const handleViewDetails = (vehiculo: Vehiculo) => {
     setSelectedVehiculo(vehiculo);
     setDetailsModalOpen(true);
-    if (isAseguradora) {
-      await fetchHojaIngreso(vehiculo.id);
-    }
+  };
+
+  const handleViewHojaIngreso = async (vehiculo: Vehiculo) => {
+    setSelectedVehiculo(vehiculo);
+    setHojaIngresoModalOpen(true);
+    await fetchHojaIngreso(vehiculo.id);
   };
 
   const handleEdit = (vehiculo: Vehiculo) => {
@@ -714,7 +718,7 @@ export default function Vehiculos() {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => handleViewDetails(vehiculo)}
+                              onClick={() => handleViewHojaIngreso(vehiculo)}
                             >
                               <FileText className="mr-2 h-4 w-4" />
                               Hoja de Ingreso
@@ -849,164 +853,169 @@ export default function Vehiculos() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-              {/* Hoja de Ingreso (solo para aseguradoras) */}
-              {isAseguradora && (
+      {/* Modal de Hoja de Ingreso */}
+      <Dialog open={hojaIngresoModalOpen} onOpenChange={setHojaIngresoModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Hoja de Ingreso del Vehículo</DialogTitle>
+            <DialogDescription>
+              {selectedVehiculo && `${selectedVehiculo.marca} ${selectedVehiculo.modelo} - Placa: ${selectedVehiculo.placa}`}
+            </DialogDescription>
+          </DialogHeader>
+          {loadingHoja ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : hojaIngreso ? (
+            <div className="space-y-6">
+              {/* Interiores */}
+              <div>
+                <h4 className="font-semibold mb-3 text-base">Interiores</h4>
+                <div className="grid gap-2">
+                  {Object.entries(hojaIngreso.interiores || {}).map(([key, value]: [string, any]) => (
+                    <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
+                      <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
+                      <div className="text-muted-foreground">
+                        {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
+                      </div>
+                      <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                        Sí: {value.si ? '✓' : '✗'}
+                      </div>
+                      <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                        No: {value.no ? '✓' : '✗'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Exteriores */}
+              <div>
+                <h4 className="font-semibold mb-3 text-base">Exteriores</h4>
+                <div className="grid gap-2">
+                  {Object.entries(hojaIngreso.exteriores || {}).map(([key, value]: [string, any]) => (
+                    <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
+                      <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
+                      <div className="text-muted-foreground">
+                        {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
+                      </div>
+                      <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                        Sí: {value.si ? '✓' : '✗'}
+                      </div>
+                      <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                        No: {value.no ? '✓' : '✗'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nivel de Gasolina */}
+              <div>
+                <h4 className="font-semibold mb-2 text-base">Nivel de Gasolina</h4>
+                <p className="font-medium">{hojaIngreso.nivel_gasolina}</p>
+              </div>
+
+              {/* Coqueta */}
+              <div>
+                <h4 className="font-semibold mb-3 text-base">Cajuela/Coqueta</h4>
+                <div className="grid gap-2">
+                  {Object.entries(hojaIngreso.coqueta || {}).map(([key, value]: [string, any]) => (
+                    <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
+                      <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
+                      <div className="text-muted-foreground">
+                        {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
+                      </div>
+                      <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                        Sí: {value.si ? '✓' : '✗'}
+                      </div>
+                      <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                        No: {value.no ? '✓' : '✗'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Motor */}
+              <div>
+                <h4 className="font-semibold mb-3 text-base">Motor</h4>
+                <div className="grid gap-2">
+                  {Object.entries(hojaIngreso.motor || {}).map(([key, value]: [string, any]) => (
+                    <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
+                      <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
+                      <div className="text-muted-foreground">
+                        {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
+                      </div>
+                      <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                        Sí: {value.si ? '✓' : '✗'}
+                      </div>
+                      <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                        No: {value.no ? '✓' : '✗'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comentarios */}
+              {hojaIngreso.comentarios && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Hoja de Ingreso</h3>
-                  {loadingHoja ? (
-                    <div className="flex justify-center py-4">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : hojaIngreso ? (
-                    <div className="space-y-6">
-                      {/* Interiores */}
-                      <div>
-                        <h4 className="font-semibold mb-3 text-base">Interiores</h4>
-                        <div className="grid gap-2">
-                          {Object.entries(hojaIngreso.interiores || {}).map(([key, value]: [string, any]) => (
-                            <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
-                              <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
-                              <div className="text-muted-foreground">
-                                {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
-                              </div>
-                              <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
-                                Sí: {value.si ? '✓' : '✗'}
-                              </div>
-                              <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
-                                No: {value.no ? '✓' : '✗'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Exteriores */}
-                      <div>
-                        <h4 className="font-semibold mb-3 text-base">Exteriores</h4>
-                        <div className="grid gap-2">
-                          {Object.entries(hojaIngreso.exteriores || {}).map(([key, value]: [string, any]) => (
-                            <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
-                              <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
-                              <div className="text-muted-foreground">
-                                {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
-                              </div>
-                              <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
-                                Sí: {value.si ? '✓' : '✗'}
-                              </div>
-                              <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
-                                No: {value.no ? '✓' : '✗'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Nivel de Gasolina */}
-                      <div>
-                        <h4 className="font-semibold mb-2 text-base">Nivel de Gasolina</h4>
-                        <p className="font-medium">{hojaIngreso.nivel_gasolina}</p>
-                      </div>
-
-                      {/* Coqueta */}
-                      <div>
-                        <h4 className="font-semibold mb-3 text-base">Cajuela/Coqueta</h4>
-                        <div className="grid gap-2">
-                          {Object.entries(hojaIngreso.coqueta || {}).map(([key, value]: [string, any]) => (
-                            <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
-                              <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
-                              <div className="text-muted-foreground">
-                                {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
-                              </div>
-                              <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
-                                Sí: {value.si ? '✓' : '✗'}
-                              </div>
-                              <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
-                                No: {value.no ? '✓' : '✗'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Motor */}
-                      <div>
-                        <h4 className="font-semibold mb-3 text-base">Motor</h4>
-                        <div className="grid gap-2">
-                          {Object.entries(hojaIngreso.motor || {}).map(([key, value]: [string, any]) => (
-                            <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
-                              <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
-                              <div className="text-muted-foreground">
-                                {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
-                              </div>
-                              <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
-                                Sí: {value.si ? '✓' : '✗'}
-                              </div>
-                              <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
-                                No: {value.no ? '✓' : '✗'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Comentarios */}
-                      {hojaIngreso.comentarios && (
-                        <div>
-                          <h4 className="font-semibold mb-2 text-base">Comentarios</h4>
-                          <p className="text-muted-foreground">{hojaIngreso.comentarios}</p>
-                        </div>
-                      )}
-                      
-                      {/* Imágenes de Carrocería */}
-                      {hojaIngreso.imagenes_carroceria && hojaIngreso.imagenes_carroceria.length > 0 && (
-                        <div>
-                          <h4 className="font-semibold mb-3 text-base">Imágenes de la Carrocería</h4>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {hojaIngreso.imagenes_carroceria.map((url: string, idx: number) => (
-                              <img
-                                key={idx}
-                                src={url}
-                                alt={`Carrocería ${idx + 1}`}
-                                className="w-full h-40 object-cover rounded-lg border shadow-sm"
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Firmas */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {hojaIngreso.firma_cliente && (
-                          <div>
-                            <h4 className="font-semibold mb-2 text-base">Firma del Cliente</h4>
-                            <img
-                              src={hojaIngreso.firma_cliente}
-                              alt="Firma del Cliente"
-                              className="border rounded-lg p-3 bg-white shadow-sm"
-                            />
-                          </div>
-                        )}
-                        {hojaIngreso.firma_encargado && (
-                          <div>
-                            <h4 className="font-semibold mb-2 text-base">Firma del Encargado</h4>
-                            <img
-                              src={hojaIngreso.firma_encargado}
-                              alt="Firma del Encargado"
-                              className="border rounded-lg p-3 bg-white shadow-sm"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-4">
-                      No hay hoja de ingreso registrada para este vehículo
-                    </p>
-                  )}
+                  <h4 className="font-semibold mb-2 text-base">Comentarios</h4>
+                  <p className="text-muted-foreground">{hojaIngreso.comentarios}</p>
                 </div>
               )}
+              
+              {/* Imágenes de Carrocería */}
+              {hojaIngreso.imagenes_carroceria && hojaIngreso.imagenes_carroceria.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3 text-base">Imágenes de la Carrocería</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {hojaIngreso.imagenes_carroceria.map((url: string, idx: number) => (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt={`Carrocería ${idx + 1}`}
+                        className="w-full h-40 object-cover rounded-lg border shadow-sm"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Firmas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {hojaIngreso.firma_cliente && (
+                  <div>
+                    <h4 className="font-semibold mb-2 text-base">Firma del Cliente</h4>
+                    <img
+                      src={hojaIngreso.firma_cliente}
+                      alt="Firma del Cliente"
+                      className="border rounded-lg p-3 bg-white shadow-sm"
+                    />
+                  </div>
+                )}
+                {hojaIngreso.firma_encargado && (
+                  <div>
+                    <h4 className="font-semibold mb-2 text-base">Firma del Encargado</h4>
+                    <img
+                      src={hojaIngreso.firma_encargado}
+                      alt="Firma del Encargado"
+                      className="border rounded-lg p-3 bg-white shadow-sm"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              No hay hoja de ingreso registrada para este vehículo
+            </p>
           )}
         </DialogContent>
       </Dialog>
