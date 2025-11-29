@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Check, CreditCard, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 
 const plans = [
   {
@@ -63,6 +65,7 @@ export default function Suscripcion() {
   const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal" | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { tallerId } = useUserRole();
 
   const handleSubscribe = async (planId: string, method: "card" | "paypal") => {
     setLoading(planId);
@@ -72,6 +75,22 @@ export default function Suscripcion() {
       // Simular procesamiento de pago
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Actualizar el estado de suscripción en la base de datos
+      if (tallerId) {
+        const { error: updateError } = await supabase
+          .from("talleres")
+          .update({ 
+            estado_suscripcion: "activo",
+            // Limpiar las fechas de prueba ya que ahora está en suscripción activa
+            fecha_fin_prueba: null
+          })
+          .eq("id", tallerId);
+
+        if (updateError) {
+          throw updateError;
+        }
+      }
+
       toast({
         title: "¡Suscripción activada!",
         description: `Tu plan ha sido activado exitosamente. Redirigiendo al dashboard...`,
@@ -79,8 +98,11 @@ export default function Suscripcion() {
 
       setTimeout(() => {
         navigate("/dashboard");
+        // Recargar la página para que se actualice el estado de la suscripción
+        window.location.reload();
       }, 1500);
     } catch (error) {
+      console.error("Error al activar suscripción:", error);
       toast({
         title: "Error",
         description: "Hubo un problema al procesar tu pago. Por favor intenta de nuevo.",
