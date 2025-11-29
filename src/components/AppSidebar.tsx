@@ -242,6 +242,12 @@ const menuItems: MenuItem[] = [
     icon: Settings, 
     allowedRoles: ["admin_taller"] 
   },
+  { 
+    title: "Configuraciones", 
+    url: "/configuraciones-aseguradora", 
+    icon: Settings, 
+    allowedRoles: ["aseguradora"] 
+  },
 ];
 
 interface AppSidebarProps {

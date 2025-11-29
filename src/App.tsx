@@ -23,6 +23,7 @@ import Clientes from "./pages/modules/Clientes";
 import Reportes from "./pages/modules/Reportes";
 import Accesos from "./pages/modules/Accesos";
 import Configuraciones from "./pages/modules/Configuraciones";
+import ConfiguracionesAseguradora from "./pages/modules/ConfiguracionesAseguradora";
 import Talleres from "./pages/modules/Talleres";
 import MensajesWrapper from "./pages/modules/MensajesWrapper";
 import Reparaciones from "./pages/modules/Reparaciones";
@@ -74,6 +75,7 @@ const App = () => (
               <Route path="reportes" element={<Reportes />} />
               <Route path="accesos" element={<Accesos />} />
               <Route path="configuraciones" element={<Configuraciones />} />
+              <Route path="configuraciones-aseguradora" element={<ConfiguracionesAseguradora />} />
               <Route path="servicios" element={<Servicios />} />
               <Route path="paquetes" element={<Paquetes />} />
             </Route>

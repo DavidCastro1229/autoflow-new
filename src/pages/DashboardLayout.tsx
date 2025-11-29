@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { LogOut, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +43,7 @@ const routePermissions: Record<string, UserRole[]> = {
   "/reportes": ["taller", "admin_taller", "aseguradora", "super_admin"],
   "/accesos": ["admin_taller", "super_admin"],
   "/configuraciones": ["admin_taller", "super_admin"],
+  "/configuraciones-aseguradora": ["aseguradora", "super_admin"],
   "/servicios": ["taller", "admin_taller", "super_admin"],
   "/paquetes": ["taller", "admin_taller", "super_admin"],
 };
@@ -78,6 +80,16 @@ export default function DashboardLayout() {
       }
     }
   }, [trialStatus]);
+
+  const getRoleLabel = (role: UserRole): string => {
+    const roleLabels: Record<UserRole, string> = {
+      "aseguradora": "Aseguradora",
+      "admin_taller": "Taller",
+      "taller": "Taller",
+      "super_admin": "Super Admin"
+    };
+    return roleLabels[role] || role;
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -118,6 +130,9 @@ export default function DashboardLayout() {
             <header className="h-16 border-b border-border flex items-center justify-between px-6">
               <div className="flex items-center gap-4">
                 <h1 className="text-lg font-semibold">Sistema de Gestión AutoFlowX</h1>
+                <Badge variant="secondary" className="text-xs font-medium">
+                  {getRoleLabel(role)}
+                </Badge>
               </div>
               
               <div className="flex items-center gap-2">
