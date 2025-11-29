@@ -702,14 +702,24 @@ export default function Vehiculos() {
                       </TableCell>
                        <TableCell>
                         {isAseguradora ? (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleViewDetails(vehiculo)}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver Detalles
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleViewDetails(vehiculo)}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ver Detalles
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleViewDetails(vehiculo)}
+                            >
+                              <FileText className="mr-2 h-4 w-4" />
+                              Hoja de Ingreso
+                            </Button>
+                          </div>
                         ) : (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
