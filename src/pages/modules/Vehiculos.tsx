@@ -687,9 +687,13 @@ export default function Vehiculos() {
                       <TableCell className="font-mono text-xs">{vehiculo.vin}</TableCell>
                       <TableCell>{vehiculo.kilometraje.toLocaleString()} km</TableCell>
                       <TableCell>
-                        {vehiculo.clientes.nombre_empresa
-                          ? `${vehiculo.clientes.nombre} ${vehiculo.clientes.apellido} - ${vehiculo.clientes.nombre_empresa}`
-                          : `${vehiculo.clientes.nombre} ${vehiculo.clientes.apellido}`}
+                        {vehiculo.clientes ? (
+                          vehiculo.clientes.nombre_empresa
+                            ? `${vehiculo.clientes.nombre} ${vehiculo.clientes.apellido} - ${vehiculo.clientes.nombre_empresa}`
+                            : `${vehiculo.clientes.nombre} ${vehiculo.clientes.apellido}`
+                        ) : (
+                          <span className="text-muted-foreground">Sin cliente</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant={getEstadoBadgeVariant(vehiculo.estado)}>
