@@ -849,54 +849,141 @@ export default function Vehiculos() {
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : hojaIngreso ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label className="text-muted-foreground">Nivel de Gasolina</Label>
-                          <p className="font-medium">{hojaIngreso.nivel_gasolina}</p>
+                    <div className="space-y-6">
+                      {/* Interiores */}
+                      <div>
+                        <h4 className="font-semibold mb-3 text-base">Interiores</h4>
+                        <div className="grid gap-2">
+                          {Object.entries(hojaIngreso.interiores || {}).map(([key, value]: [string, any]) => (
+                            <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
+                              <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
+                              <div className="text-muted-foreground">
+                                {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
+                              </div>
+                              <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                                Sí: {value.si ? '✓' : '✗'}
+                              </div>
+                              <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                                No: {value.no ? '✓' : '✗'}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        {hojaIngreso.comentarios && (
-                          <div className="md:col-span-2">
-                            <Label className="text-muted-foreground">Comentarios</Label>
-                            <p className="font-medium">{hojaIngreso.comentarios}</p>
-                          </div>
-                        )}
                       </div>
+
+                      {/* Exteriores */}
+                      <div>
+                        <h4 className="font-semibold mb-3 text-base">Exteriores</h4>
+                        <div className="grid gap-2">
+                          {Object.entries(hojaIngreso.exteriores || {}).map(([key, value]: [string, any]) => (
+                            <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
+                              <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
+                              <div className="text-muted-foreground">
+                                {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
+                              </div>
+                              <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                                Sí: {value.si ? '✓' : '✗'}
+                              </div>
+                              <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                                No: {value.no ? '✓' : '✗'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Nivel de Gasolina */}
+                      <div>
+                        <h4 className="font-semibold mb-2 text-base">Nivel de Gasolina</h4>
+                        <p className="font-medium">{hojaIngreso.nivel_gasolina}</p>
+                      </div>
+
+                      {/* Coqueta */}
+                      <div>
+                        <h4 className="font-semibold mb-3 text-base">Cajuela/Coqueta</h4>
+                        <div className="grid gap-2">
+                          {Object.entries(hojaIngreso.coqueta || {}).map(([key, value]: [string, any]) => (
+                            <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
+                              <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
+                              <div className="text-muted-foreground">
+                                {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
+                              </div>
+                              <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                                Sí: {value.si ? '✓' : '✗'}
+                              </div>
+                              <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                                No: {value.no ? '✓' : '✗'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Motor */}
+                      <div>
+                        <h4 className="font-semibold mb-3 text-base">Motor</h4>
+                        <div className="grid gap-2">
+                          {Object.entries(hojaIngreso.motor || {}).map(([key, value]: [string, any]) => (
+                            <div key={key} className="grid grid-cols-4 gap-4 items-center border-b pb-2 text-sm">
+                              <Label className="capitalize">{key.replace(/_/g, ' ')}</Label>
+                              <div className="text-muted-foreground">
+                                {value.cantidad ? `Cant: ${value.cantidad}` : '-'}
+                              </div>
+                              <div className={value.si ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                                Sí: {value.si ? '✓' : '✗'}
+                              </div>
+                              <div className={value.no ? "text-red-600 font-medium" : "text-muted-foreground"}>
+                                No: {value.no ? '✓' : '✗'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Comentarios */}
+                      {hojaIngreso.comentarios && (
+                        <div>
+                          <h4 className="font-semibold mb-2 text-base">Comentarios</h4>
+                          <p className="text-muted-foreground">{hojaIngreso.comentarios}</p>
+                        </div>
+                      )}
                       
+                      {/* Imágenes de Carrocería */}
                       {hojaIngreso.imagenes_carroceria && hojaIngreso.imagenes_carroceria.length > 0 && (
                         <div>
-                          <Label className="text-muted-foreground mb-2 block">Imágenes de la Carrocería</Label>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          <h4 className="font-semibold mb-3 text-base">Imágenes de la Carrocería</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {hojaIngreso.imagenes_carroceria.map((url: string, idx: number) => (
                               <img
                                 key={idx}
                                 src={url}
                                 alt={`Carrocería ${idx + 1}`}
-                                className="w-full h-32 object-cover rounded border"
+                                className="w-full h-40 object-cover rounded-lg border shadow-sm"
                               />
                             ))}
                           </div>
                         </div>
                       )}
 
+                      {/* Firmas */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {hojaIngreso.firma_cliente && (
                           <div>
-                            <Label className="text-muted-foreground mb-2 block">Firma del Cliente</Label>
+                            <h4 className="font-semibold mb-2 text-base">Firma del Cliente</h4>
                             <img
                               src={hojaIngreso.firma_cliente}
                               alt="Firma del Cliente"
-                              className="border rounded p-2 bg-white"
+                              className="border rounded-lg p-3 bg-white shadow-sm"
                             />
                           </div>
                         )}
                         {hojaIngreso.firma_encargado && (
                           <div>
-                            <Label className="text-muted-foreground mb-2 block">Firma del Encargado</Label>
+                            <h4 className="font-semibold mb-2 text-base">Firma del Encargado</h4>
                             <img
                               src={hojaIngreso.firma_encargado}
                               alt="Firma del Encargado"
-                              className="border rounded p-2 bg-white"
+                              className="border rounded-lg p-3 bg-white shadow-sm"
                             />
                           </div>
                         )}
