@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Car, Loader2, Plus, Eye, Pencil, Trash, FileText, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ExportButtons } from "@/components/ExportButtons";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAseguradoraTalleres } from "@/hooks/useAseguradoraTalleres";
 
 interface Cliente {
   id: string;
@@ -49,10 +51,15 @@ interface Vehiculo {
 
 export default function Vehiculos() {
   const navigate = useNavigate();
+  const { role } = useUserRole();
+  const { talleres, loading: talleresLoading } = useAseguradoraTalleres();
+  const [selectedTallerId, setSelectedTallerId] = useState<string>("");
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+  const [hojaIngreso, setHojaIngreso] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadingHoja, setLoadingHoja] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedVehiculo, setSelectedVehiculo] = useState<Vehiculo | null>(null);
@@ -61,6 +68,8 @@ export default function Vehiculos() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const isAseguradora = role === "aseguradora";
 
   const [formData, setFormData] = useState({
     marca: "",
@@ -75,9 +84,17 @@ export default function Vehiculos() {
   });
 
   useEffect(() => {
-    fetchClientes();
+    if (!isAseguradora) {
+      fetchClientes();
+    }
     fetchVehiculos();
-  }, []);
+  }, [selectedTallerId]);
+
+  useEffect(() => {
+    if (isAseguradora && talleres.length > 0 && !selectedTallerId) {
+      setSelectedTallerId(talleres[0].id);
+    }
+  }, [talleres, isAseguradora]);
 
   const fetchClientes = async () => {
     try {
@@ -106,13 +123,6 @@ export default function Vehiculos() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check if user is aseguradora
-      const { data: userRole } = await supabase
-        .from("user_roles")
-        .select("role, taller_id")
-        .eq("user_id", user.id)
-        .single();
-
       let query = supabase
         .from("vehiculos")
         .select(`
@@ -130,29 +140,15 @@ export default function Vehiculos() {
           )
         `);
 
-      if (userRole?.role === "aseguradora") {
-        // Si es aseguradora, obtener vehículos de sus talleres afiliados
-        const { data: aseguradoraData } = await supabase
-          .from("aseguradoras")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-
-        if (!aseguradoraData) return;
-
-        const { data: talleresAfiliados } = await supabase
-          .from("taller_aseguradoras")
-          .select("taller_id")
-          .eq("aseguradora_id", aseguradoraData.id);
-
-        if (!talleresAfiliados || talleresAfiliados.length === 0) {
+      if (isAseguradora) {
+        // Si es aseguradora y no ha seleccionado taller, no mostrar nada
+        if (!selectedTallerId) {
           setVehiculos([]);
           setLoadingData(false);
           return;
         }
-
-        const tallerIds = talleresAfiliados.map(t => t.taller_id);
-        query = query.in("taller_id", tallerIds);
+        // Filtrar por el taller seleccionado
+        query = query.eq("taller_id", selectedTallerId);
       } else {
         // Si es taller, solo sus vehículos
         const { data: userRoles } = await supabase
@@ -173,6 +169,27 @@ export default function Vehiculos() {
       console.error("Error fetching vehiculos:", error);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const fetchHojaIngreso = async (vehiculoId: string) => {
+    try {
+      setLoadingHoja(true);
+      const { data, error } = await supabase
+        .from("hojas_ingreso")
+        .select("*")
+        .eq("vehiculo_id", vehiculoId)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        throw error;
+      }
+      
+      setHojaIngreso(data || null);
+    } catch (error: any) {
+      console.error("Error fetching hoja de ingreso:", error);
+    } finally {
+      setLoadingHoja(false);
     }
   };
 
@@ -292,9 +309,12 @@ export default function Vehiculos() {
     return tipos[tipo] || tipo;
   };
 
-  const handleViewDetails = (vehiculo: Vehiculo) => {
+  const handleViewDetails = async (vehiculo: Vehiculo) => {
     setSelectedVehiculo(vehiculo);
     setDetailsModalOpen(true);
+    if (isAseguradora) {
+      await fetchHojaIngreso(vehiculo.id);
+    }
   };
 
   const handleEdit = (vehiculo: Vehiculo) => {
@@ -372,7 +392,11 @@ export default function Vehiculos() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Vehículos</h1>
-          <p className="text-muted-foreground">Gestiona los vehículos del taller</p>
+          <p className="text-muted-foreground">
+            {isAseguradora 
+              ? "Consulta los vehículos de los talleres afiliados" 
+              : "Gestiona los vehículos del taller"}
+          </p>
         </div>
         <div className="flex gap-2">
           <ExportButtons
@@ -407,13 +431,14 @@ export default function Vehiculos() {
             fileName="vehiculos"
             title="Reporte de Vehículos"
           />
-          <Dialog open={modalOpen} onOpenChange={handleModalClose}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Registrar Vehículo
-              </Button>
-            </DialogTrigger>
+          {!isAseguradora && (
+            <Dialog open={modalOpen} onOpenChange={handleModalClose}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Registrar Vehículo
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -576,14 +601,53 @@ export default function Vehiculos() {
             </form>
           </DialogContent>
         </Dialog>
+          )}
       </div>
     </div>
+
+      {/* Selector de taller para aseguradoras */}
+      {isAseguradora && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Seleccionar Taller</CardTitle>
+            <CardDescription>
+              Selecciona un taller afiliado para ver sus vehículos
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {talleresLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : talleres.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">
+                No hay talleres afiliados
+              </p>
+            ) : (
+              <Select value={selectedTallerId} onValueChange={setSelectedTallerId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar taller" />
+                </SelectTrigger>
+                <SelectContent>
+                  {talleres.map((taller) => (
+                    <SelectItem key={taller.id} value={taller.id}>
+                      {taller.nombre_taller}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Vehículos Registrados</CardTitle>
           <CardDescription>
-            Lista de todos los vehículos del taller
+            {isAseguradora && selectedTallerId 
+              ? `Vehículos del taller: ${talleres.find(t => t.id === selectedTallerId)?.nombre_taller}`
+              : "Lista de todos los vehículos del taller"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -632,38 +696,49 @@ export default function Vehiculos() {
                           {formatEstado(vehiculo.estado)}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleViewDetails(vehiculo)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Ver Detalles
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(vehiculo)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate(`/hoja-ingreso?vehiculo=${vehiculo.id}`)}>
-                              <FileText className="mr-2 h-4 w-4" />
-                              Hoja de Ingreso
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => openDeleteDialog(vehiculo.id)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash className="mr-2 h-4 w-4" />
-                              Eliminar
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                       <TableCell>
+                        {isAseguradora ? (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleViewDetails(vehiculo)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver Detalles
+                          </Button>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleViewDetails(vehiculo)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Ver Detalles
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(vehiculo)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(`/hoja-ingreso?vehiculo=${vehiculo.id}`)}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Hoja de Ingreso
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => openDeleteDialog(vehiculo.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash className="mr-2 h-4 w-4" />
+                                Eliminar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -760,6 +835,76 @@ export default function Vehiculos() {
                   </div>
                 </div>
               </div>
+
+              {/* Hoja de Ingreso (solo para aseguradoras) */}
+              {isAseguradora && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Hoja de Ingreso</h3>
+                  {loadingHoja ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : hojaIngreso ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-muted-foreground">Nivel de Gasolina</Label>
+                          <p className="font-medium">{hojaIngreso.nivel_gasolina}</p>
+                        </div>
+                        {hojaIngreso.comentarios && (
+                          <div className="md:col-span-2">
+                            <Label className="text-muted-foreground">Comentarios</Label>
+                            <p className="font-medium">{hojaIngreso.comentarios}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {hojaIngreso.imagenes_carroceria && hojaIngreso.imagenes_carroceria.length > 0 && (
+                        <div>
+                          <Label className="text-muted-foreground mb-2 block">Imágenes de la Carrocería</Label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {hojaIngreso.imagenes_carroceria.map((url: string, idx: number) => (
+                              <img
+                                key={idx}
+                                src={url}
+                                alt={`Carrocería ${idx + 1}`}
+                                className="w-full h-32 object-cover rounded border"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {hojaIngreso.firma_cliente && (
+                          <div>
+                            <Label className="text-muted-foreground mb-2 block">Firma del Cliente</Label>
+                            <img
+                              src={hojaIngreso.firma_cliente}
+                              alt="Firma del Cliente"
+                              className="border rounded p-2 bg-white"
+                            />
+                          </div>
+                        )}
+                        {hojaIngreso.firma_encargado && (
+                          <div>
+                            <Label className="text-muted-foreground mb-2 block">Firma del Encargado</Label>
+                            <img
+                              src={hojaIngreso.firma_encargado}
+                              alt="Firma del Encargado"
+                              className="border rounded p-2 bg-white"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">
+                      No hay hoja de ingreso registrada para este vehículo
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
