@@ -9,6 +9,11 @@ export interface TallerAfiliado {
   ciudad: string;
   estado: string;
   email: string;
+  logo_url: string | null;
+  codigo_postal: string;
+  nombre_contacto: string;
+  apellido_contacto: string;
+  descripcion: string | null;
 }
 
 export const useAseguradoraTalleres = () => {
@@ -53,7 +58,12 @@ export const useAseguradoraTalleres = () => {
               direccion,
               ciudad,
               estado,
-              email
+              email,
+              logo_url,
+              codigo_postal,
+              nombre_contacto,
+              apellido_contacto,
+              descripcion
             )
           `)
           .eq("aseguradora_id", aseguradoraData.id);
