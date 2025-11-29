@@ -1,12 +1,28 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAseguradoraTalleres } from "@/hooks/useAseguradoraTalleres";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useAseguradoraTalleres, TallerAfiliado } from "@/hooks/useAseguradoraTalleres";
 import { Input } from "@/components/ui/input";
-import { Building2, Phone, Mail, MapPin, Loader2, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Building2, Phone, Mail, MapPin, Loader2, Search, MessageSquare, Eye } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Talleres = () => {
   const { talleres, loading } = useAseguradoraTalleres();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTaller, setSelectedTaller] = useState<TallerAfiliado | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleViewDetails = (taller: TallerAfiliado) => {
+    setSelectedTaller(taller);
+    setDetailsOpen(true);
+  };
+
+  const handleSendMessage = (tallerId: string) => {
+    navigate('/mensajes', { state: { selectedTallerId: tallerId } });
+  };
 
   const filteredTalleres = talleres.filter(taller =>
     taller.nombre_taller.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -58,18 +74,22 @@ const Talleres = () => {
                 <Card key={taller.id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Building2 className="h-5 w-5 text-primary" />
-                      </div>
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={taller.logo_url || undefined} alt={taller.nombre_taller} />
+                        <AvatarFallback>
+                          <Building2 className="h-6 w-6" />
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="flex-1">
                         <CardTitle className="text-lg">{taller.nombre_taller}</CardTitle>
+                        <CardDescription>{taller.ciudad}, {taller.estado}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{taller.direccion}, {taller.ciudad}, {taller.estado}</span>
+                      <span>{taller.direccion}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-muted-foreground" />
@@ -79,6 +99,26 @@ const Talleres = () => {
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <span>{taller.email}</span>
                     </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleViewDetails(taller)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalles
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleSendMessage(taller.id)}
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Enviar Mensaje
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -86,6 +126,89 @@ const Talleres = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Detalles */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalles del Taller</DialogTitle>
+          </DialogHeader>
+          {selectedTaller && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={selectedTaller.logo_url || undefined} alt={selectedTaller.nombre_taller} />
+                  <AvatarFallback>
+                    <Building2 className="h-8 w-8" />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-semibold">{selectedTaller.nombre_taller}</h3>
+                  {selectedTaller.descripcion && (
+                    <p className="text-sm text-muted-foreground">{selectedTaller.descripcion}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Contacto Principal</label>
+                    <p className="text-sm mt-1">
+                      {selectedTaller.nombre_contacto} {selectedTaller.apellido_contacto}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Email</label>
+                    <p className="text-sm mt-1">{selectedTaller.email}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Teléfono</label>
+                    <p className="text-sm mt-1">{selectedTaller.telefono}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Código Postal</label>
+                    <p className="text-sm mt-1">{selectedTaller.codigo_postal}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Dirección</label>
+                  <p className="text-sm mt-1">{selectedTaller.direccion}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Ciudad</label>
+                    <p className="text-sm mt-1">{selectedTaller.ciudad}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Estado</label>
+                    <p className="text-sm mt-1">{selectedTaller.estado}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="default"
+                  className="flex-1"
+                  onClick={() => {
+                    handleSendMessage(selectedTaller.id);
+                    setDetailsOpen(false);
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Enviar Mensaje
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
