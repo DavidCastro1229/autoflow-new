@@ -101,6 +101,83 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogo_tareas: {
+        Row: {
+          categorias: string[]
+          codigo_tarea: string
+          condiciones_aplicacion: string[]
+          created_at: string
+          descripcion: string | null
+          forma_pago: Database["public"]["Enums"]["forma_pago_tarea"] | null
+          id: string
+          medidas_seguridad: string | null
+          nombre: string
+          notas_internas: string | null
+          numero_orden: number
+          objetivo: string | null
+          roles_preferentes: number[] | null
+          taller_id: string
+          tiempo_estimado: number | null
+          tipo_tarea: Database["public"]["Enums"]["tipo_tarea"]
+          unidad_tiempo:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at: string
+        }
+        Insert: {
+          categorias?: string[]
+          codigo_tarea: string
+          condiciones_aplicacion?: string[]
+          created_at?: string
+          descripcion?: string | null
+          forma_pago?: Database["public"]["Enums"]["forma_pago_tarea"] | null
+          id?: string
+          medidas_seguridad?: string | null
+          nombre: string
+          notas_internas?: string | null
+          numero_orden: number
+          objetivo?: string | null
+          roles_preferentes?: number[] | null
+          taller_id: string
+          tiempo_estimado?: number | null
+          tipo_tarea?: Database["public"]["Enums"]["tipo_tarea"]
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Update: {
+          categorias?: string[]
+          codigo_tarea?: string
+          condiciones_aplicacion?: string[]
+          created_at?: string
+          descripcion?: string | null
+          forma_pago?: Database["public"]["Enums"]["forma_pago_tarea"] | null
+          id?: string
+          medidas_seguridad?: string | null
+          nombre?: string
+          notas_internas?: string | null
+          numero_orden?: number
+          objetivo?: string | null
+          roles_preferentes?: number[] | null
+          taller_id?: string
+          tiempo_estimado?: number | null
+          tipo_tarea?: Database["public"]["Enums"]["tipo_tarea"]
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogo_tareas_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_servicio: {
         Row: {
           created_at: string
@@ -2223,10 +2300,15 @@ export type Database = {
       approve_taller: { Args: { taller_id_param: string }; Returns: undefined }
       generate_codigo_cotizacion: { Args: never; Returns: string }
       generate_codigo_producto: { Args: never; Returns: string }
+      generate_codigo_tarea: { Args: { p_taller_id: string }; Returns: string }
       generate_numero_factura: { Args: never; Returns: string }
       get_aseguradora_id_for_user: {
         Args: { _user_id: string }
         Returns: string
+      }
+      get_next_numero_orden_tarea: {
+        Args: { p_taller_id: string }
+        Returns: number
       }
       has_role: {
         Args: {
@@ -2271,6 +2353,7 @@ export type Database = {
       estado_solicitud_afiliacion: "pendiente" | "aprobada" | "rechazada"
       estado_suscripcion: "prueba" | "activo" | "expirado"
       estado_vehiculo: "activo" | "en_servicio" | "entregado" | "inactivo"
+      forma_pago_tarea: "por_hora" | "salario_fijo" | "contrato_precio_fijo"
       metodo_pago:
         | "efectivo"
         | "tarjeta_credito"
@@ -2293,6 +2376,8 @@ export type Database = {
         | "suministro"
       tipo_contrato: "arrendamiento" | "propiedad" | "subcontratacion"
       tipo_flota: "propia" | "alquilada" | "mixta"
+      tipo_tarea: "administrativa" | "operativa"
+      unidad_tiempo_tarea: "minutos" | "horas"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2455,6 +2540,7 @@ export const Constants = {
       estado_solicitud_afiliacion: ["pendiente", "aprobada", "rechazada"],
       estado_suscripcion: ["prueba", "activo", "expirado"],
       estado_vehiculo: ["activo", "en_servicio", "entregado", "inactivo"],
+      forma_pago_tarea: ["por_hora", "salario_fijo", "contrato_precio_fijo"],
       metodo_pago: [
         "efectivo",
         "tarjeta_credito",
@@ -2480,6 +2566,8 @@ export const Constants = {
       ],
       tipo_contrato: ["arrendamiento", "propiedad", "subcontratacion"],
       tipo_flota: ["propia", "alquilada", "mixta"],
+      tipo_tarea: ["administrativa", "operativa"],
+      unidad_tiempo_tarea: ["minutos", "horas"],
     },
   },
 } as const
