@@ -1,110 +1,96 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, useDroppable, useDraggable } from "@dnd-kit/core";
-import { Loader2, User, Car, Wrench, Calendar, DollarSign, Eye, FileText, Search } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { Plus, Upload, Search, Loader2, Pencil, Copy, Trash2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { TareaFormModal } from "@/components/kanban/TareaFormModal";
+import { ExportButtons } from "@/components/ExportButtons";
 
-interface Cliente {
+// Types
+interface CatalogoTarea {
   id: string;
+  numero_orden: number;
+  codigo_tarea: string;
   nombre: string;
-  apellido: string;
-  email: string;
-  telefono: string;
-  tipo_cliente: string;
-  nombre_empresa: string | null;
+  descripcion: string | null;
+  objetivo: string | null;
+  tipo_tarea: 'administrativa' | 'operativa';
+  categorias: string[];
+  condiciones_aplicacion: string[];
+  tiempo_estimado: number;
+  unidad_tiempo: 'minutos' | 'horas';
+  medidas_seguridad: string | null;
+  notas_internas: string | null;
+  roles_preferentes: number[];
+  forma_pago: 'por_hora' | 'salario_fijo' | 'contrato_precio_fijo';
+  taller_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
-interface Vehiculo {
-  id: string;
-  marca: string;
-  modelo: string;
-  placa: string;
-  anio: number;
-  color: string;
-  vin: string;
-  kilometraje: number;
-  estado: string;
-}
-
-interface Tecnico {
-  id: string;
-  nombre: string;
-  apellido: string;
-  email: string;
-  telefono: string;
-  area: string;
-  experiencia: string;
-  certificaciones: string | null;
-  habilidades: string | null;
-  direccion: string;
-}
-
-interface TipoOperacion {
-  id: string;
+interface Especialidad {
+  id: number;
   nombre: string;
 }
 
-interface Orden {
-  id: string;
-  cliente_id: string;
-  vehiculo_id: string;
-  descripcion: string;
-  tipo_servicio_id: string;
-  tecnico_id: string;
-  fecha_ingreso: string;
-  fecha_entrega: string | null;
-  prioridad: 'baja' | 'media' | 'alta' | 'urgente';
-  estado: 'recepcion' | 'autorizado' | 'en_proceso' | 'finalizada' | 'cancelada';
-  costo_estimado: number | null;
-  observaciones: string | null;
-  clientes: Cliente;
-  vehiculos: Vehiculo;
-  tecnicos: Tecnico;
-  tipos_operacion: TipoOperacion;
-}
+const CATEGORIAS_OPTIONS = [
+  "Lavado y estética",
+  "Llantas y alineamiento",
+  "Mantenimiento preventivo",
+  "Mantenimiento correctivo",
+  "Reparación de colisiones",
+  "Aire acondicionado",
+  "Instalación de accesorios",
+  "General"
+];
 
-type EstadoOrden = 'recepcion' | 'autorizado' | 'en_proceso' | 'finalizada' | 'cancelada';
-
-const COLUMNAS: { id: EstadoOrden; label: string; color: string }[] = [
-  { id: 'recepcion', label: 'Recepción', color: 'bg-blue-500/10 border-blue-500' },
-  { id: 'autorizado', label: 'Autorizado', color: 'bg-purple-500/10 border-purple-500' },
-  { id: 'en_proceso', label: 'En Proceso', color: 'bg-yellow-500/10 border-yellow-500' },
-  { id: 'finalizada', label: 'Finalizada', color: 'bg-green-500/10 border-green-500' },
-  { id: 'cancelada', label: 'Cancelada', color: 'bg-red-500/10 border-red-500' },
+const CONDICIONES_OPTIONS = [
+  "Por kilómetros recorridos",
+  "Por tiempo (Meses/años)",
+  "Por horas de funcionamiento",
+  "Condiciones visuales",
+  "Recomendaciones del fabricante",
+  "Comportamiento/síntoma vehículo"
 ];
 
 export default function Kanban() {
-  const [ordenes, setOrdenes] = useState<Orden[]>([]);
+  const [tareas, setTareas] = useState<CatalogoTarea[]>([]);
+  const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [selectedOrden, setSelectedOrden] = useState<Orden | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [tallerId, setTallerId] = useState<string | null>(null);
   
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
+  // Modal states
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingTarea, setEditingTarea] = useState<CatalogoTarea | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tareaToDelete, setTareaToDelete] = useState<CatalogoTarea | null>(null);
 
   useEffect(() => {
-    fetchOrdenes();
+    fetchInitialData();
   }, []);
 
-  const fetchOrdenes = async () => {
+  const fetchInitialData = async () => {
     try {
       setLoading(true);
       const { data: userData } = await supabase.auth.getUser();
@@ -117,132 +103,170 @@ export default function Kanban() {
         .maybeSingle();
 
       if (!userRole?.taller_id) return;
+      setTallerId(userRole.taller_id);
 
-      const { data, error } = await supabase
-        .from("ordenes")
-        .select(`
-          *,
-          clientes!ordenes_cliente_id_fkey (
-            id, nombre, apellido, email, telefono, tipo_cliente, nombre_empresa
-          ),
-          vehiculos!ordenes_vehiculo_id_fkey (
-            id, marca, modelo, placa, anio, color, vin, kilometraje, estado
-          ),
-          tecnicos!ordenes_tecnico_id_fkey (
-            id, nombre, apellido, email, telefono, area, experiencia, 
-            certificaciones, habilidades, direccion
-          ),
-          tipos_operacion!ordenes_tipo_servicio_id_fkey (id, nombre)
-        `)
-        .eq("taller_id", userRole.taller_id)
-        .order("fecha_ingreso", { ascending: false });
+      // Fetch especialidades y tareas en paralelo
+      const [especialidadesRes, tareasRes] = await Promise.all([
+        supabase.from("especialidades_taller").select("id, nombre").order("nombre"),
+        supabase
+          .from("catalogo_tareas")
+          .select("*")
+          .eq("taller_id", userRole.taller_id)
+          .order("numero_orden", { ascending: true })
+      ]);
 
-      if (error) throw error;
-      setOrdenes(data || []);
+      if (especialidadesRes.error) throw especialidadesRes.error;
+      if (tareasRes.error) throw tareasRes.error;
+
+      setEspecialidades(especialidadesRes.data || []);
+      setTareas(tareasRes.data || []);
     } catch (error: any) {
-      console.error("Error fetching ordenes:", error);
-      toast.error("Error al cargar las órdenes");
+      console.error("Error fetching data:", error);
+      toast.error("Error al cargar los datos");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+  const fetchTareas = async () => {
+    if (!tallerId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("catalogo_tareas")
+        .select("*")
+        .eq("taller_id", tallerId)
+        .order("numero_orden", { ascending: true });
+
+      if (error) throw error;
+      setTareas(data || []);
+    } catch (error: any) {
+      console.error("Error fetching tareas:", error);
+      toast.error("Error al cargar las tareas");
+    }
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
+  const handleCreateTarea = () => {
+    setEditingTarea(null);
+    setFormModalOpen(true);
+  };
 
-    if (!over) return;
+  const handleEditTarea = (tarea: CatalogoTarea) => {
+    setEditingTarea(tarea);
+    setFormModalOpen(true);
+  };
 
-    const ordenId = active.id as string;
-    const nuevoEstado = over.id as EstadoOrden;
-    const orden = ordenes.find(o => o.id === ordenId);
-
-    if (!orden || orden.estado === nuevoEstado) return;
-
-    // Actualizar optimísticamente
-    setOrdenes(prev =>
-      prev.map(o => (o.id === ordenId ? { ...o, estado: nuevoEstado } : o))
-    );
+  const handleDuplicateTarea = async (tarea: CatalogoTarea) => {
+    if (!tallerId) return;
 
     try {
-      const { error } = await supabase
-        .from("ordenes")
-        .update({ estado: nuevoEstado })
-        .eq("id", ordenId);
+      // Obtener siguiente número de orden y código
+      const { data: nextNumero } = await supabase.rpc('get_next_numero_orden_tarea', { p_taller_id: tallerId });
+      const { data: newCodigo } = await supabase.rpc('generate_codigo_tarea', { p_taller_id: tallerId });
+
+      const { error } = await supabase.from("catalogo_tareas").insert({
+        taller_id: tallerId,
+        numero_orden: nextNumero || 1,
+        codigo_tarea: newCodigo || `TAR-${String(nextNumero || 1).padStart(4, '0')}`,
+        nombre: `${tarea.nombre} (copia)`,
+        descripcion: tarea.descripcion,
+        objetivo: tarea.objetivo,
+        tipo_tarea: tarea.tipo_tarea,
+        categorias: tarea.categorias,
+        condiciones_aplicacion: tarea.condiciones_aplicacion,
+        tiempo_estimado: tarea.tiempo_estimado,
+        unidad_tiempo: tarea.unidad_tiempo,
+        medidas_seguridad: tarea.medidas_seguridad,
+        notas_internas: tarea.notas_internas,
+        roles_preferentes: tarea.roles_preferentes,
+        forma_pago: tarea.forma_pago
+      });
 
       if (error) throw error;
 
-      toast.success("Estado actualizado correctamente");
+      toast.success("Tarea duplicada exitosamente");
+      fetchTareas();
     } catch (error: any) {
-      console.error("Error updating orden:", error);
-      toast.error("Error al actualizar el estado");
-      // Revertir el cambio optimista
-      fetchOrdenes();
+      console.error("Error duplicating tarea:", error);
+      toast.error("Error al duplicar la tarea");
     }
   };
 
-  const getOrdenesPorEstado = (estado: EstadoOrden) => {
-    const ordenesFiltradas = ordenes.filter(orden => orden.estado === estado);
-    
-    if (!searchTerm.trim()) {
-      return ordenesFiltradas;
+  const handleDeleteClick = (tarea: CatalogoTarea) => {
+    setTareaToDelete(tarea);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!tareaToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("catalogo_tareas")
+        .delete()
+        .eq("id", tareaToDelete.id);
+
+      if (error) throw error;
+
+      toast.success("Tarea eliminada exitosamente");
+      setDeleteDialogOpen(false);
+      setTareaToDelete(null);
+      fetchTareas();
+    } catch (error: any) {
+      console.error("Error deleting tarea:", error);
+      toast.error("Error al eliminar la tarea");
     }
-
-    const searchLower = searchTerm.toLowerCase();
-    return ordenesFiltradas.filter(orden => {
-      const clienteNombre = `${orden.clientes.nombre} ${orden.clientes.apellido}`.toLowerCase();
-      const vehiculo = `${orden.vehiculos.marca} ${orden.vehiculos.modelo}`.toLowerCase();
-      const placa = orden.vehiculos.placa.toLowerCase();
-      const descripcion = orden.descripcion.toLowerCase();
-      
-      return clienteNombre.includes(searchLower) ||
-             vehiculo.includes(searchLower) ||
-             placa.includes(searchLower) ||
-             descripcion.includes(searchLower);
-    });
   };
 
-  const getPrioridadColor = (prioridad: string) => {
-    const colors = {
-      baja: 'bg-blue-500',
-      media: 'bg-yellow-500',
-      alta: 'bg-orange-500',
-      urgente: 'bg-red-500',
-    };
-    return colors[prioridad as keyof typeof colors] || 'bg-gray-500';
+  const handleFormSuccess = () => {
+    setFormModalOpen(false);
+    setEditingTarea(null);
+    fetchTareas();
   };
 
-  const getEstadoBadge = (estado: string) => {
-    const variants = {
-      recepcion: "secondary",
-      autorizado: "default",
-      en_proceso: "default",
-      finalizada: "default",
-      cancelada: "destructive"
-    };
-    return variants[estado as keyof typeof variants] || "default";
+  const handleImportExcel = () => {
+    toast.info("Funcionalidad de importación próximamente");
   };
 
-  const getPrioridadBadge = (prioridad: string) => {
-    const variants = {
-      baja: "secondary",
-      media: "default",
-      alta: "destructive",
-      urgente: "destructive"
-    };
-    return variants[prioridad as keyof typeof variants] || "default";
+  // Filtrar tareas
+  const filteredTareas = tareas.filter(tarea => {
+    if (!searchTerm.trim()) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      tarea.codigo_tarea.toLowerCase().includes(search) ||
+      tarea.nombre.toLowerCase().includes(search) ||
+      (tarea.descripcion?.toLowerCase().includes(search)) ||
+      tarea.categorias.some(c => c.toLowerCase().includes(search))
+    );
+  });
+
+  // Obtener nombre de rol por ID
+  const getRolNombre = (rolId: number) => {
+    const esp = especialidades.find(e => e.id === rolId);
+    return esp?.nombre || `Rol ${rolId}`;
   };
 
-  const handleViewDetails = (orden: Orden) => {
-    setSelectedOrden(orden);
-    setDetailsModalOpen(true);
-  };
+  // Columnas para exportación
+  const exportColumns = [
+    { header: "N° Orden", key: "numero_orden" },
+    { header: "Código", key: "codigo" },
+    { header: "Nombre", key: "nombre" },
+    { header: "Tipo", key: "tipo" },
+    { header: "Categorías", key: "categorias" },
+    { header: "Condiciones", key: "condiciones" },
+    { header: "Roles Preferentes", key: "roles" },
+  ];
 
-  const activeOrden = activeId ? ordenes.find(o => o.id === activeId) : null;
+  // Datos para exportación
+  const exportData = filteredTareas.map(t => ({
+    numero_orden: t.numero_orden,
+    codigo: t.codigo_tarea,
+    nombre: t.nombre,
+    tipo: t.tipo_tarea === 'administrativa' ? 'Administrativa' : 'Operativa',
+    categorias: t.categorias.join(", "),
+    condiciones: t.condiciones_aplicacion.join(", "),
+    roles: t.roles_preferentes.map(getRolNombre).join(", ")
+  }));
 
   if (loading) {
     return (
@@ -254,402 +278,189 @@ export default function Kanban() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Kanban - Órdenes de Trabajo</h1>
-        <p className="text-muted-foreground">Arrastra las tarjetas para cambiar el estado de las órdenes</p>
+      {/* Cabecera */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Catálogo de Tareas del Taller</h1>
+          <p className="text-muted-foreground">Define las tareas atómicas para tus flujos de trabajo</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleImportExcel}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importar Excel
+          </Button>
+          <Button onClick={handleCreateTarea}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Tarea
+          </Button>
+        </div>
       </div>
 
-      {/* Buscador */}
-      <div className="flex items-center gap-2 max-w-md">
-        <div className="relative flex-1">
+      {/* Buscador y filtros */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Buscar por cliente, vehículo, placa o descripción..."
+            placeholder="Buscar por código, nombre, descripción o categoría..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
-        {searchTerm && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSearchTerm("")}
-          >
-            Limpiar
-          </Button>
-        )}
+        <ExportButtons 
+          data={exportData}
+          columns={exportColumns}
+          fileName="catalogo-tareas" 
+          title="Catálogo de Tareas" 
+        />
       </div>
 
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {COLUMNAS.map(columna => (
-            <KanbanColumn
-              key={columna.id}
-              columna={columna}
-              ordenes={getOrdenesPorEstado(columna.id)}
-              getPrioridadColor={getPrioridadColor}
-              onViewDetails={handleViewDetails}
-            />
-          ))}
-        </div>
-
-        <DragOverlay>
-          {activeOrden && (
-            <OrdenCard
-              orden={activeOrden}
-              getPrioridadColor={getPrioridadColor}
-              isDragging
-            />
-          )}
-        </DragOverlay>
-      </DndContext>
-
-      {/* Modal de Detalles */}
-      <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalles de la Orden</DialogTitle>
-          </DialogHeader>
-
-          {selectedOrden && (
-            <div className="space-y-6">
-              {/* Información de la Orden */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Información de la Orden
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-muted-foreground">Tipo de Servicio</Label>
-                      <p className="font-medium">{selectedOrden.tipos_operacion.nombre}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Estado</Label>
-                      <div className="mt-1">
-                        <Badge variant={getEstadoBadge(selectedOrden.estado) as any}>
-                          {selectedOrden.estado === "recepcion" ? "Recepción" :
-                           selectedOrden.estado === "autorizado" ? "Autorizado" :
-                           selectedOrden.estado === "en_proceso" ? "En Proceso" :
-                           selectedOrden.estado === "finalizada" ? "Finalizada" : "Cancelada"}
+      {/* Tabla de tareas */}
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-20">N° Orden</TableHead>
+              <TableHead className="w-28">Código</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead className="w-28">Tipo</TableHead>
+              <TableHead>Categoría</TableHead>
+              <TableHead>Condiciones</TableHead>
+              <TableHead>Rol Preferente</TableHead>
+              <TableHead className="w-32 text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTareas.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  {searchTerm ? "No se encontraron tareas con ese criterio" : "No hay tareas configuradas. Crea tu primera tarea."}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredTareas.map((tarea) => (
+                <TableRow key={tarea.id}>
+                  <TableCell className="font-medium">{tarea.numero_orden}</TableCell>
+                  <TableCell>
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                      {tarea.codigo_tarea}
+                    </code>
+                  </TableCell>
+                  <TableCell className="font-medium">{tarea.nombre}</TableCell>
+                  <TableCell>
+                    <Badge variant={tarea.tipo_tarea === 'administrativa' ? 'secondary' : 'default'}>
+                      {tarea.tipo_tarea === 'administrativa' ? 'Admin' : 'Operativa'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {tarea.categorias.slice(0, 2).map((cat, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {cat}
                         </Badge>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Prioridad</Label>
-                      <div className="mt-1">
-                        <Badge variant={getPrioridadBadge(selectedOrden.prioridad) as any}>
-                          {selectedOrden.prioridad}
+                      ))}
+                      {tarea.categorias.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{tarea.categorias.length - 2}
                         </Badge>
-                      </div>
+                      )}
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground">Costo Estimado</Label>
-                      <p className="font-medium">
-                        {selectedOrden.costo_estimado ? `$${selectedOrden.costo_estimado.toFixed(2)}` : "No especificado"}
-                      </p>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {tarea.condiciones_aplicacion.slice(0, 1).map((cond, idx) => (
+                        <span key={idx} className="text-xs text-muted-foreground">
+                          {cond}
+                        </span>
+                      ))}
+                      {tarea.condiciones_aplicacion.length > 1 && (
+                        <span className="text-xs text-muted-foreground">
+                          +{tarea.condiciones_aplicacion.length - 1}
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground">Fecha de Ingreso</Label>
-                      <p className="font-medium">
-                        {format(new Date(selectedOrden.fecha_ingreso), "dd/MM/yyyy HH:mm", { locale: es })}
-                      </p>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {tarea.roles_preferentes.slice(0, 1).map((rolId, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {getRolNombre(rolId)}
+                        </Badge>
+                      ))}
+                      {tarea.roles_preferentes.length > 1 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{tarea.roles_preferentes.length - 1}
+                        </Badge>
+                      )}
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground">Fecha de Entrega</Label>
-                      <p className="font-medium">
-                        {selectedOrden.fecha_entrega 
-                          ? format(new Date(selectedOrden.fecha_entrega), "dd/MM/yyyy HH:mm", { locale: es })
-                          : "No especificada"}
-                      </p>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditTarea(tarea)}
+                        title="Editar"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDuplicateTarea(tarea)}
+                        title="Duplicar"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClick(tarea)}
+                        title="Eliminar"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground">Descripción</Label>
-                    <p className="font-medium mt-1">{selectedOrden.descripcion}</p>
-                  </div>
-                  {selectedOrden.observaciones && (
-                    <div>
-                      <Label className="text-muted-foreground">Observaciones</Label>
-                      <p className="font-medium mt-1">{selectedOrden.observaciones}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Separator />
-
-              {/* Información del Cliente */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Información del Cliente
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-muted-foreground">Nombre Completo</Label>
-                      <p className="font-medium">{selectedOrden.clientes.nombre} {selectedOrden.clientes.apellido}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Tipo de Cliente</Label>
-                      <p className="font-medium capitalize">{selectedOrden.clientes.tipo_cliente}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Email</Label>
-                      <p className="font-medium">{selectedOrden.clientes.email}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Teléfono</Label>
-                      <p className="font-medium">{selectedOrden.clientes.telefono}</p>
-                    </div>
-                    {selectedOrden.clientes.nombre_empresa && (
-                      <div className="col-span-2">
-                        <Label className="text-muted-foreground">Nombre de Empresa</Label>
-                        <p className="font-medium">{selectedOrden.clientes.nombre_empresa}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Separator />
-
-              {/* Información del Vehículo */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Car className="h-5 w-5" />
-                    Información del Vehículo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-muted-foreground">Marca y Modelo</Label>
-                      <p className="font-medium">{selectedOrden.vehiculos.marca} {selectedOrden.vehiculos.modelo}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Año</Label>
-                      <p className="font-medium">{selectedOrden.vehiculos.anio}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Placa</Label>
-                      <p className="font-medium">{selectedOrden.vehiculos.placa}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Color</Label>
-                      <p className="font-medium">{selectedOrden.vehiculos.color}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">VIN</Label>
-                      <p className="font-medium">{selectedOrden.vehiculos.vin}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Kilometraje</Label>
-                      <p className="font-medium">{selectedOrden.vehiculos.kilometraje.toLocaleString()} km</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Estado</Label>
-                      <p className="font-medium capitalize">{selectedOrden.vehiculos.estado.replace("_", " ")}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Separator />
-
-              {/* Información del Técnico */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wrench className="h-5 w-5" />
-                    Información del Técnico Asignado
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-muted-foreground">Nombre Completo</Label>
-                      <p className="font-medium">{selectedOrden.tecnicos.nombre} {selectedOrden.tecnicos.apellido}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Área</Label>
-                      <p className="font-medium capitalize">{selectedOrden.tecnicos.area.replace("_", " ")}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Email</Label>
-                      <p className="font-medium">{selectedOrden.tecnicos.email}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Teléfono</Label>
-                      <p className="font-medium">{selectedOrden.tecnicos.telefono}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Experiencia</Label>
-                      <p className="font-medium">{selectedOrden.tecnicos.experiencia}</p>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Dirección</Label>
-                      <p className="font-medium">{selectedOrden.tecnicos.direccion}</p>
-                    </div>
-                    {selectedOrden.tecnicos.certificaciones && (
-                      <div className="col-span-2">
-                        <Label className="text-muted-foreground">Certificaciones</Label>
-                        <p className="font-medium">{selectedOrden.tecnicos.certificaciones}</p>
-                      </div>
-                    )}
-                    {selectedOrden.tecnicos.habilidades && (
-                      <div className="col-span-2">
-                        <Label className="text-muted-foreground">Habilidades</Label>
-                        <p className="font-medium">{selectedOrden.tecnicos.habilidades}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-interface KanbanColumnProps {
-  columna: { id: EstadoOrden; label: string; color: string };
-  ordenes: Orden[];
-  getPrioridadColor: (prioridad: string) => string;
-  onViewDetails: (orden: Orden) => void;
-}
-
-function KanbanColumn({ columna, ordenes, getPrioridadColor, onViewDetails }: KanbanColumnProps) {
-  const { setNodeRef } = useDroppable({ id: columna.id });
-
-  return (
-    <div ref={setNodeRef} className="flex flex-col gap-3">
-      <div className={cn("rounded-lg border-2 p-3", columna.color)}>
-        <h3 className="font-semibold text-sm flex items-center justify-between">
-          {columna.label}
-          <Badge variant="secondary" className="ml-2">
-            {ordenes.length}
-          </Badge>
-        </h3>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-280px)]">
-        <div className="space-y-3 pr-4">
-          {ordenes.map(orden => (
-            <Draggable key={orden.id} id={orden.id}>
-              <OrdenCard
-                orden={orden}
-                getPrioridadColor={getPrioridadColor}
-                onViewDetails={onViewDetails}
-              />
-            </Draggable>
-          ))}
-          {ordenes.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              No hay órdenes
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+      {/* Modal de creación/edición */}
+      <TareaFormModal
+        open={formModalOpen}
+        onOpenChange={setFormModalOpen}
+        tarea={editingTarea}
+        tallerId={tallerId}
+        especialidades={especialidades}
+        categoriasOptions={CATEGORIAS_OPTIONS}
+        condicionesOptions={CONDICIONES_OPTIONS}
+        onSuccess={handleFormSuccess}
+      />
+
+      {/* Dialog de confirmación de eliminación */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar tarea?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente la tarea 
+              "{tareaToDelete?.nombre}" del catálogo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-  );
-}
-
-interface DraggableProps {
-  id: string;
-  children: React.ReactNode;
-}
-
-function Draggable({ id, children }: DraggableProps) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
-
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined;
-
-  return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      {children}
-    </div>
-  );
-}
-
-interface OrdenCardProps {
-  orden: Orden;
-  getPrioridadColor: (prioridad: string) => string;
-  isDragging?: boolean;
-  onViewDetails?: (orden: Orden) => void;
-}
-
-function OrdenCard({ orden, getPrioridadColor, isDragging, onViewDetails }: OrdenCardProps) {
-  return (
-    <Card className={cn(
-      "cursor-grab active:cursor-grabbing transition-shadow hover:shadow-lg",
-      isDragging && "opacity-50 shadow-2xl scale-105"
-    )}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-sm font-medium line-clamp-2">
-            {orden.descripcion}
-          </CardTitle>
-          <div className={cn("w-3 h-3 rounded-full flex-shrink-0", getPrioridadColor(orden.prioridad))} />
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2 text-xs">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <User className="h-3 w-3" />
-          <span className="truncate">{orden.clientes.nombre} {orden.clientes.apellido}</span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Car className="h-3 w-3" />
-          <span className="truncate">{orden.vehiculos.marca} {orden.vehiculos.modelo}</span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Wrench className="h-3 w-3" />
-          <span className="truncate">{orden.tecnicos.nombre} {orden.tecnicos.apellido}</span>
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Calendar className="h-3 w-3" />
-          <span>{format(new Date(orden.fecha_ingreso), "dd/MM/yyyy", { locale: es })}</span>
-        </div>
-        {orden.costo_estimado && (
-          <div className="flex items-center gap-2 text-muted-foreground font-semibold">
-            <DollarSign className="h-3 w-3" />
-            <span>${orden.costo_estimado.toFixed(2)}</span>
-          </div>
-        )}
-        {onViewDetails && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full mt-2"
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewDetails(orden);
-            }}
-          >
-            <Eye className="h-3 w-3 mr-1" />
-            Ver Detalles
-          </Button>
-        )}
-      </CardContent>
-    </Card>
   );
 }
