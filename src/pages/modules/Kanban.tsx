@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Plus, Upload, Search, Loader2, Pencil, Copy, Trash2 } from "lucide-react";
+import { Plus, Upload, Search, Loader2, Pencil, Copy, Trash2, Workflow } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TareaFormModal } from "@/components/kanban/TareaFormModal";
+import { TareaFasesManager } from "@/components/kanban/TareaFasesManager";
 import { ExportButtons } from "@/components/ExportButtons";
 
 // Types
@@ -85,6 +86,8 @@ export default function Kanban() {
   const [editingTarea, setEditingTarea] = useState<CatalogoTarea | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tareaToDelete, setTareaToDelete] = useState<CatalogoTarea | null>(null);
+  const [fasesManagerOpen, setFasesManagerOpen] = useState(false);
+  const [tareaForFases, setTareaForFases] = useState<CatalogoTarea | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -224,6 +227,11 @@ export default function Kanban() {
     fetchTareas();
   };
 
+  const handleManageFases = (tarea: CatalogoTarea) => {
+    setTareaForFases(tarea);
+    setFasesManagerOpen(true);
+  };
+
   const handleImportExcel = () => {
     toast.info("Funcionalidad de importación próximamente");
   };
@@ -328,7 +336,7 @@ export default function Kanban() {
               <TableHead>Categoría</TableHead>
               <TableHead>Condiciones</TableHead>
               <TableHead>Rol Preferente</TableHead>
-              <TableHead className="w-32 text-right">Acciones</TableHead>
+              <TableHead className="w-40 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -400,6 +408,15 @@ export default function Kanban() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => handleManageFases(tarea)}
+                        title="Gestionar Fases"
+                        className="text-primary hover:text-primary"
+                      >
+                        <Workflow className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleEditTarea(tarea)}
                         title="Editar"
                       >
@@ -442,6 +459,16 @@ export default function Kanban() {
         condicionesOptions={CONDICIONES_OPTIONS}
         onSuccess={handleFormSuccess}
       />
+
+      {/* Modal de gestión de fases */}
+      {tallerId && (
+        <TareaFasesManager
+          open={fasesManagerOpen}
+          onOpenChange={setFasesManagerOpen}
+          tarea={tareaForFases}
+          tallerId={tallerId}
+        />
+      )}
 
       {/* Dialog de confirmación de eliminación */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
