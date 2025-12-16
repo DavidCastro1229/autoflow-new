@@ -319,14 +319,14 @@ export function FaseFormModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Asignar a (Equipo Administrativo)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={(val) => field.onChange(val === "__none__" ? undefined : val)} value={field.value || "__none__"}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar miembro" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sin asignar</SelectItem>
+                        <SelectItem value="__none__">Sin asignar</SelectItem>
                         {equipoMembers.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.nombre} {member.apellido}
@@ -345,14 +345,14 @@ export function FaseFormModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Asignar a (Equipo Técnico)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={(val) => field.onChange(val === "__none__" ? undefined : val)} value={field.value || "__none__"}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar técnico" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sin asignar</SelectItem>
+                        <SelectItem value="__none__">Sin asignar</SelectItem>
                         {tecnicos.map((tecnico) => (
                           <SelectItem key={tecnico.id} value={tecnico.id}>
                             {tecnico.nombre} {tecnico.apellido}
