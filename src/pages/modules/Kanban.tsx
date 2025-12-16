@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Plus, Upload, Search, Loader2, Pencil, Copy, Trash2, Workflow } from "lucide-react";
+import { Plus, Upload, Search, Loader2, Pencil, Copy, Trash2, Workflow, Eye } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { TareaFormModal } from "@/components/kanban/TareaFormModal";
 import { TareaFasesManager } from "@/components/kanban/TareaFasesManager";
+import { TareaKanbanView } from "@/components/kanban/TareaKanbanView";
 import { ExportButtons } from "@/components/ExportButtons";
 
 // Types
@@ -88,6 +89,8 @@ export default function Kanban() {
   const [tareaToDelete, setTareaToDelete] = useState<CatalogoTarea | null>(null);
   const [fasesManagerOpen, setFasesManagerOpen] = useState(false);
   const [tareaForFases, setTareaForFases] = useState<CatalogoTarea | null>(null);
+  const [kanbanViewOpen, setKanbanViewOpen] = useState(false);
+  const [tareaForKanban, setTareaForKanban] = useState<CatalogoTarea | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -232,6 +235,19 @@ export default function Kanban() {
     setFasesManagerOpen(true);
   };
 
+  const handleOpenKanbanView = (tarea: CatalogoTarea) => {
+    setTareaForKanban(tarea);
+    setKanbanViewOpen(true);
+  };
+
+  const handleOpenFasesManagerFromKanban = () => {
+    if (tareaForKanban) {
+      setTareaForFases(tareaForKanban);
+      setKanbanViewOpen(false);
+      setFasesManagerOpen(true);
+    }
+  };
+
   const handleImportExcel = () => {
     toast.info("Funcionalidad de importación próximamente");
   };
@@ -336,7 +352,7 @@ export default function Kanban() {
               <TableHead>Categoría</TableHead>
               <TableHead>Condiciones</TableHead>
               <TableHead>Rol Preferente</TableHead>
-              <TableHead className="w-40 text-right">Acciones</TableHead>
+              <TableHead className="w-48 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -408,6 +424,15 @@ export default function Kanban() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => handleOpenKanbanView(tarea)}
+                        title="Ver Tablero"
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleManageFases(tarea)}
                         title="Gestionar Fases"
                         className="text-primary hover:text-primary"
@@ -467,6 +492,17 @@ export default function Kanban() {
           onOpenChange={setFasesManagerOpen}
           tarea={tareaForFases}
           tallerId={tallerId}
+        />
+      )}
+
+      {/* Vista Kanban de la tarea */}
+      {tallerId && (
+        <TareaKanbanView
+          open={kanbanViewOpen}
+          onOpenChange={setKanbanViewOpen}
+          tarea={tareaForKanban}
+          tallerId={tallerId}
+          onOpenFasesManager={handleOpenFasesManagerFromKanban}
         />
       )}
 
