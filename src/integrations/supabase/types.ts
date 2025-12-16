@@ -661,6 +661,98 @@ export type Database = {
           },
         ]
       }
+      fase_flujos: {
+        Row: {
+          color: string
+          completado: boolean | null
+          created_at: string
+          fase_id: string
+          id: string
+          numero_orden: number
+          tiempo_estimado: number | null
+          titulo: string
+          unidad_tiempo:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          completado?: boolean | null
+          created_at?: string
+          fase_id: string
+          id?: string
+          numero_orden: number
+          tiempo_estimado?: number | null
+          titulo: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          completado?: boolean | null
+          created_at?: string
+          fase_id?: string
+          id?: string
+          numero_orden?: number
+          tiempo_estimado?: number | null
+          titulo?: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fase_flujos_fase_id_fkey"
+            columns: ["fase_id"]
+            isOneToOne: false
+            referencedRelation: "tarea_fases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fase_materiales: {
+        Row: {
+          cantidad: number
+          created_at: string
+          fase_id: string
+          id: string
+          inventario_id: string
+        }
+        Insert: {
+          cantidad?: number
+          created_at?: string
+          fase_id: string
+          id?: string
+          inventario_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          fase_id?: string
+          id?: string
+          inventario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fase_materiales_fase_id_fkey"
+            columns: ["fase_id"]
+            isOneToOne: false
+            referencedRelation: "tarea_fases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fase_materiales_inventario_id_fkey"
+            columns: ["inventario_id"]
+            isOneToOne: false
+            referencedRelation: "inventario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flota_comunicacion_externa: {
         Row: {
           celular: string | null
@@ -2032,6 +2124,76 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tarea_fases: {
+        Row: {
+          color: string
+          created_at: string
+          equipo_id: string | null
+          id: string
+          numero_orden: number
+          tarea_id: string
+          tecnico_id: string | null
+          tiempo_estimado: number | null
+          titulo: string
+          unidad_tiempo:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          equipo_id?: string | null
+          id?: string
+          numero_orden: number
+          tarea_id: string
+          tecnico_id?: string | null
+          tiempo_estimado?: number | null
+          titulo: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          equipo_id?: string | null
+          id?: string
+          numero_orden?: number
+          tarea_id?: string
+          tecnico_id?: string | null
+          tiempo_estimado?: number | null
+          titulo?: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarea_fases_equipo_id_fkey"
+            columns: ["equipo_id"]
+            isOneToOne: false
+            referencedRelation: "equipo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarea_fases_tarea_id_fkey"
+            columns: ["tarea_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_tareas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarea_fases_tecnico_id_fkey"
+            columns: ["tecnico_id"]
+            isOneToOne: false
+            referencedRelation: "tecnicos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tecnico_horarios: {
         Row: {
