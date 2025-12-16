@@ -220,9 +220,9 @@ export function MaterialesFaseModal({
                   </SelectTrigger>
                   <SelectContent>
                     {availableInventario.length === 0 ? (
-                      <SelectItem value="" disabled>
+                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">
                         No hay materiales disponibles
-                      </SelectItem>
+                      </div>
                     ) : (
                       availableInventario.map((item) => (
                         <SelectItem key={item.id} value={item.id}>
