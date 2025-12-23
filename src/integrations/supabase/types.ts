@@ -1764,6 +1764,53 @@ export type Database = {
         }
         Relationships: []
       }
+      plantilla_fase_flujos: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          numero_orden: number
+          plantilla_fase_id: string
+          tiempo_estimado: number | null
+          titulo: string
+          unidad_tiempo:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          numero_orden?: number
+          plantilla_fase_id: string
+          tiempo_estimado?: number | null
+          titulo: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          numero_orden?: number
+          plantilla_fase_id?: string
+          tiempo_estimado?: number | null
+          titulo?: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantilla_fase_flujos_plantilla_fase_id_fkey"
+            columns: ["plantilla_fase_id"]
+            isOneToOne: false
+            referencedRelation: "plantillas_fases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantillas_fases: {
         Row: {
           color: string
