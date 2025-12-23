@@ -191,12 +191,16 @@ export function OrdenProcesoKanban({
           .eq("orden_id", ordenId)
           .eq("flujo_id", flujoId);
 
-        // Actualizar posición actual a este flujo
+        // Determinar nuevo estado basado en progreso restante
+        const newStatus = newCompleted.size > 0 ? "en_proceso" : "recepcion";
+
+        // Actualizar posición actual a este flujo y estado
         const { error: updateError } = await supabase
           .from("ordenes")
           .update({
             fase_actual_id: faseId,
             flujo_actual_id: flujoId,
+            estado: newStatus as "recepcion" | "en_proceso",
           })
           .eq("id", ordenId);
 
@@ -207,7 +211,8 @@ export function OrdenProcesoKanban({
         toast.success("Flujo desmarcado");
       } else {
         // Marcar flujo como completado
-        setCompletedFlujos(prev => new Set([...prev, flujoId]));
+        const newCompletedFlujos = new Set([...completedFlujos, flujoId]);
+        setCompletedFlujos(newCompletedFlujos);
         
         // Registrar en historial
         await supabase
@@ -226,19 +231,20 @@ export function OrdenProcesoKanban({
         // Buscar siguiente flujo en esta fase
         let nextFlujoId: string | null = null;
         for (let i = currentFlujoIndex + 1; i < flujos.length; i++) {
-          if (!completedFlujos.has(flujos[i].id)) {
+          if (!newCompletedFlujos.has(flujos[i].id)) {
             nextFlujoId = flujos[i].id;
             break;
           }
         }
 
         if (nextFlujoId) {
-          // Mover al siguiente flujo no completado
+          // Mover al siguiente flujo no completado - estado: en_proceso
           const { error: updateError } = await supabase
             .from("ordenes")
             .update({
               fase_actual_id: faseId,
               flujo_actual_id: nextFlujoId,
+              estado: "en_proceso",
             })
             .eq("id", ordenId);
 
@@ -257,14 +263,16 @@ export function OrdenProcesoKanban({
             if (currentFaseIndex < fases.length - 1) {
               const nextFase = fases[currentFaseIndex + 1];
               const nextFlujos = flujosByFase[nextFase.id] || [];
-              const firstUncompletedFlujo = nextFlujos.find(f => !completedFlujos.has(f.id));
+              const firstUncompletedFlujo = nextFlujos.find(f => !newCompletedFlujos.has(f.id));
               const firstFlujoId = firstUncompletedFlujo?.id || (nextFlujos.length > 0 ? nextFlujos[0].id : null);
               
+              // Aún hay fases pendientes - estado: en_proceso
               const { error: updateError } = await supabase
                 .from("ordenes")
                 .update({
                   fase_actual_id: nextFase.id,
                   flujo_actual_id: firstFlujoId,
+                  estado: "en_proceso",
                 })
                 .eq("id", ordenId);
 
@@ -274,7 +282,17 @@ export function OrdenProcesoKanban({
               setCurrentFlujoId(firstFlujoId);
               toast.success(`Fase completada. Avanzando a: ${nextFase.titulo}`);
             } else {
-              toast.success("¡Proceso completado!");
+              // Última fase completada - marcar orden como finalizada
+              const { error: updateError } = await supabase
+                .from("ordenes")
+                .update({
+                  estado: "finalizada",
+                })
+                .eq("id", ordenId);
+
+              if (updateError) throw updateError;
+              
+              toast.success("¡Proceso completado! Orden marcada como finalizada.");
             }
           } else {
             toast.success("Flujo completado");
@@ -289,6 +307,22 @@ export function OrdenProcesoKanban({
     } finally {
       setMoving(false);
     }
+  };
+
+  // Función para calcular el estado basado en el progreso
+  const calculateOrderStatus = (): "recepcion" | "en_proceso" | "finalizada" => {
+    // Verificar si todos los flujos de todas las fases están completados
+    const allFasesCompleted = fases.every(fase => allFlujosInFaseCompleted(fase.id));
+    if (allFasesCompleted && fases.length > 0) {
+      return "finalizada";
+    }
+    
+    // Verificar si hay algún progreso
+    if (completedFlujos.size > 0) {
+      return "en_proceso";
+    }
+    
+    return "recepcion";
   };
 
   const getCurrentFaseIndex = () => {
