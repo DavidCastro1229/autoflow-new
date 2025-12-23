@@ -42,7 +42,8 @@ import {
   Clock, 
   FileText,
   Save,
-  X
+  X,
+  Package
 } from "lucide-react";
 
 interface PlantillaFaseFlujo {
@@ -55,6 +56,19 @@ interface PlantillaFaseFlujo {
   numero_orden: number;
 }
 
+interface PlantillaFaseMaterial {
+  id: string;
+  plantilla_fase_id: string;
+  inventario_id: string;
+  cantidad: number;
+  inventario?: {
+    id: string;
+    codigo: string;
+    nombre: string;
+    precio_venta: number;
+  };
+}
+
 interface PlantillaFase {
   id: string;
   titulo: string;
@@ -63,6 +77,7 @@ interface PlantillaFase {
   unidad_tiempo: 'minutos' | 'horas' | null;
   taller_id: string;
   plantilla_fase_flujos?: PlantillaFaseFlujo[];
+  plantilla_fase_materiales?: PlantillaFaseMaterial[];
 }
 
 interface PlantillasFasesManagerProps {
@@ -108,8 +123,14 @@ export function PlantillasFasesManager({
   const [editingFlujo, setEditingFlujo] = useState<PlantillaFaseFlujo | null>(null);
   
   // Delete states
-  const [deleteType, setDeleteType] = useState<'plantilla' | 'flujo' | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<PlantillaFase | PlantillaFaseFlujo | null>(null);
+  const [deleteType, setDeleteType] = useState<'plantilla' | 'flujo' | 'material' | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<PlantillaFase | PlantillaFaseFlujo | PlantillaFaseMaterial | null>(null);
+
+  // Materials states
+  const [addingMaterialToPlantilla, setAddingMaterialToPlantilla] = useState<string | null>(null);
+  const [inventario, setInventario] = useState<{ id: string; codigo: string; nombre: string; precio_venta: number; stock_actual: number }[]>([]);
+  const [selectedInventarioId, setSelectedInventarioId] = useState<string>("");
+  const [materialCantidad, setMaterialCantidad] = useState<number>(1);
 
   useEffect(() => {
     if (open) {
@@ -120,19 +141,59 @@ export function PlantillasFasesManager({
   const fetchPlantillas = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("plantillas_fases")
-        .select(`
-          id, titulo, color, tiempo_estimado, unidad_tiempo, taller_id,
-          plantilla_fase_flujos (
-            id, plantilla_fase_id, titulo, color, tiempo_estimado, unidad_tiempo, numero_orden
-          )
-        `)
-        .eq("taller_id", tallerId)
-        .order("titulo");
+      const [plantillasRes, inventarioRes] = await Promise.all([
+        supabase
+          .from("plantillas_fases")
+          .select(`
+            id, titulo, color, tiempo_estimado, unidad_tiempo, taller_id,
+            plantilla_fase_flujos (
+              id, plantilla_fase_id, titulo, color, tiempo_estimado, unidad_tiempo, numero_orden
+            )
+          `)
+          .eq("taller_id", tallerId)
+          .order("titulo"),
+        supabase
+          .from("inventario")
+          .select("id, codigo, nombre, precio_venta, stock_actual")
+          .eq("taller_id", tallerId)
+          .eq("estado", "activo")
+          .order("nombre"),
+      ]);
 
-      if (error) throw error;
-      setPlantillas(data || []);
+      if (plantillasRes.error) throw plantillasRes.error;
+      if (inventarioRes.error) throw inventarioRes.error;
+
+      // Fetch materials for each plantilla
+      const plantillasData = plantillasRes.data || [];
+      if (plantillasData.length > 0) {
+        const plantillaIds = plantillasData.map(p => p.id);
+        const { data: materialesData, error: materialesError } = await supabase
+          .from("plantilla_fase_materiales")
+          .select(`
+            id, plantilla_fase_id, inventario_id, cantidad,
+            inventario:inventario_id (id, codigo, nombre, precio_venta)
+          `)
+          .in("plantilla_fase_id", plantillaIds);
+
+        if (!materialesError && materialesData) {
+          // Group materials by plantilla
+          const materialsByPlantilla: Record<string, PlantillaFaseMaterial[]> = {};
+          materialesData.forEach((m: any) => {
+            if (!materialsByPlantilla[m.plantilla_fase_id]) {
+              materialsByPlantilla[m.plantilla_fase_id] = [];
+            }
+            materialsByPlantilla[m.plantilla_fase_id].push(m);
+          });
+
+          // Attach materials to plantillas
+          plantillasData.forEach((p: any) => {
+            p.plantilla_fase_materiales = materialsByPlantilla[p.id] || [];
+          });
+        }
+      }
+
+      setPlantillas(plantillasData);
+      setInventario(inventarioRes.data || []);
     } catch (error: any) {
       console.error("Error fetching plantillas:", error);
       toast.error("Error al cargar las plantillas");
@@ -278,6 +339,49 @@ export function PlantillasFasesManager({
     }
   };
 
+  const handleAddMaterial = async (plantillaId: string) => {
+    if (!selectedInventarioId) {
+      toast.error("Selecciona un material");
+      return;
+    }
+
+    if (materialCantidad <= 0) {
+      toast.error("La cantidad debe ser mayor a 0");
+      return;
+    }
+
+    // Check if already added
+    const plantilla = plantillas.find(p => p.id === plantillaId);
+    if (plantilla?.plantilla_fase_materiales?.some(m => m.inventario_id === selectedInventarioId)) {
+      toast.error("Este material ya está agregado");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("plantilla_fase_materiales")
+        .insert({
+          plantilla_fase_id: plantillaId,
+          inventario_id: selectedInventarioId,
+          cantidad: materialCantidad,
+        });
+
+      if (error) throw error;
+
+      toast.success("Material agregado");
+      setSelectedInventarioId("");
+      setMaterialCantidad(1);
+      setAddingMaterialToPlantilla(null);
+      fetchPlantillas();
+    } catch (error: any) {
+      console.error("Error adding material:", error);
+      toast.error("Error al agregar el material");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!itemToDelete || !deleteType) return;
 
@@ -289,13 +393,20 @@ export function PlantillasFasesManager({
           .eq("id", itemToDelete.id);
         if (error) throw error;
         toast.success("Plantilla eliminada");
-      } else {
+      } else if (deleteType === 'flujo') {
         const { error } = await supabase
           .from("plantilla_fase_flujos")
           .delete()
           .eq("id", itemToDelete.id);
         if (error) throw error;
         toast.success("Flujo eliminado");
+      } else if (deleteType === 'material') {
+        const { error } = await supabase
+          .from("plantilla_fase_materiales")
+          .delete()
+          .eq("id", itemToDelete.id);
+        if (error) throw error;
+        toast.success("Material eliminado");
       }
 
       fetchPlantillas();
@@ -437,6 +548,10 @@ export function PlantillasFasesManager({
                               )}
                               <Badge variant="secondary" className="text-xs">
                                 {(plantilla.plantilla_fase_flujos || []).length} flujos
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                <Package className="h-3 w-3 mr-1" />
+                                {(plantilla.plantilla_fase_materiales || []).length} materiales
                               </Badge>
                             </div>
                           </div>
@@ -608,6 +723,120 @@ export function PlantillasFasesManager({
                               </div>
                             )}
                           </div>
+
+                          {/* Materials list */}
+                          <div className="space-y-2 mt-4 pt-4 border-t">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-medium text-sm flex items-center gap-2">
+                                <Package className="h-4 w-4" />
+                                Materiales de la Plantilla
+                              </h4>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setAddingMaterialToPlantilla(plantilla.id)}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Agregar Material
+                              </Button>
+                            </div>
+
+                            {/* New material form */}
+                            {addingMaterialToPlantilla === plantilla.id && (
+                              <div className="border rounded-md p-3 space-y-3 bg-muted/30">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-xs font-medium">Material *</label>
+                                    <Select value={selectedInventarioId} onValueChange={setSelectedInventarioId}>
+                                      <SelectTrigger className="h-8 text-sm">
+                                        <SelectValue placeholder="Seleccionar..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {inventario
+                                          .filter(item => !(plantilla.plantilla_fase_materiales || []).some(m => m.inventario_id === item.id))
+                                          .map((item) => (
+                                            <SelectItem key={item.id} value={item.id}>
+                                              <span className="flex items-center gap-2">
+                                                <code className="text-xs">{item.codigo}</code>
+                                                {item.nombre}
+                                              </span>
+                                            </SelectItem>
+                                          ))
+                                        }
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium">Cantidad</label>
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      value={materialCantidad}
+                                      onChange={(e) => setMaterialCantidad(parseInt(e.target.value) || 1)}
+                                      className="h-8 text-sm"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => handleAddMaterial(plantilla.id)}
+                                    disabled={saving || !selectedInventarioId}
+                                  >
+                                    {saving && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                                    Guardar
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={() => {
+                                      setAddingMaterialToPlantilla(null);
+                                      setSelectedInventarioId("");
+                                      setMaterialCantidad(1);
+                                    }}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+
+                            {(plantilla.plantilla_fase_materiales || []).length === 0 ? (
+                              <div className="text-center py-4 text-muted-foreground text-sm border rounded-md">
+                                No hay materiales definidos
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {(plantilla.plantilla_fase_materiales || []).map((material) => (
+                                  <div 
+                                    key={material.id}
+                                    className="flex items-center justify-between p-3 border rounded-md bg-muted/30"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <code className="text-xs bg-background px-1.5 py-0.5 rounded">
+                                        {material.inventario?.codigo}
+                                      </code>
+                                      <span className="text-sm">{material.inventario?.nombre}</span>
+                                      <Badge variant="secondary" className="text-xs">
+                                        x{material.cantidad}
+                                      </Badge>
+                                    </div>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="h-7 w-7 text-destructive hover:text-destructive"
+                                      onClick={() => {
+                                        setDeleteType('material');
+                                        setItemToDelete(material);
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </AccordionContent>
                       </AccordionItem>
                     ))}
@@ -699,11 +928,11 @@ export function PlantillasFasesManager({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              ¿Eliminar {deleteType === 'plantilla' ? 'plantilla' : 'flujo'}?
+              ¿Eliminar {deleteType === 'plantilla' ? 'plantilla' : deleteType === 'flujo' ? 'flujo' : 'material'}?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {deleteType === 'plantilla' 
-                ? "Esta acción eliminará la plantilla y todos sus flujos asociados."
+                ? "Esta acción eliminará la plantilla, todos sus flujos y materiales asociados."
                 : "Esta acción no se puede deshacer."
               }
             </AlertDialogDescription>
