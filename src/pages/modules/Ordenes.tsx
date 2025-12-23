@@ -66,7 +66,7 @@ interface Orden {
   fecha_ingreso: string;
   fecha_entrega: string | null;
   prioridad: 'baja' | 'media' | 'alta' | 'urgente';
-  estado: 'recepcion' | 'autorizado' | 'en_proceso' | 'finalizada' | 'cancelada';
+  estado: 'pendiente' | 'en_proceso' | 'completada' | 'cancelada';
   costo_estimado: number | null;
   observaciones: string | null;
   tarea_id: string | null;
@@ -97,7 +97,7 @@ export default function Ordenes() {
     fecha_ingreso: Date;
     fecha_entrega: Date | null;
     prioridad: 'baja' | 'media' | 'alta' | 'urgente';
-    estado: 'recepcion' | 'autorizado' | 'en_proceso' | 'finalizada' | 'cancelada';
+    estado: 'pendiente' | 'en_proceso' | 'completada' | 'cancelada';
     costo_estimado: string;
     observaciones: string;
   }>({
@@ -109,7 +109,7 @@ export default function Ordenes() {
     fecha_ingreso: new Date(),
     fecha_entrega: null,
     prioridad: "media",
-    estado: "recepcion",
+    estado: "pendiente",
     costo_estimado: "",
     observaciones: "",
   });
@@ -260,7 +260,7 @@ export default function Ordenes() {
       fecha_ingreso: new Date(),
       fecha_entrega: null,
       prioridad: "media",
-      estado: "recepcion",
+      estado: "pendiente",
       costo_estimado: "",
       observaciones: "",
     });
@@ -301,14 +301,13 @@ export default function Ordenes() {
   };
 
   const getEstadoBadge = (estado: string) => {
-    const variants = {
-      recepcion: "secondary",
-      autorizado: "default",
-      en_proceso: "default",
-      finalizada: "default",
-      cancelada: "destructive"
+    const config: Record<string, { variant: string; className: string; label: string }> = {
+      pendiente: { variant: "outline", className: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400", label: "Pendiente" },
+      en_proceso: { variant: "outline", className: "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400", label: "En Proceso" },
+      completada: { variant: "outline", className: "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400", label: "Completada" },
+      cancelada: { variant: "outline", className: "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400", label: "Cancelada" },
     };
-    return variants[estado as keyof typeof variants] || "default";
+    return config[estado] || config.pendiente;
   };
 
   if (loading) {
@@ -333,10 +332,9 @@ export default function Ordenes() {
               vehiculo: `${orden.vehiculos?.marca} ${orden.vehiculos?.modelo} - ${orden.vehiculos?.placa}`,
               tecnico: `${orden.tecnicos?.nombre} ${orden.tecnicos?.apellido}`,
               descripcion: orden.descripcion,
-              estado: orden.estado === "recepcion" ? "Recepción" : 
-                      orden.estado === "autorizado" ? "Autorizado" : 
+              estado: orden.estado === "pendiente" ? "Pendiente" : 
                       orden.estado === "en_proceso" ? "En Proceso" : 
-                      orden.estado === "finalizada" ? "Finalizada" : "Cancelada",
+                      orden.estado === "completada" ? "Completada" : "Cancelada",
               prioridad: orden.prioridad === "alta" ? "Alta" : orden.prioridad === "media" ? "Media" : "Baja",
               costo_estimado: orden.costo_estimado ? formatCurrencyForExport(orden.costo_estimado) : "-",
               fecha_ingreso: formatDateForExport(orden.fecha_ingreso),
@@ -435,9 +433,14 @@ export default function Ordenes() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getEstadoBadge(orden.estado) as any}>
-                      {orden.estado.replace("_", " ")}
-                    </Badge>
+                    {(() => {
+                      const config = getEstadoBadge(orden.estado);
+                      return (
+                        <Badge variant="outline" className={config.className}>
+                          {config.label}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     {orden.costo_estimado ? `$${orden.costo_estimado.toFixed(2)}` : "-"}
@@ -643,19 +646,16 @@ export default function Ordenes() {
                 <Label htmlFor="estado">Estado *</Label>
                 <Select
                   value={formData.estado}
-                  onValueChange={(value) => setFormData({ ...formData, estado: value as 'recepcion' | 'autorizado' | 'en_proceso' | 'finalizada' | 'cancelada' })}
+                  onValueChange={(value) => setFormData({ ...formData, estado: value as 'pendiente' | 'en_proceso' | 'completada' | 'cancelada' })}
                   required
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="recepcion">Recepción</SelectItem>
-                    <SelectItem value="autorizado">Autorizado</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
                     <SelectItem value="en_proceso">En Proceso</SelectItem>
-                    <SelectItem value="finalizada">Finalizada</SelectItem>
-                    <SelectItem value="cancelada">Cancelada</SelectItem>
-                    <SelectItem value="entregada">Entregada</SelectItem>
+                    <SelectItem value="completada">Completada</SelectItem>
                     <SelectItem value="cancelada">Cancelada</SelectItem>
                   </SelectContent>
                 </Select>

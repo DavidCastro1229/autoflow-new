@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Clock, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { Loader2, Clock, ChevronRight, ChevronLeft, Check, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TareaFase {
@@ -192,7 +192,7 @@ export function OrdenProcesoKanban({
           .eq("flujo_id", flujoId);
 
         // Determinar nuevo estado basado en progreso restante
-        const newStatus = newCompleted.size > 0 ? "en_proceso" : "recepcion";
+        const newStatus = newCompleted.size > 0 ? "en_proceso" : "pendiente";
 
         // Actualizar posición actual a este flujo y estado
         const { error: updateError } = await supabase
@@ -200,7 +200,7 @@ export function OrdenProcesoKanban({
           .update({
             fase_actual_id: faseId,
             flujo_actual_id: flujoId,
-            estado: newStatus as "recepcion" | "en_proceso",
+            estado: newStatus as "pendiente" | "en_proceso",
           })
           .eq("id", ordenId);
 
@@ -282,17 +282,17 @@ export function OrdenProcesoKanban({
               setCurrentFlujoId(firstFlujoId);
               toast.success(`Fase completada. Avanzando a: ${nextFase.titulo}`);
             } else {
-              // Última fase completada - marcar orden como finalizada
+              // Última fase completada - marcar orden como completada
               const { error: updateError } = await supabase
                 .from("ordenes")
                 .update({
-                  estado: "finalizada",
+                  estado: "completada",
                 })
                 .eq("id", ordenId);
 
               if (updateError) throw updateError;
               
-              toast.success("¡Proceso completado! Orden marcada como finalizada.");
+              toast.success("¡Proceso completado! Orden marcada como completada.");
             }
           } else {
             toast.success("Flujo completado");
@@ -310,11 +310,11 @@ export function OrdenProcesoKanban({
   };
 
   // Función para calcular el estado basado en el progreso
-  const calculateOrderStatus = (): "recepcion" | "en_proceso" | "finalizada" => {
+  const calculateOrderStatus = (): "pendiente" | "en_proceso" | "completada" => {
     // Verificar si todos los flujos de todas las fases están completados
     const allFasesCompleted = fases.every(fase => allFlujosInFaseCompleted(fase.id));
     if (allFasesCompleted && fases.length > 0) {
-      return "finalizada";
+      return "completada";
     }
     
     // Verificar si hay algún progreso
@@ -322,7 +322,7 @@ export function OrdenProcesoKanban({
       return "en_proceso";
     }
     
-    return "recepcion";
+    return "pendiente";
   };
 
   const getCurrentFaseIndex = () => {
@@ -370,6 +370,75 @@ export function OrdenProcesoKanban({
     return flujos.every(f => completedFlujos.has(f.id));
   };
 
+  // Función para marcar todos los flujos como completados
+  const markAllAsCompleted = async () => {
+    setMoving(true);
+    try {
+      const allFlujoIds: string[] = [];
+      const historialInserts: { orden_id: string; fase_id: string; flujo_id: string; fecha_entrada: string }[] = [];
+
+      // Recolectar todos los flujos de todas las fases
+      fases.forEach(fase => {
+        const flujos = flujosByFase[fase.id] || [];
+        flujos.forEach(flujo => {
+          if (!completedFlujos.has(flujo.id)) {
+            allFlujoIds.push(flujo.id);
+            historialInserts.push({
+              orden_id: ordenId,
+              fase_id: fase.id,
+              flujo_id: flujo.id,
+              fecha_entrada: new Date().toISOString(),
+            });
+          }
+        });
+      });
+
+      if (historialInserts.length > 0) {
+        // Insertar todos los registros en el historial
+        const { error: historialError } = await supabase
+          .from("orden_proceso_historial")
+          .insert(historialInserts);
+
+        if (historialError) throw historialError;
+      }
+
+      // Actualizar el estado de la orden a completada
+      const lastFase = fases[fases.length - 1];
+      const lastFlujos = flujosByFase[lastFase?.id] || [];
+      const lastFlujo = lastFlujos[lastFlujos.length - 1];
+
+      const { error: updateError } = await supabase
+        .from("ordenes")
+        .update({
+          estado: "completada",
+          fase_actual_id: lastFase?.id || null,
+          flujo_actual_id: lastFlujo?.id || null,
+        })
+        .eq("id", ordenId);
+
+      if (updateError) throw updateError;
+
+      // Actualizar estado local
+      const allCompleted = new Set([...completedFlujos, ...allFlujoIds]);
+      setCompletedFlujos(allCompleted);
+      setCurrentFaseId(lastFase?.id || null);
+      setCurrentFlujoId(lastFlujo?.id || null);
+
+      toast.success("¡Todos los flujos marcados como completados!");
+      onUpdate();
+    } catch (error) {
+      console.error("Error marking all as completed:", error);
+      toast.error("Error al marcar todos como completados");
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  // Verificar si todos los flujos ya están completados
+  const allProcessCompleted = () => {
+    return fases.every(fase => allFlujosInFaseCompleted(fase.id));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
@@ -402,22 +471,38 @@ export function OrdenProcesoKanban({
                 Fase Anterior
               </Button>
               
-              <div className="flex items-center gap-2">
-                {fases.map((fase) => (
-                  <div
-                    key={fase.id}
-                    className={cn(
-                      "w-3 h-3 rounded-full transition-all",
-                      fase.id === currentFaseId
-                        ? "scale-125"
-                        : allFlujosInFaseCompleted(fase.id)
-                        ? "opacity-100"
-                        : "opacity-50"
-                    )}
-                    style={{ backgroundColor: fase.color }}
-                    title={fase.titulo}
-                  />
-                ))}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  {fases.map((fase) => (
+                    <div
+                      key={fase.id}
+                      className={cn(
+                        "w-3 h-3 rounded-full transition-all",
+                        fase.id === currentFaseId
+                          ? "scale-125"
+                          : allFlujosInFaseCompleted(fase.id)
+                          ? "opacity-100"
+                          : "opacity-50"
+                      )}
+                      style={{ backgroundColor: fase.color }}
+                      title={fase.titulo}
+                    />
+                  ))}
+                </div>
+
+                {/* Botón para marcar todo como completado */}
+                {!allProcessCompleted() && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={markAllAsCompleted}
+                    disabled={moving}
+                    className="bg-green-50 text-green-700 border-green-300 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+                  >
+                    <CheckCheck className="h-4 w-4 mr-1" />
+                    Marcar todo completado
+                  </Button>
+                )}
               </div>
 
               {isLastFase() && allFlujosInFaseCompleted(currentFaseId || "") ? (
