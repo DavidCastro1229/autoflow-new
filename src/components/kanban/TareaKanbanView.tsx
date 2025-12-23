@@ -548,7 +548,7 @@ export function TareaKanbanView({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-auto">
           {loading ? (
             <div className="flex items-center justify-center h-96">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -570,24 +570,22 @@ export function TareaKanbanView({
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <ScrollArea className="h-[calc(90vh-120px)]">
-                <div className="p-6">
-                  <SortableContext 
-                    items={fases.map(f => f.id)} 
-                    strategy={horizontalListSortingStrategy}
-                  >
-                    <div className="flex gap-4 min-w-max">
-                      {fases.map((fase) => (
-                        <SortableFaseColumn
-                          key={fase.id}
-                          fase={fase}
-                          flujos={flujosByFase[fase.id] || []}
-                        />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </div>
-              </ScrollArea>
+              <div className="h-[calc(90vh-120px)] overflow-auto p-6">
+                <SortableContext 
+                  items={fases.map(f => f.id)} 
+                  strategy={horizontalListSortingStrategy}
+                >
+                  <div className="flex gap-4 min-w-max pb-4">
+                    {fases.map((fase) => (
+                      <SortableFaseColumn
+                        key={fase.id}
+                        fase={fase}
+                        flujos={flujosByFase[fase.id] || []}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </div>
 
               <DragOverlay>
                 {activeDragItem?.type === 'flujo' && (
