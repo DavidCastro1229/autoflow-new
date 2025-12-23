@@ -173,75 +173,119 @@ export function OrdenProcesoKanban({
     }
   };
 
-  const markFlujoComplete = async (flujoId: string, faseId: string) => {
+  const toggleFlujoComplete = async (flujoId: string, faseId: string) => {
+    const isAlreadyCompleted = completedFlujos.has(flujoId);
+    
     setMoving(true);
     try {
-      const flujos = flujosByFase[faseId] || [];
-      const currentFlujoIndex = flujos.findIndex(f => f.id === flujoId);
-      
-      // Marcar flujo como completado
-      setCompletedFlujos(prev => new Set([...prev, flujoId]));
-      
-      // Registrar en historial
-      await supabase
-        .from("orden_proceso_historial")
-        .insert({
-          orden_id: ordenId,
-          fase_id: faseId,
-          flujo_id: flujoId,
-          fecha_entrada: new Date().toISOString(),
-        });
+      if (isAlreadyCompleted) {
+        // Desmarcar flujo
+        const newCompleted = new Set(completedFlujos);
+        newCompleted.delete(flujoId);
+        setCompletedFlujos(newCompleted);
 
-      // Determinar siguiente paso
-      if (currentFlujoIndex < flujos.length - 1) {
-        // Hay más flujos en esta fase, mover al siguiente
-        const nextFlujo = flujos[currentFlujoIndex + 1];
-        
+        // Eliminar del historial
+        await supabase
+          .from("orden_proceso_historial")
+          .delete()
+          .eq("orden_id", ordenId)
+          .eq("flujo_id", flujoId);
+
+        // Actualizar posición actual a este flujo
         const { error: updateError } = await supabase
           .from("ordenes")
           .update({
             fase_actual_id: faseId,
-            flujo_actual_id: nextFlujo.id,
+            flujo_actual_id: flujoId,
           })
           .eq("id", ordenId);
 
         if (updateError) throw updateError;
         
-        setCurrentFlujoId(nextFlujo.id);
-        toast.success(`Flujo completado. Avanzando a: ${nextFlujo.titulo}`);
+        setCurrentFaseId(faseId);
+        setCurrentFlujoId(flujoId);
+        toast.success("Flujo desmarcado");
       } else {
-        // Último flujo de la fase, verificar si hay más fases
-        const currentFaseIndex = fases.findIndex(f => f.id === faseId);
+        // Marcar flujo como completado
+        setCompletedFlujos(prev => new Set([...prev, flujoId]));
         
-        if (currentFaseIndex < fases.length - 1) {
-          // Hay más fases, mover a la siguiente
-          const nextFase = fases[currentFaseIndex + 1];
-          const nextFlujos = flujosByFase[nextFase.id] || [];
-          const firstFlujoId = nextFlujos.length > 0 ? nextFlujos[0].id : null;
-          
+        // Registrar en historial
+        await supabase
+          .from("orden_proceso_historial")
+          .insert({
+            orden_id: ordenId,
+            fase_id: faseId,
+            flujo_id: flujoId,
+            fecha_entrada: new Date().toISOString(),
+          });
+
+        // Buscar siguiente flujo no completado
+        const flujos = flujosByFase[faseId] || [];
+        const currentFlujoIndex = flujos.findIndex(f => f.id === flujoId);
+        
+        // Buscar siguiente flujo en esta fase
+        let nextFlujoId: string | null = null;
+        for (let i = currentFlujoIndex + 1; i < flujos.length; i++) {
+          if (!completedFlujos.has(flujos[i].id)) {
+            nextFlujoId = flujos[i].id;
+            break;
+          }
+        }
+
+        if (nextFlujoId) {
+          // Mover al siguiente flujo no completado
           const { error: updateError } = await supabase
             .from("ordenes")
             .update({
-              fase_actual_id: nextFase.id,
-              flujo_actual_id: firstFlujoId,
+              fase_actual_id: faseId,
+              flujo_actual_id: nextFlujoId,
             })
             .eq("id", ordenId);
 
           if (updateError) throw updateError;
           
-          setCurrentFaseId(nextFase.id);
-          setCurrentFlujoId(firstFlujoId);
-          toast.success(`Fase completada. Avanzando a: ${nextFase.titulo}`);
+          setCurrentFlujoId(nextFlujoId);
+          toast.success("Flujo completado");
         } else {
-          // Es el último flujo de la última fase
-          toast.success("¡Proceso completado!");
+          // Verificar si todos los flujos de la fase están completados
+          const allCompleted = flujos.every(f => f.id === flujoId || completedFlujos.has(f.id));
+          
+          if (allCompleted) {
+            // Buscar siguiente fase
+            const currentFaseIndex = fases.findIndex(f => f.id === faseId);
+            
+            if (currentFaseIndex < fases.length - 1) {
+              const nextFase = fases[currentFaseIndex + 1];
+              const nextFlujos = flujosByFase[nextFase.id] || [];
+              const firstUncompletedFlujo = nextFlujos.find(f => !completedFlujos.has(f.id));
+              const firstFlujoId = firstUncompletedFlujo?.id || (nextFlujos.length > 0 ? nextFlujos[0].id : null);
+              
+              const { error: updateError } = await supabase
+                .from("ordenes")
+                .update({
+                  fase_actual_id: nextFase.id,
+                  flujo_actual_id: firstFlujoId,
+                })
+                .eq("id", ordenId);
+
+              if (updateError) throw updateError;
+              
+              setCurrentFaseId(nextFase.id);
+              setCurrentFlujoId(firstFlujoId);
+              toast.success(`Fase completada. Avanzando a: ${nextFase.titulo}`);
+            } else {
+              toast.success("¡Proceso completado!");
+            }
+          } else {
+            toast.success("Flujo completado");
+          }
         }
       }
 
       onUpdate();
     } catch (error) {
-      console.error("Error marking flujo complete:", error);
-      toast.error("Error al completar el flujo");
+      console.error("Error toggling flujo:", error);
+      toast.error("Error al actualizar el flujo");
     } finally {
       setMoving(false);
     }
@@ -436,8 +480,8 @@ export function OrdenProcesoKanban({
                                 )}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (!moving && isCurrentFase && isCurrentFlujo && !isCompleted) {
-                                    markFlujoComplete(flujo.id, fase.id);
+                                  if (!moving && isCurrentFase) {
+                                    toggleFlujoComplete(flujo.id, fase.id);
                                   }
                                 }}
                               >
