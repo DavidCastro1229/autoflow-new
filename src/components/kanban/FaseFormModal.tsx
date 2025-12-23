@@ -248,7 +248,7 @@ export function FaseFormModal({
       const plantillaFlujos = selectedPlantillaData?.plantilla_fase_flujos || [];
 
       // Save as template if checkbox is checked
-      if (values.guardar_plantilla && !fase) {
+      if (values.guardar_plantilla) {
         const { data: templateData, error: templateError } = await supabase
           .from("plantillas_fases")
           .insert({
