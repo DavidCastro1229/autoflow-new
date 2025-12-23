@@ -1609,6 +1609,61 @@ export type Database = {
           },
         ]
       }
+      orden_proceso_historial: {
+        Row: {
+          created_at: string
+          fase_id: string
+          fecha_entrada: string
+          fecha_salida: string | null
+          flujo_id: string | null
+          id: string
+          notas: string | null
+          orden_id: string
+        }
+        Insert: {
+          created_at?: string
+          fase_id: string
+          fecha_entrada?: string
+          fecha_salida?: string | null
+          flujo_id?: string | null
+          id?: string
+          notas?: string | null
+          orden_id: string
+        }
+        Update: {
+          created_at?: string
+          fase_id?: string
+          fecha_entrada?: string
+          fecha_salida?: string | null
+          flujo_id?: string | null
+          id?: string
+          notas?: string | null
+          orden_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_proceso_historial_fase_id_fkey"
+            columns: ["fase_id"]
+            isOneToOne: false
+            referencedRelation: "tarea_fases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_proceso_historial_flujo_id_fkey"
+            columns: ["flujo_id"]
+            isOneToOne: false
+            referencedRelation: "fase_flujos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_proceso_historial_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "ordenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ordenes: {
         Row: {
           cliente_id: string
@@ -1616,12 +1671,15 @@ export type Database = {
           created_at: string
           descripcion: string
           estado: Database["public"]["Enums"]["estado_orden"]
+          fase_actual_id: string | null
           fecha_entrega: string | null
           fecha_ingreso: string
+          flujo_actual_id: string | null
           id: string
           observaciones: string | null
           prioridad: Database["public"]["Enums"]["prioridad_orden"]
           taller_id: string
+          tarea_id: string | null
           tecnico_id: string
           tipo_servicio_id: string
           updated_at: string
@@ -1633,12 +1691,15 @@ export type Database = {
           created_at?: string
           descripcion: string
           estado?: Database["public"]["Enums"]["estado_orden"]
+          fase_actual_id?: string | null
           fecha_entrega?: string | null
           fecha_ingreso?: string
+          flujo_actual_id?: string | null
           id?: string
           observaciones?: string | null
           prioridad?: Database["public"]["Enums"]["prioridad_orden"]
           taller_id: string
+          tarea_id?: string | null
           tecnico_id: string
           tipo_servicio_id: string
           updated_at?: string
@@ -1650,12 +1711,15 @@ export type Database = {
           created_at?: string
           descripcion?: string
           estado?: Database["public"]["Enums"]["estado_orden"]
+          fase_actual_id?: string | null
           fecha_entrega?: string | null
           fecha_ingreso?: string
+          flujo_actual_id?: string | null
           id?: string
           observaciones?: string | null
           prioridad?: Database["public"]["Enums"]["prioridad_orden"]
           taller_id?: string
+          tarea_id?: string | null
           tecnico_id?: string
           tipo_servicio_id?: string
           updated_at?: string
@@ -1667,6 +1731,27 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_fase_actual_id_fkey"
+            columns: ["fase_actual_id"]
+            isOneToOne: false
+            referencedRelation: "tarea_fases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_flujo_actual_id_fkey"
+            columns: ["flujo_actual_id"]
+            isOneToOne: false
+            referencedRelation: "fase_flujos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordenes_tarea_id_fkey"
+            columns: ["tarea_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo_tareas"
             referencedColumns: ["id"]
           },
           {
