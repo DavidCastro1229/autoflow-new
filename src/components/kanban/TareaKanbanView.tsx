@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   DndContext, 
@@ -20,12 +19,14 @@ import {
   useSensors,
   DragStartEvent,
   DragEndEvent,
+  DragOverEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   horizontalListSortingStrategy,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { 
@@ -33,8 +34,6 @@ import {
   Clock, 
   User,
   GripVertical,
-  CheckCircle2,
-  Circle,
   Workflow,
   Settings
 } from "lucide-react";
@@ -61,7 +60,6 @@ interface FaseFlujo {
   color: string;
   tiempo_estimado: number | null;
   unidad_tiempo: 'minutos' | 'horas' | null;
-  completado: boolean | null;
 }
 
 interface CatalogoTarea {
@@ -81,15 +79,7 @@ interface TareaKanbanViewProps {
 }
 
 // Sortable Flow Card Component
-function SortableFlujoCard({ 
-  flujo, 
-  isActive,
-  onToggleComplete 
-}: { 
-  flujo: FaseFlujo; 
-  isActive: boolean;
-  onToggleComplete: (flujo: FaseFlujo) => void;
-}) {
+function SortableFlujoCard({ flujo }: { flujo: FaseFlujo }) {
   const {
     attributes,
     listeners,
@@ -109,114 +99,113 @@ function SortableFlujoCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`
-        group bg-card border rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing
-        hover:shadow-md transition-shadow
-        ${isActive ? 'ring-2 ring-primary ring-offset-2' : ''}
-        ${flujo.completado ? 'opacity-70' : ''}
-      `}
+      className="group bg-card border rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
       {...attributes}
       {...listeners}
     >
-      <div className="flex items-start gap-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleComplete(flujo);
-          }}
-          className="mt-0.5 shrink-0"
-        >
-          {flujo.completado ? (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          ) : (
-            <Circle className="h-4 w-4 text-muted-foreground hover:text-primary" />
-          )}
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <div 
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: flujo.color }}
-            />
-            <span className={`text-sm font-medium truncate ${flujo.completado ? 'line-through text-muted-foreground' : ''}`}>
-              {flujo.titulo}
-            </span>
-          </div>
-          {flujo.tiempo_estimado && flujo.tiempo_estimado > 0 && (
-            <div className="flex items-center gap-1 mt-1.5">
-              <Clock className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                {flujo.tiempo_estimado} {flujo.unidad_tiempo}
-              </span>
-            </div>
-          )}
-        </div>
+      <div className="flex items-center gap-2">
+        <div 
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ backgroundColor: flujo.color }}
+        />
+        <span className="text-sm font-medium truncate flex-1">
+          {flujo.titulo}
+        </span>
         <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
       </div>
+      {flujo.tiempo_estimado && flujo.tiempo_estimado > 0 && (
+        <div className="flex items-center gap-1 mt-1.5 ml-4">
+          <Clock className="h-3 w-3 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">
+            {flujo.tiempo_estimado} {flujo.unidad_tiempo}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
-// Drag Overlay Card (shown while dragging)
-function DragOverlayCard({ flujo }: { flujo: FaseFlujo }) {
+// Drag Overlay Card for flujos
+function DragOverlayFlujoCard({ flujo }: { flujo: FaseFlujo }) {
   return (
     <div className="bg-card border rounded-lg p-3 shadow-lg cursor-grabbing ring-2 ring-primary">
-      <div className="flex items-start gap-2">
-        <div className="mt-0.5 shrink-0">
-          {flujo.completado ? (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          ) : (
-            <Circle className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <div 
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: flujo.color }}
-            />
-            <span className="text-sm font-medium truncate">
-              {flujo.titulo}
-            </span>
-          </div>
+      <div className="flex items-center gap-2">
+        <div 
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ backgroundColor: flujo.color }}
+        />
+        <span className="text-sm font-medium truncate">
+          {flujo.titulo}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Drag Overlay Card for fases
+function DragOverlayFaseCard({ fase }: { fase: TareaFase }) {
+  return (
+    <div 
+      className="w-72 rounded-xl border shadow-lg cursor-grabbing ring-2 ring-primary bg-card"
+      style={{ 
+        borderLeftWidth: '4px',
+        borderLeftColor: fase.color 
+      }}
+    >
+      <div className="p-3">
+        <div className="flex items-center gap-2">
+          <div 
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: fase.color }}
+          />
+          <h3 className="font-semibold text-sm">
+            Fase {fase.numero_orden}: {fase.titulo}
+          </h3>
         </div>
       </div>
     </div>
   );
 }
 
-// Phase Column Component
-function FaseColumn({ 
+// Sortable Phase Column Component
+function SortableFaseColumn({ 
   fase, 
-  flujos, 
-  isCurrentFase,
-  activeFlujoId,
-  onToggleFlujoComplete
+  flujos,
 }: { 
   fase: TareaFase; 
   flujos: FaseFlujo[];
-  isCurrentFase: boolean;
-  activeFlujoId: string | null;
-  onToggleFlujoComplete: (flujo: FaseFlujo) => void;
 }) {
-  const completedCount = flujos.filter(f => f.completado).length;
-  const progress = flujos.length > 0 ? (completedCount / flujos.length) * 100 : 0;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: fase.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   return (
     <div 
-      className={`
-        flex flex-col w-72 shrink-0 rounded-xl overflow-hidden border
-        ${isCurrentFase ? 'ring-2 ring-primary shadow-lg' : 'bg-muted/30'}
-      `}
+      ref={setNodeRef}
+      style={style}
+      className="flex flex-col w-72 shrink-0 rounded-xl overflow-hidden border bg-muted/30"
     >
-      {/* Column Header */}
+      {/* Column Header - Draggable */}
       <div 
-        className="p-3 border-b"
+        className="p-3 border-b cursor-grab active:cursor-grabbing"
         style={{ 
           backgroundColor: `${fase.color}20`,
           borderLeftWidth: '4px',
           borderLeftColor: fase.color 
         }}
+        {...attributes}
+        {...listeners}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -228,27 +217,9 @@ function FaseColumn({
               Fase {fase.numero_orden}
             </h3>
           </div>
-          {isCurrentFase && (
-            <Badge variant="default" className="text-xs">
-              Actual
-            </Badge>
-          )}
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
         <p className="text-sm font-medium truncate">{fase.titulo}</p>
-        
-        {/* Progress bar */}
-        <div className="mt-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-            <span>{completedCount}/{flujos.length} completados</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
 
         {/* Assigned person */}
         {(fase.equipo || fase.tecnico) && (
@@ -278,7 +249,7 @@ function FaseColumn({
       <ScrollArea className="flex-1 p-2">
         <SortableContext 
           items={flujos.map(f => f.id)} 
-          strategy={horizontalListSortingStrategy}
+          strategy={verticalListSortingStrategy}
         >
           <div className="space-y-2 min-h-[100px]">
             {flujos.length === 0 ? (
@@ -287,12 +258,7 @@ function FaseColumn({
               </div>
             ) : (
               flujos.map((flujo) => (
-                <SortableFlujoCard 
-                  key={flujo.id} 
-                  flujo={flujo}
-                  isActive={flujo.id === activeFlujoId}
-                  onToggleComplete={onToggleFlujoComplete}
-                />
+                <SortableFlujoCard key={flujo.id} flujo={flujo} />
               ))
             )}
           </div>
@@ -312,9 +278,7 @@ export function TareaKanbanView({
   const [loading, setLoading] = useState(false);
   const [fases, setFases] = useState<TareaFase[]>([]);
   const [flujosByFase, setFlujosByFase] = useState<Record<string, FaseFlujo[]>>({});
-  const [activeDragFlujo, setActiveDragFlujo] = useState<FaseFlujo | null>(null);
-  const [currentFaseId, setCurrentFaseId] = useState<string | null>(null);
-  const [activeFlujoId, setActiveFlujoId] = useState<string | null>(null);
+  const [activeDragItem, setActiveDragItem] = useState<{ type: 'fase' | 'flujo'; item: TareaFase | FaseFlujo } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -371,24 +335,8 @@ export function TareaKanbanView({
           grouped[flujo.fase_id].push(flujo);
         });
         setFlujosByFase(grouped);
-
-        // Determine current fase (first fase with incomplete flujos)
-        const firstIncompleteFase = data.find(fase => {
-          const faseFlujos = grouped[fase.id] || [];
-          return faseFlujos.some(f => !f.completado);
-        });
-        setCurrentFaseId(firstIncompleteFase?.id || data[0]?.id || null);
-
-        // Determine active flujo (first incomplete flujo in current fase)
-        if (firstIncompleteFase) {
-          const faseFlujos = grouped[firstIncompleteFase.id] || [];
-          const firstIncompleteFlujo = faseFlujos.find(f => !f.completado);
-          setActiveFlujoId(firstIncompleteFlujo?.id || null);
-        }
       } else {
         setFlujosByFase({});
-        setCurrentFaseId(null);
-        setActiveFlujoId(null);
       }
     } catch (error: any) {
       console.error("Error fetching fases:", error);
@@ -399,116 +347,181 @@ export function TareaKanbanView({
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    const flujoId = event.active.id as string;
-    // Find the flujo being dragged
+    const activeId = event.active.id as string;
+    
+    // Check if it's a fase
+    const fase = fases.find(f => f.id === activeId);
+    if (fase) {
+      setActiveDragItem({ type: 'fase', item: fase });
+      return;
+    }
+    
+    // Check if it's a flujo
     for (const faseId in flujosByFase) {
-      const flujo = flujosByFase[faseId].find(f => f.id === flujoId);
+      const flujo = flujosByFase[faseId].find(f => f.id === activeId);
       if (flujo) {
-        setActiveDragFlujo(flujo);
-        break;
+        setActiveDragItem({ type: 'flujo', item: flujo });
+        return;
       }
     }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    setActiveDragFlujo(null);
+    setActiveDragItem(null);
     
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    // For now, just reorder within the same phase
-    // More complex cross-phase logic can be added later
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Find which fase contains these flujos
-    for (const faseId in flujosByFase) {
-      const flujos = flujosByFase[faseId];
-      const activeIndex = flujos.findIndex(f => f.id === activeId);
-      const overIndex = flujos.findIndex(f => f.id === overId);
-
-      if (activeIndex !== -1 && overIndex !== -1) {
-        // Reorder within the same phase
-        const newFlujos = [...flujos];
-        const [removed] = newFlujos.splice(activeIndex, 1);
-        newFlujos.splice(overIndex, 0, removed);
+    // Check if we're dragging a fase
+    const activeFaseIndex = fases.findIndex(f => f.id === activeId);
+    if (activeFaseIndex !== -1) {
+      const overFaseIndex = fases.findIndex(f => f.id === overId);
+      if (overFaseIndex !== -1) {
+        // Reorder fases
+        const newFases = [...fases];
+        const [removed] = newFases.splice(activeFaseIndex, 1);
+        newFases.splice(overFaseIndex, 0, removed);
 
         // Update order numbers
-        const updates = newFlujos.map((flujo, idx) => ({
-          id: flujo.id,
+        const updatedFases = newFases.map((fase, idx) => ({
+          ...fase,
           numero_orden: idx + 1
         }));
 
-        // Update state immediately for responsiveness
-        setFlujosByFase(prev => ({
-          ...prev,
-          [faseId]: newFlujos.map((f, idx) => ({ ...f, numero_orden: idx + 1 }))
-        }));
+        setFases(updatedFases);
 
         // Update in database
         try {
-          for (const update of updates) {
+          for (const fase of updatedFases) {
             await supabase
-              .from("fase_flujos")
-              .update({ numero_orden: update.numero_orden })
-              .eq("id", update.id);
+              .from("tarea_fases")
+              .update({ numero_orden: fase.numero_orden })
+              .eq("id", fase.id);
           }
+          toast.success("Orden de fases actualizado");
         } catch (error) {
-          console.error("Error updating order:", error);
-          fetchFasesAndFlujos(); // Revert on error
+          console.error("Error updating fase order:", error);
+          toast.error("Error al actualizar el orden");
+          fetchFasesAndFlujos();
         }
+        return;
+      }
+    }
+
+    // Check if we're dragging a flujo
+    let sourceFaseId: string | null = null;
+    let activeFlujoIndex = -1;
+
+    for (const faseId in flujosByFase) {
+      const idx = flujosByFase[faseId].findIndex(f => f.id === activeId);
+      if (idx !== -1) {
+        sourceFaseId = faseId;
+        activeFlujoIndex = idx;
         break;
       }
     }
-  };
 
-  const handleToggleFlujoComplete = async (flujo: FaseFlujo) => {
-    const newCompletado = !flujo.completado;
-    
-    // Optimistic update
-    setFlujosByFase(prev => ({
-      ...prev,
-      [flujo.fase_id]: prev[flujo.fase_id].map(f => 
-        f.id === flujo.id ? { ...f, completado: newCompletado } : f
-      )
-    }));
+    if (sourceFaseId && activeFlujoIndex !== -1) {
+      // Find where we're dropping
+      let targetFaseId: string | null = null;
+      let overFlujoIndex = -1;
 
-    try {
-      const { error } = await supabase
-        .from("fase_flujos")
-        .update({ completado: newCompletado })
-        .eq("id", flujo.id);
-
-      if (error) throw error;
-
-      // Update current fase and active flujo
-      if (newCompletado) {
-        // Move to next incomplete flujo
-        const faseFlujos = flujosByFase[flujo.fase_id] || [];
-        const nextIncompleteFlujo = faseFlujos.find(f => f.id !== flujo.id && !f.completado);
-        
-        if (nextIncompleteFlujo) {
-          setActiveFlujoId(nextIncompleteFlujo.id);
-        } else {
-          // All flujos in this phase complete, move to next phase
-          const currentFaseIndex = fases.findIndex(f => f.id === flujo.fase_id);
-          if (currentFaseIndex < fases.length - 1) {
-            const nextFase = fases[currentFaseIndex + 1];
-            setCurrentFaseId(nextFase.id);
-            const nextFaseFlujos = flujosByFase[nextFase.id] || [];
-            const firstIncompleteFlujoInNextFase = nextFaseFlujos.find(f => !f.completado);
-            setActiveFlujoId(firstIncompleteFlujoInNextFase?.id || null);
-          } else {
-            setActiveFlujoId(null);
-          }
+      for (const faseId in flujosByFase) {
+        const idx = flujosByFase[faseId].findIndex(f => f.id === overId);
+        if (idx !== -1) {
+          targetFaseId = faseId;
+          overFlujoIndex = idx;
+          break;
         }
       }
 
-      toast.success(newCompletado ? "Flujo completado" : "Flujo marcado como pendiente");
-    } catch (error) {
-      console.error("Error toggling flujo:", error);
-      toast.error("Error al actualizar el flujo");
-      fetchFasesAndFlujos(); // Revert on error
+      // Check if we're dropping on a fase (empty area)
+      if (!targetFaseId) {
+        const targetFase = fases.find(f => f.id === overId);
+        if (targetFase) {
+          targetFaseId = targetFase.id;
+          overFlujoIndex = 0;
+        }
+      }
+
+      if (targetFaseId) {
+        if (sourceFaseId === targetFaseId) {
+          // Reorder within the same phase
+          const flujos = [...flujosByFase[sourceFaseId]];
+          const [removed] = flujos.splice(activeFlujoIndex, 1);
+          flujos.splice(overFlujoIndex, 0, removed);
+
+          const updatedFlujos = flujos.map((flujo, idx) => ({
+            ...flujo,
+            numero_orden: idx + 1
+          }));
+
+          setFlujosByFase(prev => ({
+            ...prev,
+            [sourceFaseId!]: updatedFlujos
+          }));
+
+          // Update in database
+          try {
+            for (const flujo of updatedFlujos) {
+              await supabase
+                .from("fase_flujos")
+                .update({ numero_orden: flujo.numero_orden })
+                .eq("id", flujo.id);
+            }
+          } catch (error) {
+            console.error("Error updating flujo order:", error);
+            fetchFasesAndFlujos();
+          }
+        } else {
+          // Move to different phase
+          const sourceFlujos = [...(flujosByFase[sourceFaseId] || [])];
+          const targetFlujos = [...(flujosByFase[targetFaseId] || [])];
+          
+          const [movedFlujo] = sourceFlujos.splice(activeFlujoIndex, 1);
+          movedFlujo.fase_id = targetFaseId;
+          targetFlujos.splice(overFlujoIndex, 0, movedFlujo);
+
+          // Update order numbers
+          const updatedSourceFlujos = sourceFlujos.map((f, idx) => ({ ...f, numero_orden: idx + 1 }));
+          const updatedTargetFlujos = targetFlujos.map((f, idx) => ({ ...f, numero_orden: idx + 1 }));
+
+          setFlujosByFase(prev => ({
+            ...prev,
+            [sourceFaseId!]: updatedSourceFlujos,
+            [targetFaseId!]: updatedTargetFlujos
+          }));
+
+          // Update in database
+          try {
+            await supabase
+              .from("fase_flujos")
+              .update({ fase_id: targetFaseId, numero_orden: overFlujoIndex + 1 })
+              .eq("id", movedFlujo.id);
+
+            for (const flujo of updatedSourceFlujos) {
+              await supabase
+                .from("fase_flujos")
+                .update({ numero_orden: flujo.numero_orden })
+                .eq("id", flujo.id);
+            }
+            for (const flujo of updatedTargetFlujos) {
+              await supabase
+                .from("fase_flujos")
+                .update({ numero_orden: flujo.numero_orden })
+                .eq("id", flujo.id);
+            }
+            toast.success("Flujo movido");
+          } catch (error) {
+            console.error("Error moving flujo:", error);
+            toast.error("Error al mover el flujo");
+            fetchFasesAndFlujos();
+          }
+        }
+      }
     }
   };
 
@@ -525,7 +538,7 @@ export function TareaKanbanView({
                 Vista Kanban: {tarea.nombre}
               </DialogTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {tarea.codigo_tarea} - Arrastra los flujos para cambiar su orden
+                {tarea.codigo_tarea} - Arrastra fases y flujos para reorganizar
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={onOpenFasesManager}>
@@ -558,23 +571,30 @@ export function TareaKanbanView({
               onDragEnd={handleDragEnd}
             >
               <ScrollArea className="h-[calc(90vh-120px)]">
-                <div className="flex gap-4 p-6 min-w-max">
-                  {fases.map((fase) => (
-                    <FaseColumn
-                      key={fase.id}
-                      fase={fase}
-                      flujos={flujosByFase[fase.id] || []}
-                      isCurrentFase={fase.id === currentFaseId}
-                      activeFlujoId={activeFlujoId}
-                      onToggleFlujoComplete={handleToggleFlujoComplete}
-                    />
-                  ))}
+                <div className="p-6">
+                  <SortableContext 
+                    items={fases.map(f => f.id)} 
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    <div className="flex gap-4 min-w-max">
+                      {fases.map((fase) => (
+                        <SortableFaseColumn
+                          key={fase.id}
+                          fase={fase}
+                          flujos={flujosByFase[fase.id] || []}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
                 </div>
               </ScrollArea>
 
               <DragOverlay>
-                {activeDragFlujo && (
-                  <DragOverlayCard flujo={activeDragFlujo} />
+                {activeDragItem?.type === 'flujo' && (
+                  <DragOverlayFlujoCard flujo={activeDragItem.item as FaseFlujo} />
+                )}
+                {activeDragItem?.type === 'fase' && (
+                  <DragOverlayFaseCard fase={activeDragItem.item as TareaFase} />
                 )}
               </DragOverlay>
             </DndContext>
