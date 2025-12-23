@@ -43,16 +43,27 @@ export function OrdenProcesoKanban({
   onOpenChange,
   ordenId,
   tareaId,
-  faseActualId,
-  flujoActualId,
+  faseActualId: initialFaseId,
+  flujoActualId: initialFlujoId,
   ordenDescripcion,
   onUpdate,
 }: OrdenProcesoKanbanProps) {
   const [fases, setFases] = useState<TareaFase[]>([]);
   const [flujosByFase, setFlujosByFase] = useState<Record<string, FaseFlujo[]>>({});
+  const [completedFlujos, setCompletedFlujos] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [moving, setMoving] = useState(false);
   const [tarea, setTarea] = useState<{ nombre: string; codigo_tarea: string } | null>(null);
+  
+  // Estado local para tracking de posición actual
+  const [currentFaseId, setCurrentFaseId] = useState<string | null>(initialFaseId);
+  const [currentFlujoId, setCurrentFlujoId] = useState<string | null>(initialFlujoId);
+
+  // Sincronizar estado inicial
+  useEffect(() => {
+    setCurrentFaseId(initialFaseId);
+    setCurrentFlujoId(initialFlujoId);
+  }, [initialFaseId, initialFlujoId]);
 
   useEffect(() => {
     if (open && tareaId) {
@@ -98,6 +109,21 @@ export function OrdenProcesoKanban({
         });
         setFlujosByFase(grouped);
       }
+
+      // Cargar historial para marcar flujos ya completados
+      const { data: historialData } = await supabase
+        .from("orden_proceso_historial")
+        .select("flujo_id")
+        .eq("orden_id", ordenId)
+        .not("flujo_id", "is", null);
+
+      if (historialData) {
+        const completed = new Set<string>();
+        historialData.forEach(h => {
+          if (h.flujo_id) completed.add(h.flujo_id);
+        });
+        setCompletedFlujos(completed);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Error al cargar el proceso");
@@ -130,6 +156,13 @@ export function OrdenProcesoKanban({
           fecha_entrada: new Date().toISOString(),
         });
 
+      // Actualizar estado local
+      setCurrentFaseId(newFaseId);
+      setCurrentFlujoId(newFlujoId);
+      if (newFlujoId) {
+        setCompletedFlujos(prev => new Set([...prev, newFlujoId]));
+      }
+
       toast.success("Orden movida correctamente");
       onUpdate();
     } catch (error) {
@@ -140,41 +173,82 @@ export function OrdenProcesoKanban({
     }
   };
 
-  const moveToFlujo = async (newFlujoId: string, faseId: string) => {
+  const markFlujoComplete = async (flujoId: string, faseId: string) => {
     setMoving(true);
     try {
-      const { error: updateError } = await supabase
-        .from("ordenes")
-        .update({
-          fase_actual_id: faseId,
-          flujo_actual_id: newFlujoId,
-        })
-        .eq("id", ordenId);
-
-      if (updateError) throw updateError;
-
-      // Update history
+      const flujos = flujosByFase[faseId] || [];
+      const currentFlujoIndex = flujos.findIndex(f => f.id === flujoId);
+      
+      // Marcar flujo como completado
+      setCompletedFlujos(prev => new Set([...prev, flujoId]));
+      
+      // Registrar en historial
       await supabase
         .from("orden_proceso_historial")
         .insert({
           orden_id: ordenId,
           fase_id: faseId,
-          flujo_id: newFlujoId,
+          flujo_id: flujoId,
           fecha_entrada: new Date().toISOString(),
         });
 
-      toast.success("Flujo actualizado");
+      // Determinar siguiente paso
+      if (currentFlujoIndex < flujos.length - 1) {
+        // Hay más flujos en esta fase, mover al siguiente
+        const nextFlujo = flujos[currentFlujoIndex + 1];
+        
+        const { error: updateError } = await supabase
+          .from("ordenes")
+          .update({
+            fase_actual_id: faseId,
+            flujo_actual_id: nextFlujo.id,
+          })
+          .eq("id", ordenId);
+
+        if (updateError) throw updateError;
+        
+        setCurrentFlujoId(nextFlujo.id);
+        toast.success(`Flujo completado. Avanzando a: ${nextFlujo.titulo}`);
+      } else {
+        // Último flujo de la fase, verificar si hay más fases
+        const currentFaseIndex = fases.findIndex(f => f.id === faseId);
+        
+        if (currentFaseIndex < fases.length - 1) {
+          // Hay más fases, mover a la siguiente
+          const nextFase = fases[currentFaseIndex + 1];
+          const nextFlujos = flujosByFase[nextFase.id] || [];
+          const firstFlujoId = nextFlujos.length > 0 ? nextFlujos[0].id : null;
+          
+          const { error: updateError } = await supabase
+            .from("ordenes")
+            .update({
+              fase_actual_id: nextFase.id,
+              flujo_actual_id: firstFlujoId,
+            })
+            .eq("id", ordenId);
+
+          if (updateError) throw updateError;
+          
+          setCurrentFaseId(nextFase.id);
+          setCurrentFlujoId(firstFlujoId);
+          toast.success(`Fase completada. Avanzando a: ${nextFase.titulo}`);
+        } else {
+          // Es el último flujo de la última fase
+          toast.success("¡Proceso completado!");
+        }
+      }
+
       onUpdate();
     } catch (error) {
-      console.error("Error updating flujo:", error);
-      toast.error("Error al actualizar el flujo");
+      console.error("Error marking flujo complete:", error);
+      toast.error("Error al completar el flujo");
     } finally {
       setMoving(false);
     }
   };
 
   const getCurrentFaseIndex = () => {
-    return fases.findIndex(f => f.id === faseActualId);
+    return fases.findIndex(f => f.id === currentFaseId);
   };
 
   const canMoveBack = () => {
@@ -212,6 +286,12 @@ export function OrdenProcesoKanban({
     return currentIndex === fases.length - 1;
   };
 
+  const allFlujosInFaseCompleted = (faseId: string) => {
+    const flujos = flujosByFase[faseId] || [];
+    if (flujos.length === 0) return true;
+    return flujos.every(f => completedFlujos.has(f.id));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
@@ -245,13 +325,15 @@ export function OrdenProcesoKanban({
               </Button>
               
               <div className="flex items-center gap-2">
-                {fases.map((fase, index) => (
+                {fases.map((fase) => (
                   <div
                     key={fase.id}
                     className={cn(
                       "w-3 h-3 rounded-full transition-all",
-                      fase.id === faseActualId
+                      fase.id === currentFaseId
                         ? "scale-125"
+                        : allFlujosInFaseCompleted(fase.id)
+                        ? "opacity-100"
                         : "opacity-50"
                     )}
                     style={{ backgroundColor: fase.color }}
@@ -260,7 +342,7 @@ export function OrdenProcesoKanban({
                 ))}
               </div>
 
-              {isLastFase() ? (
+              {isLastFase() && allFlujosInFaseCompleted(currentFaseId || "") ? (
                 <Button
                   variant="default"
                   onClick={() => onOpenChange(false)}
@@ -286,7 +368,7 @@ export function OrdenProcesoKanban({
               <div className="flex gap-4 min-w-max pb-4">
                 {fases.map((fase) => {
                   const flujos = flujosByFase[fase.id] || [];
-                  const isCurrentFase = fase.id === faseActualId;
+                  const isCurrentFase = fase.id === currentFaseId;
 
                   return (
                     <Card
@@ -338,38 +420,56 @@ export function OrdenProcesoKanban({
                           </p>
                         ) : (
                           flujos.map((flujo) => {
-                            const isCurrentFlujo = flujo.id === flujoActualId;
+                            const isCurrentFlujo = flujo.id === currentFlujoId;
+                            const isCompleted = completedFlujos.has(flujo.id);
                             
                             return (
                               <Card
                                 key={flujo.id}
                                 className={cn(
                                   "p-3 transition-all cursor-pointer",
-                                  isCurrentFlujo
+                                  isCompleted
+                                    ? "bg-green-500/10 border-green-500/30"
+                                    : isCurrentFlujo
                                     ? "ring-2 ring-primary bg-primary/5"
                                     : "hover:bg-muted/50"
                                 )}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (!moving && isCurrentFase) {
-                                    moveToFlujo(flujo.id, fase.id);
+                                  if (!moving && isCurrentFase && isCurrentFlujo && !isCompleted) {
+                                    markFlujoComplete(flujo.id, fase.id);
                                   }
                                 }}
                               >
                                 <div className="flex items-center gap-2">
                                   <div
-                                    className="w-2 h-2 rounded-full"
-                                    style={{ backgroundColor: flujo.color }}
-                                  />
-                                  <span className="text-sm font-medium">
+                                    className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      isCompleted 
+                                        ? "bg-green-500 border-green-500" 
+                                        : isCurrentFlujo 
+                                        ? "border-primary"
+                                        : "border-muted-foreground/30"
+                                    )}
+                                  >
+                                    {isCompleted && (
+                                      <Check className="h-3 w-3 text-white" />
+                                    )}
+                                  </div>
+                                  <span className={cn(
+                                    "text-sm font-medium flex-1",
+                                    isCompleted && "line-through opacity-70"
+                                  )}>
                                     {flujo.titulo}
                                   </span>
-                                  {isCurrentFlujo && (
-                                    <Check className="h-3 w-3 text-primary ml-auto" />
+                                  {isCurrentFlujo && !isCompleted && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      En curso
+                                    </Badge>
                                   )}
                                 </div>
                                 {flujo.tiempo_estimado && (
-                                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 ml-4">
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 ml-6">
                                     <Clock className="h-3 w-3" />
                                     {flujo.tiempo_estimado}{" "}
                                     {flujo.unidad_tiempo === "minutos" ? "min" : 
