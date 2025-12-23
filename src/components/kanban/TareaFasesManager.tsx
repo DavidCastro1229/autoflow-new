@@ -423,6 +423,7 @@ export function TareaFasesManager({
         tipoTarea={tarea.tipo_tarea}
         nextNumeroOrden={editingFase?.numero_orden || getNextFaseNumeroOrden()}
         tallerId={tallerId}
+        currentFlujos={editingFase ? (flujosByFase[editingFase.id] || []) : []}
         onSuccess={fetchFases}
       />
 

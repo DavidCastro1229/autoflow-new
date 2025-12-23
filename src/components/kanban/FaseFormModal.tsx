@@ -55,12 +55,23 @@ interface TareaFase {
   tecnico_id: string | null;
 }
 
+interface PlantillaFaseFlujo {
+  id: string;
+  plantilla_fase_id: string;
+  titulo: string;
+  color: string;
+  tiempo_estimado: number | null;
+  unidad_tiempo: 'minutos' | 'horas' | null;
+  numero_orden: number;
+}
+
 interface PlantillaFase {
   id: string;
   titulo: string;
   color: string;
   tiempo_estimado: number | null;
   unidad_tiempo: 'minutos' | 'horas' | null;
+  plantilla_fase_flujos?: PlantillaFaseFlujo[];
 }
 
 interface EquipoMember {
@@ -75,6 +86,16 @@ interface Tecnico {
   apellido: string;
 }
 
+interface FaseFlujo {
+  id: string;
+  fase_id: string;
+  numero_orden: number;
+  titulo: string;
+  color: string;
+  tiempo_estimado: number;
+  unidad_tiempo: 'minutos' | 'horas';
+}
+
 interface FaseFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -83,6 +104,7 @@ interface FaseFormModalProps {
   tipoTarea: 'administrativa' | 'operativa';
   nextNumeroOrden: number;
   tallerId: string;
+  currentFlujos?: FaseFlujo[];
   onSuccess: () => void;
 }
 
@@ -105,6 +127,7 @@ export function FaseFormModal({
   tipoTarea,
   nextNumeroOrden,
   tallerId,
+  currentFlujos = [],
   onSuccess,
 }: FaseFormModalProps) {
   const [loading, setLoading] = useState(false);
@@ -183,7 +206,12 @@ export function FaseFormModal({
     try {
       const { data, error } = await supabase
         .from("plantillas_fases")
-        .select("id, titulo, color, tiempo_estimado, unidad_tiempo")
+        .select(`
+          id, titulo, color, tiempo_estimado, unidad_tiempo,
+          plantilla_fase_flujos (
+            id, plantilla_fase_id, titulo, color, tiempo_estimado, unidad_tiempo, numero_orden
+          )
+        `)
         .eq("taller_id", tallerId)
         .order("titulo");
 
@@ -213,19 +241,49 @@ export function FaseFormModal({
   const onSubmit = async (values: FaseFormValues) => {
     setLoading(true);
     try {
+      // Get the selected plantilla to check for flujos
+      const selectedPlantillaData = selectedPlantilla 
+        ? plantillas.find(p => p.id === selectedPlantilla) 
+        : null;
+      const plantillaFlujos = selectedPlantillaData?.plantilla_fase_flujos || [];
+
       // Save as template if checkbox is checked
       if (values.guardar_plantilla && !fase) {
-        const { error: templateError } = await supabase.from("plantillas_fases").insert({
-          taller_id: tallerId,
-          titulo: values.titulo,
-          color: values.color,
-          tiempo_estimado: values.tiempo_estimado,
-          unidad_tiempo: values.unidad_tiempo,
-        });
+        const { data: templateData, error: templateError } = await supabase
+          .from("plantillas_fases")
+          .insert({
+            taller_id: tallerId,
+            titulo: values.titulo,
+            color: values.color,
+            tiempo_estimado: values.tiempo_estimado,
+            unidad_tiempo: values.unidad_tiempo,
+          })
+          .select()
+          .single();
 
         if (templateError) {
           console.error("Error saving template:", templateError);
           toast.error("Error al guardar la plantilla");
+        } else if (templateData && currentFlujos.length > 0) {
+          // Save current flujos as plantilla flujos
+          const flujosToSave = currentFlujos.map((flujo, index) => ({
+            plantilla_fase_id: templateData.id,
+            titulo: flujo.titulo,
+            color: flujo.color,
+            tiempo_estimado: flujo.tiempo_estimado,
+            unidad_tiempo: flujo.unidad_tiempo,
+            numero_orden: flujo.numero_orden || index + 1,
+          }));
+
+          const { error: flujosError } = await supabase
+            .from("plantilla_fase_flujos")
+            .insert(flujosToSave);
+
+          if (flujosError) {
+            console.error("Error saving template flujos:", flujosError);
+          }
+          
+          toast.success("Plantilla guardada con sus flujos");
         } else {
           toast.success("Plantilla guardada");
         }
@@ -247,19 +305,49 @@ export function FaseFormModal({
         if (error) throw error;
         toast.success("Fase actualizada exitosamente");
       } else {
-        const { error } = await supabase.from("tarea_fases").insert({
-          tarea_id: tareaId,
-          numero_orden: nextNumeroOrden,
-          titulo: values.titulo,
-          color: values.color,
-          tiempo_estimado: values.tiempo_estimado,
-          unidad_tiempo: values.unidad_tiempo,
-          equipo_id: tipoTarea === 'administrativa' ? values.equipo_id || null : null,
-          tecnico_id: tipoTarea === 'operativa' ? values.tecnico_id || null : null,
-        });
+        // Create the new fase
+        const { data: newFase, error } = await supabase
+          .from("tarea_fases")
+          .insert({
+            tarea_id: tareaId,
+            numero_orden: nextNumeroOrden,
+            titulo: values.titulo,
+            color: values.color,
+            tiempo_estimado: values.tiempo_estimado,
+            unidad_tiempo: values.unidad_tiempo,
+            equipo_id: tipoTarea === 'administrativa' ? values.equipo_id || null : null,
+            tecnico_id: tipoTarea === 'operativa' ? values.tecnico_id || null : null,
+          })
+          .select()
+          .single();
 
         if (error) throw error;
-        toast.success("Fase creada exitosamente");
+
+        // If plantilla with flujos was selected, create flujos for the new fase
+        if (newFase && plantillaFlujos.length > 0) {
+          const flujosToCreate = plantillaFlujos.map((flujo) => ({
+            fase_id: newFase.id,
+            titulo: flujo.titulo,
+            color: flujo.color,
+            tiempo_estimado: flujo.tiempo_estimado || 0,
+            unidad_tiempo: flujo.unidad_tiempo || 'minutos',
+            numero_orden: flujo.numero_orden,
+            completado: false,
+          }));
+
+          const { error: flujosError } = await supabase
+            .from("fase_flujos")
+            .insert(flujosToCreate);
+
+          if (flujosError) {
+            console.error("Error creating flujos from template:", flujosError);
+            toast.error("Fase creada pero hubo error al crear los flujos");
+          } else {
+            toast.success(`Fase creada con ${plantillaFlujos.length} flujos`);
+          }
+        } else {
+          toast.success("Fase creada exitosamente");
+        }
       }
 
       onSuccess();
@@ -309,6 +397,11 @@ export function FaseFormModal({
                               style={{ backgroundColor: plantilla.color }}
                             />
                             {plantilla.titulo}
+                            {plantilla.plantilla_fase_flujos && plantilla.plantilla_fase_flujos.length > 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                ({plantilla.plantilla_fase_flujos.length} flujos)
+                              </span>
+                            )}
                           </div>
                         </SelectItem>
                       ))}
