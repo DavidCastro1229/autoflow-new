@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Plus, Upload, Search, Loader2, Pencil, Copy, Trash2, Workflow, Eye } from "lucide-react";
+import { Plus, Upload, Search, Loader2, Pencil, Copy, Trash2, Workflow, Eye, FileText } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -26,6 +26,7 @@ import {
 import { TareaFormModal } from "@/components/kanban/TareaFormModal";
 import { TareaFasesManager } from "@/components/kanban/TareaFasesManager";
 import { TareaKanbanView } from "@/components/kanban/TareaKanbanView";
+import { PlantillasFasesManager } from "@/components/kanban/PlantillasFasesManager";
 import { ExportButtons } from "@/components/ExportButtons";
 
 // Types
@@ -91,6 +92,7 @@ export default function Kanban() {
   const [tareaForFases, setTareaForFases] = useState<CatalogoTarea | null>(null);
   const [kanbanViewOpen, setKanbanViewOpen] = useState(false);
   const [tareaForKanban, setTareaForKanban] = useState<CatalogoTarea | null>(null);
+  const [plantillasManagerOpen, setPlantillasManagerOpen] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -313,6 +315,10 @@ export default function Kanban() {
             <Upload className="h-4 w-4 mr-2" />
             Importar Excel
           </Button>
+          <Button variant="outline" onClick={() => setPlantillasManagerOpen(true)}>
+            <FileText className="h-4 w-4 mr-2" />
+            Plantillas
+          </Button>
           <Button onClick={handleCreateTarea}>
             <Plus className="h-4 w-4 mr-2" />
             Nueva Tarea
@@ -503,6 +509,15 @@ export default function Kanban() {
           tarea={tareaForKanban}
           tallerId={tallerId}
           onOpenFasesManager={handleOpenFasesManagerFromKanban}
+        />
+      )}
+
+      {/* Plantillas de Fases Manager */}
+      {tallerId && (
+        <PlantillasFasesManager
+          open={plantillasManagerOpen}
+          onOpenChange={setPlantillasManagerOpen}
+          tallerId={tallerId}
         />
       )}
 
