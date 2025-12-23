@@ -13,12 +13,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Calendar as CalendarIcon, Loader2, Eye, User, Car, Wrench, FileText } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Loader2, Eye, User, Car, Wrench, FileText, Layers, Play } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { ExportButtons } from "@/components/ExportButtons";
 import { formatDateForExport, formatCurrencyForExport } from "@/lib/exportUtils";
+import { AsignarTareaModal } from "@/components/ordenes/AsignarTareaModal";
+import { OrdenProcesoKanban } from "@/components/ordenes/OrdenProcesoKanban";
 
 interface Cliente {
   id: string;
@@ -48,6 +50,12 @@ interface TipoOperacion {
   nombre: string;
 }
 
+interface CatalogoTarea {
+  id: string;
+  codigo_tarea: string;
+  nombre: string;
+}
+
 interface Orden {
   id: string;
   cliente_id: string;
@@ -61,10 +69,14 @@ interface Orden {
   estado: 'recepcion' | 'autorizado' | 'en_proceso' | 'finalizada' | 'cancelada';
   costo_estimado: number | null;
   observaciones: string | null;
+  tarea_id: string | null;
+  fase_actual_id: string | null;
+  flujo_actual_id: string | null;
   clientes: Cliente;
   vehiculos: Vehiculo;
   tecnicos: Tecnico;
   tipos_operacion: TipoOperacion;
+  catalogo_tareas: CatalogoTarea | null;
 }
 
 export default function Ordenes() {
@@ -105,6 +117,10 @@ export default function Ordenes() {
   const [submitting, setSubmitting] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedOrden, setSelectedOrden] = useState<Orden | null>(null);
+  const [asignarTareaModalOpen, setAsignarTareaModalOpen] = useState(false);
+  const [ordenParaTarea, setOrdenParaTarea] = useState<Orden | null>(null);
+  const [procesoKanbanOpen, setProcesoKanbanOpen] = useState(false);
+  const [ordenParaProceso, setOrdenParaProceso] = useState<Orden | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -140,7 +156,8 @@ export default function Ordenes() {
             clientes (id, nombre, apellido, tipo_cliente),
             vehiculos (id, marca, modelo, placa, anio, cliente_id),
             tecnicos (id, nombre, apellido),
-            tipos_operacion (id, codigo, nombre)
+            tipos_operacion (id, codigo, nombre),
+            catalogo_tareas (id, codigo_tarea, nombre)
           `)
           .eq("taller_id", userRoles.taller_id)
           .order("created_at", { ascending: false }),
@@ -346,7 +363,7 @@ export default function Ordenes() {
         </div>
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -354,6 +371,7 @@ export default function Ordenes() {
               <TableHead>Vehículo</TableHead>
               <TableHead>Servicio</TableHead>
               <TableHead>Técnico</TableHead>
+              <TableHead>Proceso</TableHead>
               <TableHead>Fecha Ingreso</TableHead>
               <TableHead>Prioridad</TableHead>
               <TableHead>Estado</TableHead>
@@ -364,7 +382,7 @@ export default function Ordenes() {
           <TableBody>
             {ordenes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={10} className="text-center text-muted-foreground">
                   No hay órdenes registradas
                 </TableCell>
               </TableRow>
@@ -379,6 +397,37 @@ export default function Ordenes() {
                   </TableCell>
                   <TableCell>{orden.tipos_operacion.nombre}</TableCell>
                   <TableCell>{orden.tecnicos.nombre} {orden.tecnicos.apellido}</TableCell>
+                  <TableCell>
+                    {orden.catalogo_tareas ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {orden.catalogo_tareas.codigo_tarea}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setOrdenParaProceso(orden);
+                            setProcesoKanbanOpen(true);
+                          }}
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setOrdenParaTarea(orden);
+                          setAsignarTareaModalOpen(true);
+                        }}
+                      >
+                        <Layers className="h-4 w-4 mr-1" />
+                        Asignar
+                      </Button>
+                    )}
+                  </TableCell>
                   <TableCell>{format(new Date(orden.fecha_ingreso), "dd/MM/yyyy", { locale: es })}</TableCell>
                   <TableCell>
                     <Badge variant={getPrioridadBadge(orden.prioridad) as any}>
@@ -394,7 +443,7 @@ export default function Ordenes() {
                     {orden.costo_estimado ? `$${orden.costo_estimado.toFixed(2)}` : "-"}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <Button variant="ghost" size="sm" onClick={() => handleViewDetails(orden)}>
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -812,6 +861,37 @@ export default function Ordenes() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal para asignar tarea */}
+      {ordenParaTarea && (
+        <AsignarTareaModal
+          open={asignarTareaModalOpen}
+          onOpenChange={(open) => {
+            setAsignarTareaModalOpen(open);
+            if (!open) setOrdenParaTarea(null);
+          }}
+          ordenId={ordenParaTarea.id}
+          currentTareaId={ordenParaTarea.tarea_id}
+          onAssigned={fetchData}
+        />
+      )}
+
+      {/* Modal Kanban del proceso */}
+      {ordenParaProceso && ordenParaProceso.tarea_id && (
+        <OrdenProcesoKanban
+          open={procesoKanbanOpen}
+          onOpenChange={(open) => {
+            setProcesoKanbanOpen(open);
+            if (!open) setOrdenParaProceso(null);
+          }}
+          ordenId={ordenParaProceso.id}
+          tareaId={ordenParaProceso.tarea_id}
+          faseActualId={ordenParaProceso.fase_actual_id}
+          flujoActualId={ordenParaProceso.flujo_actual_id}
+          ordenDescripcion={ordenParaProceso.descripcion}
+          onUpdate={fetchData}
+        />
+      )}
     </div>
   );
 }

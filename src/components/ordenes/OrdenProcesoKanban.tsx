@@ -1,0 +1,395 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { Loader2, Clock, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface TareaFase {
+  id: string;
+  titulo: string;
+  numero_orden: number;
+  color: string;
+  tiempo_estimado: number | null;
+  unidad_tiempo: string | null;
+}
+
+interface FaseFlujo {
+  id: string;
+  titulo: string;
+  numero_orden: number;
+  color: string;
+  fase_id: string;
+  tiempo_estimado: number | null;
+  unidad_tiempo: string | null;
+}
+
+interface OrdenProcesoKanbanProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  ordenId: string;
+  tareaId: string;
+  faseActualId: string | null;
+  flujoActualId: string | null;
+  ordenDescripcion: string;
+  onUpdate: () => void;
+}
+
+export function OrdenProcesoKanban({
+  open,
+  onOpenChange,
+  ordenId,
+  tareaId,
+  faseActualId,
+  flujoActualId,
+  ordenDescripcion,
+  onUpdate,
+}: OrdenProcesoKanbanProps) {
+  const [fases, setFases] = useState<TareaFase[]>([]);
+  const [flujosByFase, setFlujosByFase] = useState<Record<string, FaseFlujo[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [moving, setMoving] = useState(false);
+  const [tarea, setTarea] = useState<{ nombre: string; codigo_tarea: string } | null>(null);
+
+  useEffect(() => {
+    if (open && tareaId) {
+      fetchData();
+    }
+  }, [open, tareaId]);
+
+  const fetchData = async () => {
+    try {
+      // Fetch tarea info
+      const { data: tareaData } = await supabase
+        .from("catalogo_tareas")
+        .select("nombre, codigo_tarea")
+        .eq("id", tareaId)
+        .single();
+
+      if (tareaData) setTarea(tareaData);
+
+      // Fetch fases
+      const { data: fasesData, error: fasesError } = await supabase
+        .from("tarea_fases")
+        .select("*")
+        .eq("tarea_id", tareaId)
+        .order("numero_orden");
+
+      if (fasesError) throw fasesError;
+      setFases(fasesData || []);
+
+      // Fetch flujos for each fase
+      if (fasesData && fasesData.length > 0) {
+        const faseIds = fasesData.map(f => f.id);
+        const { data: flujosData, error: flujosError } = await supabase
+          .from("fase_flujos")
+          .select("*")
+          .in("fase_id", faseIds)
+          .order("numero_orden");
+
+        if (flujosError) throw flujosError;
+
+        const grouped: Record<string, FaseFlujo[]> = {};
+        fasesData.forEach(fase => {
+          grouped[fase.id] = (flujosData || []).filter(f => f.fase_id === fase.id);
+        });
+        setFlujosByFase(grouped);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Error al cargar el proceso");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const moveToFase = async (newFaseId: string, newFlujoId: string | null = null) => {
+    setMoving(true);
+    try {
+      // Update orden with new position
+      const { error: updateError } = await supabase
+        .from("ordenes")
+        .update({
+          fase_actual_id: newFaseId,
+          flujo_actual_id: newFlujoId,
+        })
+        .eq("id", ordenId);
+
+      if (updateError) throw updateError;
+
+      // Add history entry
+      await supabase
+        .from("orden_proceso_historial")
+        .insert({
+          orden_id: ordenId,
+          fase_id: newFaseId,
+          flujo_id: newFlujoId,
+          fecha_entrada: new Date().toISOString(),
+        });
+
+      toast.success("Orden movida correctamente");
+      onUpdate();
+    } catch (error) {
+      console.error("Error moving orden:", error);
+      toast.error("Error al mover la orden");
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  const moveToFlujo = async (newFlujoId: string, faseId: string) => {
+    setMoving(true);
+    try {
+      const { error: updateError } = await supabase
+        .from("ordenes")
+        .update({
+          fase_actual_id: faseId,
+          flujo_actual_id: newFlujoId,
+        })
+        .eq("id", ordenId);
+
+      if (updateError) throw updateError;
+
+      // Update history
+      await supabase
+        .from("orden_proceso_historial")
+        .insert({
+          orden_id: ordenId,
+          fase_id: faseId,
+          flujo_id: newFlujoId,
+          fecha_entrada: new Date().toISOString(),
+        });
+
+      toast.success("Flujo actualizado");
+      onUpdate();
+    } catch (error) {
+      console.error("Error updating flujo:", error);
+      toast.error("Error al actualizar el flujo");
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  const getCurrentFaseIndex = () => {
+    return fases.findIndex(f => f.id === faseActualId);
+  };
+
+  const canMoveBack = () => {
+    const currentIndex = getCurrentFaseIndex();
+    return currentIndex > 0;
+  };
+
+  const canMoveForward = () => {
+    const currentIndex = getCurrentFaseIndex();
+    return currentIndex < fases.length - 1;
+  };
+
+  const moveToPreviousFase = async () => {
+    const currentIndex = getCurrentFaseIndex();
+    if (currentIndex > 0) {
+      const previousFase = fases[currentIndex - 1];
+      const flujos = flujosByFase[previousFase.id] || [];
+      const firstFlujo = flujos.length > 0 ? flujos[0].id : null;
+      await moveToFase(previousFase.id, firstFlujo);
+    }
+  };
+
+  const moveToNextFase = async () => {
+    const currentIndex = getCurrentFaseIndex();
+    if (currentIndex < fases.length - 1) {
+      const nextFase = fases[currentIndex + 1];
+      const flujos = flujosByFase[nextFase.id] || [];
+      const firstFlujo = flujos.length > 0 ? flujos[0].id : null;
+      await moveToFase(nextFase.id, firstFlujo);
+    }
+  };
+
+  const isLastFase = () => {
+    const currentIndex = getCurrentFaseIndex();
+    return currentIndex === fases.length - 1;
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            Proceso de Orden
+            {tarea && (
+              <Badge variant="outline">
+                {tarea.codigo_tarea} - {tarea.nombre}
+              </Badge>
+            )}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">{ordenDescripcion}</p>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center h-96">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-auto">
+            {/* Navigation buttons */}
+            <div className="flex items-center justify-between mb-4 px-2">
+              <Button
+                variant="outline"
+                onClick={moveToPreviousFase}
+                disabled={moving || !canMoveBack()}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Fase Anterior
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                {fases.map((fase, index) => (
+                  <div
+                    key={fase.id}
+                    className={cn(
+                      "w-3 h-3 rounded-full transition-all",
+                      fase.id === faseActualId
+                        ? "scale-125"
+                        : "opacity-50"
+                    )}
+                    style={{ backgroundColor: fase.color }}
+                    title={fase.titulo}
+                  />
+                ))}
+              </div>
+
+              {isLastFase() ? (
+                <Button
+                  variant="default"
+                  onClick={() => onOpenChange(false)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Proceso Completo
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={moveToNextFase}
+                  disabled={moving || !canMoveForward()}
+                >
+                  Siguiente Fase
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+            </div>
+
+            {/* Kanban view */}
+            <div className="h-[calc(90vh-200px)] overflow-auto p-2">
+              <div className="flex gap-4 min-w-max pb-4">
+                {fases.map((fase) => {
+                  const flujos = flujosByFase[fase.id] || [];
+                  const isCurrentFase = fase.id === faseActualId;
+
+                  return (
+                    <Card
+                      key={fase.id}
+                      className={cn(
+                        "w-72 flex-shrink-0 transition-all cursor-pointer",
+                        isCurrentFase
+                          ? "ring-2 ring-primary shadow-lg"
+                          : "opacity-60 hover:opacity-80"
+                      )}
+                      onClick={() => {
+                        if (!isCurrentFase && !moving) {
+                          const firstFlujo = flujos.length > 0 ? flujos[0].id : null;
+                          moveToFase(fase.id, firstFlujo);
+                        }
+                      }}
+                    >
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: fase.color }}
+                            />
+                            <CardTitle className="text-sm font-medium">
+                              {fase.titulo}
+                            </CardTitle>
+                          </div>
+                          {isCurrentFase && (
+                            <Badge variant="default" className="text-xs">
+                              Actual
+                            </Badge>
+                          )}
+                        </div>
+                        {fase.tiempo_estimado && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {fase.tiempo_estimado}{" "}
+                            {fase.unidad_tiempo === "minutos" ? "min" : 
+                             fase.unidad_tiempo === "horas" ? "hrs" : 
+                             fase.unidad_tiempo === "dias" ? "días" : ""}
+                          </div>
+                        )}
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {flujos.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-4">
+                            Sin flujos definidos
+                          </p>
+                        ) : (
+                          flujos.map((flujo) => {
+                            const isCurrentFlujo = flujo.id === flujoActualId;
+                            
+                            return (
+                              <Card
+                                key={flujo.id}
+                                className={cn(
+                                  "p-3 transition-all cursor-pointer",
+                                  isCurrentFlujo
+                                    ? "ring-2 ring-primary bg-primary/5"
+                                    : "hover:bg-muted/50"
+                                )}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!moving && isCurrentFase) {
+                                    moveToFlujo(flujo.id, fase.id);
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: flujo.color }}
+                                  />
+                                  <span className="text-sm font-medium">
+                                    {flujo.titulo}
+                                  </span>
+                                  {isCurrentFlujo && (
+                                    <Check className="h-3 w-3 text-primary ml-auto" />
+                                  )}
+                                </div>
+                                {flujo.tiempo_estimado && (
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 ml-4">
+                                    <Clock className="h-3 w-3" />
+                                    {flujo.tiempo_estimado}{" "}
+                                    {flujo.unidad_tiempo === "minutos" ? "min" : 
+                                     flujo.unidad_tiempo === "horas" ? "hrs" : 
+                                     flujo.unidad_tiempo === "dias" ? "días" : ""}
+                                  </div>
+                                )}
+                              </Card>
+                            );
+                          })
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
