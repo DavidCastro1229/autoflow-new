@@ -2755,12 +2755,7 @@ export type Database = {
         | "cancelada"
       estado_flota: "activa" | "en_renovacion" | "inactiva"
       estado_inventario: "activo" | "descontinuado" | "agotado"
-      estado_orden:
-        | "recepcion"
-        | "autorizado"
-        | "en_proceso"
-        | "finalizada"
-        | "cancelada"
+      estado_orden: "pendiente" | "en_proceso" | "completada" | "cancelada"
       estado_solicitud_afiliacion: "pendiente" | "aprobada" | "rechazada"
       estado_suscripcion: "prueba" | "activo" | "expirado"
       estado_vehiculo: "activo" | "en_servicio" | "entregado" | "inactivo"
@@ -2941,13 +2936,7 @@ export const Constants = {
       ],
       estado_flota: ["activa", "en_renovacion", "inactiva"],
       estado_inventario: ["activo", "descontinuado", "agotado"],
-      estado_orden: [
-        "recepcion",
-        "autorizado",
-        "en_proceso",
-        "finalizada",
-        "cancelada",
-      ],
+      estado_orden: ["pendiente", "en_proceso", "completada", "cancelada"],
       estado_solicitud_afiliacion: ["pendiente", "aprobada", "rechazada"],
       estado_suscripcion: ["prueba", "activo", "expirado"],
       estado_vehiculo: ["activo", "en_servicio", "entregado", "inactivo"],

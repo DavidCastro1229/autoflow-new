@@ -173,7 +173,7 @@ export default function Reportes() {
       const { count: ordenesCompletadas } = await supabase
         .from("ordenes")
         .select("*", { count: "exact", head: true })
-        .eq("estado", "finalizada")
+        .eq("estado", "completada")
         .gte("fecha_ingreso", dateFrom)
         .lte("fecha_ingreso", dateTo);
 
@@ -181,7 +181,7 @@ export default function Reportes() {
       const { count: ordenesPendientes } = await supabase
         .from("ordenes")
         .select("*", { count: "exact", head: true })
-        .in("estado", ["recepcion", "autorizado", "en_proceso"]);
+        .in("estado", ["pendiente", "en_proceso"]);
 
       // Total clientes
       const { count: totalClientes } = await supabase
