@@ -1811,6 +1811,45 @@ export type Database = {
           },
         ]
       }
+      plantilla_fase_materiales: {
+        Row: {
+          cantidad: number
+          created_at: string
+          id: string
+          inventario_id: string
+          plantilla_fase_id: string
+        }
+        Insert: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          inventario_id: string
+          plantilla_fase_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          inventario_id?: string
+          plantilla_fase_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantilla_fase_materiales_inventario_id_fkey"
+            columns: ["inventario_id"]
+            isOneToOne: false
+            referencedRelation: "inventario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plantilla_fase_materiales_plantilla_fase_id_fkey"
+            columns: ["plantilla_fase_id"]
+            isOneToOne: false
+            referencedRelation: "plantillas_fases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantillas_fases: {
         Row: {
           color: string

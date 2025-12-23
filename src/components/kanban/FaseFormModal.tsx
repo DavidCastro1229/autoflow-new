@@ -65,6 +65,13 @@ interface PlantillaFaseFlujo {
   numero_orden: number;
 }
 
+interface PlantillaFaseMaterial {
+  id: string;
+  plantilla_fase_id: string;
+  inventario_id: string;
+  cantidad: number;
+}
+
 interface PlantillaFase {
   id: string;
   titulo: string;
@@ -72,6 +79,7 @@ interface PlantillaFase {
   tiempo_estimado: number | null;
   unidad_tiempo: 'minutos' | 'horas' | null;
   plantilla_fase_flujos?: PlantillaFaseFlujo[];
+  plantilla_fase_materiales?: PlantillaFaseMaterial[];
 }
 
 interface EquipoMember {
@@ -216,7 +224,34 @@ export function FaseFormModal({
         .order("titulo");
 
       if (error) throw error;
-      setPlantillas(data || []);
+
+      // Fetch materials for each plantilla
+      const plantillasData = data || [];
+      if (plantillasData.length > 0) {
+        const plantillaIds = plantillasData.map(p => p.id);
+        const { data: materialesData, error: materialesError } = await supabase
+          .from("plantilla_fase_materiales")
+          .select("id, plantilla_fase_id, inventario_id, cantidad")
+          .in("plantilla_fase_id", plantillaIds);
+
+        if (!materialesError && materialesData) {
+          // Group materials by plantilla
+          const materialsByPlantilla: Record<string, PlantillaFaseMaterial[]> = {};
+          materialesData.forEach((m: any) => {
+            if (!materialsByPlantilla[m.plantilla_fase_id]) {
+              materialsByPlantilla[m.plantilla_fase_id] = [];
+            }
+            materialsByPlantilla[m.plantilla_fase_id].push(m);
+          });
+
+          // Attach materials to plantillas
+          plantillasData.forEach((p: any) => {
+            p.plantilla_fase_materiales = materialsByPlantilla[p.id] || [];
+          });
+        }
+      }
+
+      setPlantillas(plantillasData);
     } catch (error) {
       console.error("Error fetching plantillas:", error);
     }
@@ -241,14 +276,15 @@ export function FaseFormModal({
   const onSubmit = async (values: FaseFormValues) => {
     setLoading(true);
     try {
-      // Get the selected plantilla to check for flujos
+      // Get the selected plantilla to check for flujos and materials
       const selectedPlantillaData = selectedPlantilla 
         ? plantillas.find(p => p.id === selectedPlantilla) 
         : null;
       const plantillaFlujos = selectedPlantillaData?.plantilla_fase_flujos || [];
+      const plantillaMateriales = selectedPlantillaData?.plantilla_fase_materiales || [];
 
       // Save as template if checkbox is checked
-      if (values.guardar_plantilla) {
+      if (values.guardar_plantilla && fase) {
         const { data: templateData, error: templateError } = await supabase
           .from("plantillas_fases")
           .insert({
@@ -264,28 +300,50 @@ export function FaseFormModal({
         if (templateError) {
           console.error("Error saving template:", templateError);
           toast.error("Error al guardar la plantilla");
-        } else if (templateData && currentFlujos.length > 0) {
+        } else if (templateData) {
           // Save current flujos as plantilla flujos
-          const flujosToSave = currentFlujos.map((flujo, index) => ({
-            plantilla_fase_id: templateData.id,
-            titulo: flujo.titulo,
-            color: flujo.color,
-            tiempo_estimado: flujo.tiempo_estimado,
-            unidad_tiempo: flujo.unidad_tiempo,
-            numero_orden: flujo.numero_orden || index + 1,
-          }));
+          if (currentFlujos.length > 0) {
+            const flujosToSave = currentFlujos.map((flujo, index) => ({
+              plantilla_fase_id: templateData.id,
+              titulo: flujo.titulo,
+              color: flujo.color,
+              tiempo_estimado: flujo.tiempo_estimado,
+              unidad_tiempo: flujo.unidad_tiempo,
+              numero_orden: flujo.numero_orden || index + 1,
+            }));
 
-          const { error: flujosError } = await supabase
-            .from("plantilla_fase_flujos")
-            .insert(flujosToSave);
+            const { error: flujosError } = await supabase
+              .from("plantilla_fase_flujos")
+              .insert(flujosToSave);
 
-          if (flujosError) {
-            console.error("Error saving template flujos:", flujosError);
+            if (flujosError) {
+              console.error("Error saving template flujos:", flujosError);
+            }
+          }
+
+          // Save current fase_materiales as plantilla materials
+          const { data: faseMaterialesData } = await supabase
+            .from("fase_materiales")
+            .select("inventario_id, cantidad")
+            .eq("fase_id", fase.id);
+
+          if (faseMaterialesData && faseMaterialesData.length > 0) {
+            const materialesToSave = faseMaterialesData.map(m => ({
+              plantilla_fase_id: templateData.id,
+              inventario_id: m.inventario_id,
+              cantidad: m.cantidad,
+            }));
+
+            const { error: materialesError } = await supabase
+              .from("plantilla_fase_materiales")
+              .insert(materialesToSave);
+
+            if (materialesError) {
+              console.error("Error saving template materials:", materialesError);
+            }
           }
           
-          toast.success("Plantilla guardada con sus flujos");
-        } else {
-          toast.success("Plantilla guardada");
+          toast.success("Plantilla guardada con flujos y materiales");
         }
       }
 
@@ -341,10 +399,33 @@ export function FaseFormModal({
 
           if (flujosError) {
             console.error("Error creating flujos from template:", flujosError);
-            toast.error("Fase creada pero hubo error al crear los flujos");
-          } else {
-            toast.success(`Fase creada con ${plantillaFlujos.length} flujos`);
           }
+        }
+
+        // If plantilla with materials was selected, create materials for the new fase
+        if (newFase && plantillaMateriales.length > 0) {
+          const materialesToCreate = plantillaMateriales.map((material) => ({
+            fase_id: newFase.id,
+            inventario_id: material.inventario_id,
+            cantidad: material.cantidad,
+          }));
+
+          const { error: materialesError } = await supabase
+            .from("fase_materiales")
+            .insert(materialesToCreate);
+
+          if (materialesError) {
+            console.error("Error creating materials from template:", materialesError);
+          }
+        }
+
+        // Success message
+        const hasTemplateData = plantillaFlujos.length > 0 || plantillaMateriales.length > 0;
+        if (hasTemplateData) {
+          const parts = [];
+          if (plantillaFlujos.length > 0) parts.push(`${plantillaFlujos.length} flujos`);
+          if (plantillaMateriales.length > 0) parts.push(`${plantillaMateriales.length} materiales`);
+          toast.success(`Fase creada con ${parts.join(' y ')}`);
         } else {
           toast.success("Fase creada exitosamente");
         }
