@@ -27,7 +27,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, FileText } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 const faseFormSchema = z.object({
   titulo: z.string().min(1, "El título es requerido").max(100, "Máximo 100 caracteres"),
@@ -36,6 +38,7 @@ const faseFormSchema = z.object({
   unidad_tiempo: z.enum(["minutos", "horas"]),
   equipo_id: z.string().optional(),
   tecnico_id: z.string().optional(),
+  guardar_plantilla: z.boolean().default(false),
 });
 
 type FaseFormValues = z.infer<typeof faseFormSchema>;
@@ -50,6 +53,14 @@ interface TareaFase {
   unidad_tiempo: 'minutos' | 'horas';
   equipo_id: string | null;
   tecnico_id: string | null;
+}
+
+interface PlantillaFase {
+  id: string;
+  titulo: string;
+  color: string;
+  tiempo_estimado: number | null;
+  unidad_tiempo: 'minutos' | 'horas' | null;
 }
 
 interface EquipoMember {
@@ -99,6 +110,8 @@ export function FaseFormModal({
   const [loading, setLoading] = useState(false);
   const [equipoMembers, setEquipoMembers] = useState<EquipoMember[]>([]);
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
+  const [plantillas, setPlantillas] = useState<PlantillaFase[]>([]);
+  const [selectedPlantilla, setSelectedPlantilla] = useState<string>("");
 
   const form = useForm<FaseFormValues>({
     resolver: zodResolver(faseFormSchema),
@@ -109,12 +122,15 @@ export function FaseFormModal({
       unidad_tiempo: "minutos",
       equipo_id: undefined,
       tecnico_id: undefined,
+      guardar_plantilla: false,
     },
   });
 
   useEffect(() => {
     if (open) {
       fetchTeamMembers();
+      fetchPlantillas();
+      setSelectedPlantilla("");
       if (fase) {
         form.reset({
           titulo: fase.titulo,
@@ -123,6 +139,7 @@ export function FaseFormModal({
           unidad_tiempo: fase.unidad_tiempo,
           equipo_id: fase.equipo_id || undefined,
           tecnico_id: fase.tecnico_id || undefined,
+          guardar_plantilla: false,
         });
       } else {
         form.reset({
@@ -132,6 +149,7 @@ export function FaseFormModal({
           unidad_tiempo: "minutos",
           equipo_id: undefined,
           tecnico_id: undefined,
+          guardar_plantilla: false,
         });
       }
     }
@@ -161,9 +179,58 @@ export function FaseFormModal({
     }
   };
 
+  const fetchPlantillas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("plantillas_fases")
+        .select("id, titulo, color, tiempo_estimado, unidad_tiempo")
+        .eq("taller_id", tallerId)
+        .order("titulo");
+
+      if (error) throw error;
+      setPlantillas(data || []);
+    } catch (error) {
+      console.error("Error fetching plantillas:", error);
+    }
+  };
+
+  const handlePlantillaSelect = (plantillaId: string) => {
+    if (plantillaId === "__none__") {
+      setSelectedPlantilla("");
+      return;
+    }
+    
+    const plantilla = plantillas.find(p => p.id === plantillaId);
+    if (plantilla) {
+      setSelectedPlantilla(plantillaId);
+      form.setValue("titulo", plantilla.titulo);
+      form.setValue("color", plantilla.color);
+      form.setValue("tiempo_estimado", plantilla.tiempo_estimado || 0);
+      form.setValue("unidad_tiempo", plantilla.unidad_tiempo || "minutos");
+    }
+  };
+
   const onSubmit = async (values: FaseFormValues) => {
     setLoading(true);
     try {
+      // Save as template if checkbox is checked
+      if (values.guardar_plantilla && !fase) {
+        const { error: templateError } = await supabase.from("plantillas_fases").insert({
+          taller_id: tallerId,
+          titulo: values.titulo,
+          color: values.color,
+          tiempo_estimado: values.tiempo_estimado,
+          unidad_tiempo: values.unidad_tiempo,
+        });
+
+        if (templateError) {
+          console.error("Error saving template:", templateError);
+          toast.error("Error al guardar la plantilla");
+        } else {
+          toast.success("Plantilla guardada");
+        }
+      }
+
       if (fase) {
         const { error } = await supabase
           .from("tarea_fases")
@@ -207,7 +274,7 @@ export function FaseFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {fase ? "Editar Fase" : "Nueva Fase"}
@@ -220,6 +287,37 @@ export function FaseFormModal({
               <span className="text-sm text-muted-foreground">Fase N°</span>
               <span className="font-bold">{fase ? fase.numero_orden : nextNumeroOrden}</span>
             </div>
+
+            {!fase && plantillas.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Usar Plantilla
+                  </label>
+                  <Select value={selectedPlantilla || "__none__"} onValueChange={handlePlantillaSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar plantilla..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sin plantilla</SelectItem>
+                      {plantillas.map((plantilla) => (
+                        <SelectItem key={plantilla.id} value={plantilla.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: plantilla.color }}
+                            />
+                            {plantilla.titulo}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Separator />
+              </>
+            )}
 
             <FormField
               control={form.control}
@@ -361,6 +459,31 @@ export function FaseFormModal({
                       </SelectContent>
                     </Select>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {!fase && (
+              <FormField
+                control={form.control}
+                name="guardar_plantilla"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/50">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="cursor-pointer">
+                        Guardar como plantilla
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Esta fase estará disponible para usarla en otras tareas
+                      </p>
+                    </div>
                   </FormItem>
                 )}
               />

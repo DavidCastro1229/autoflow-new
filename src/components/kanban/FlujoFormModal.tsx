@@ -27,13 +27,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, FileText } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 const flujoFormSchema = z.object({
   titulo: z.string().min(1, "El título es requerido").max(100, "Máximo 100 caracteres"),
   color: z.string().min(1, "El color es requerido"),
   tiempo_estimado: z.number().min(0).default(0),
   unidad_tiempo: z.enum(["minutos", "horas"]),
+  guardar_plantilla: z.boolean().default(false),
 });
 
 type FlujoFormValues = z.infer<typeof flujoFormSchema>;
@@ -49,12 +52,21 @@ interface FaseFlujo {
   completado: boolean;
 }
 
+interface PlantillaFlujo {
+  id: string;
+  titulo: string;
+  color: string;
+  tiempo_estimado: number | null;
+  unidad_tiempo: 'minutos' | 'horas' | null;
+}
+
 interface FlujoFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   flujo: FaseFlujo | null;
   faseId: string;
   nextNumeroOrden: number;
+  tallerId: string;
   onSuccess: () => void;
 }
 
@@ -75,9 +87,12 @@ export function FlujoFormModal({
   flujo,
   faseId,
   nextNumeroOrden,
+  tallerId,
   onSuccess,
 }: FlujoFormModalProps) {
   const [loading, setLoading] = useState(false);
+  const [plantillas, setPlantillas] = useState<PlantillaFlujo[]>([]);
+  const [selectedPlantilla, setSelectedPlantilla] = useState<string>("");
 
   const form = useForm<FlujoFormValues>({
     resolver: zodResolver(flujoFormSchema),
@@ -86,17 +101,21 @@ export function FlujoFormModal({
       color: "#10B981",
       tiempo_estimado: 0,
       unidad_tiempo: "minutos",
+      guardar_plantilla: false,
     },
   });
 
   useEffect(() => {
     if (open) {
+      fetchPlantillas();
+      setSelectedPlantilla("");
       if (flujo) {
         form.reset({
           titulo: flujo.titulo,
           color: flujo.color,
           tiempo_estimado: flujo.tiempo_estimado,
           unidad_tiempo: flujo.unidad_tiempo,
+          guardar_plantilla: false,
         });
       } else {
         form.reset({
@@ -104,14 +123,64 @@ export function FlujoFormModal({
           color: COLORES_PREDEFINIDOS[nextNumeroOrden % COLORES_PREDEFINIDOS.length],
           tiempo_estimado: 0,
           unidad_tiempo: "minutos",
+          guardar_plantilla: false,
         });
       }
     }
   }, [open, flujo, nextNumeroOrden]);
 
+  const fetchPlantillas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("plantillas_flujos")
+        .select("id, titulo, color, tiempo_estimado, unidad_tiempo")
+        .eq("taller_id", tallerId)
+        .order("titulo");
+
+      if (error) throw error;
+      setPlantillas(data || []);
+    } catch (error) {
+      console.error("Error fetching plantillas:", error);
+    }
+  };
+
+  const handlePlantillaSelect = (plantillaId: string) => {
+    if (plantillaId === "__none__") {
+      setSelectedPlantilla("");
+      return;
+    }
+    
+    const plantilla = plantillas.find(p => p.id === plantillaId);
+    if (plantilla) {
+      setSelectedPlantilla(plantillaId);
+      form.setValue("titulo", plantilla.titulo);
+      form.setValue("color", plantilla.color);
+      form.setValue("tiempo_estimado", plantilla.tiempo_estimado || 0);
+      form.setValue("unidad_tiempo", plantilla.unidad_tiempo || "minutos");
+    }
+  };
+
   const onSubmit = async (values: FlujoFormValues) => {
     setLoading(true);
     try {
+      // Save as template if checkbox is checked
+      if (values.guardar_plantilla && !flujo) {
+        const { error: templateError } = await supabase.from("plantillas_flujos").insert({
+          taller_id: tallerId,
+          titulo: values.titulo,
+          color: values.color,
+          tiempo_estimado: values.tiempo_estimado,
+          unidad_tiempo: values.unidad_tiempo,
+        });
+
+        if (templateError) {
+          console.error("Error saving template:", templateError);
+          toast.error("Error al guardar la plantilla");
+        } else {
+          toast.success("Plantilla guardada");
+        }
+      }
+
       if (flujo) {
         const { error } = await supabase
           .from("fase_flujos")
@@ -152,7 +221,7 @@ export function FlujoFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {flujo ? "Editar Flujo" : "Nuevo Flujo"}
@@ -165,6 +234,37 @@ export function FlujoFormModal({
               <span className="text-sm text-muted-foreground">Flujo N°</span>
               <span className="font-bold">{flujo ? flujo.numero_orden : nextNumeroOrden}</span>
             </div>
+
+            {!flujo && plantillas.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Usar Plantilla
+                  </label>
+                  <Select value={selectedPlantilla || "__none__"} onValueChange={handlePlantillaSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar plantilla..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sin plantilla</SelectItem>
+                      {plantillas.map((plantilla) => (
+                        <SelectItem key={plantilla.id} value={plantilla.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: plantilla.color }}
+                            />
+                            {plantilla.titulo}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Separator />
+              </>
+            )}
 
             <FormField
               control={form.control}
@@ -256,6 +356,31 @@ export function FlujoFormModal({
                 )}
               />
             </div>
+
+            {!flujo && (
+              <FormField
+                control={form.control}
+                name="guardar_plantilla"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/50">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="cursor-pointer">
+                        Guardar como plantilla
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Este flujo estará disponible para usarlo en otras fases
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

@@ -1764,6 +1764,84 @@ export type Database = {
         }
         Relationships: []
       }
+      plantillas_fases: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          taller_id: string
+          tiempo_estimado: number | null
+          titulo: string
+          unidad_tiempo:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          taller_id: string
+          tiempo_estimado?: number | null
+          titulo: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          taller_id?: string
+          tiempo_estimado?: number | null
+          titulo?: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      plantillas_flujos: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          taller_id: string
+          tiempo_estimado: number | null
+          titulo: string
+          unidad_tiempo:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          taller_id: string
+          tiempo_estimado?: number | null
+          titulo: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          taller_id?: string
+          tiempo_estimado?: number | null
+          titulo?: string
+          unidad_tiempo?:
+            | Database["public"]["Enums"]["unidad_tiempo_tarea"]
+            | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           apellido_contacto: string

@@ -433,6 +433,7 @@ export function TareaFasesManager({
         flujo={editingFlujo}
         faseId={selectedFaseIdForFlujo}
         nextNumeroOrden={editingFlujo?.numero_orden || getNextFlujoNumeroOrden(selectedFaseIdForFlujo)}
+        tallerId={tallerId}
         onSuccess={fetchFases}
       />
 
