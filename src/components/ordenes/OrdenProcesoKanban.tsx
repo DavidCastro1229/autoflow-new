@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Clock, ChevronRight, ChevronLeft, Check, CheckCheck } from "lucide-react";
+import { Loader2, Clock, ChevronRight, ChevronLeft, Check, CheckCheck, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TareaFase {
@@ -15,6 +15,10 @@ interface TareaFase {
   color: string;
   tiempo_estimado: number | null;
   unidad_tiempo: string | null;
+  tecnico_id: string | null;
+  equipo_id: string | null;
+  tecnico?: { nombre: string; apellido: string } | null;
+  equipo?: { nombre: string; apellido: string } | null;
 }
 
 interface FaseFlujo {
@@ -82,10 +86,14 @@ export function OrdenProcesoKanban({
 
       if (tareaData) setTarea(tareaData);
 
-      // Fetch fases
+      // Fetch fases with assigned team members
       const { data: fasesData, error: fasesError } = await supabase
         .from("tarea_fases")
-        .select("*")
+        .select(`
+          *,
+          tecnico:tecnicos(nombre, apellido),
+          equipo:equipo(nombre, apellido)
+        `)
         .eq("tarea_id", tareaId)
         .order("numero_orden");
 
@@ -573,6 +581,17 @@ export function OrdenProcesoKanban({
                             {fase.unidad_tiempo === "minutos" ? "min" : 
                              fase.unidad_tiempo === "horas" ? "hrs" : 
                              fase.unidad_tiempo === "dias" ? "días" : ""}
+                          </div>
+                        )}
+                        {(fase.tecnico || fase.equipo) && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                            <User className="h-3 w-3" />
+                            {fase.tecnico && (
+                              <span>{fase.tecnico.nombre} {fase.tecnico.apellido}</span>
+                            )}
+                            {fase.equipo && (
+                              <span>{fase.equipo.nombre} {fase.equipo.apellido}</span>
+                            )}
                           </div>
                         )}
                       </CardHeader>
