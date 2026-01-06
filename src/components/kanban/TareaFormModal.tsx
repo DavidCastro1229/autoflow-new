@@ -39,7 +39,7 @@ const tareaFormSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido").max(100, "Máximo 100 caracteres"),
   descripcion: z.string().max(500, "Máximo 500 caracteres").optional(),
   objetivo: z.string().max(300, "Máximo 300 caracteres").optional(),
-  tipo_tarea: z.enum(["administrativa", "operativa"]),
+  tipo_tarea: z.array(z.enum(["administrativa", "operativa"])).min(1, "Selecciona al menos un tipo"),
   categorias: z.array(z.string()).min(1, "Selecciona al menos una categoría"),
   condiciones_aplicacion: z.array(z.string()),
   tiempo_estimado: z.number().min(0).default(0),
@@ -59,7 +59,7 @@ interface CatalogoTarea {
   nombre: string;
   descripcion: string | null;
   objetivo: string | null;
-  tipo_tarea: 'administrativa' | 'operativa';
+  tipo_tarea: string[];
   categorias: string[];
   condiciones_aplicacion: string[];
   tiempo_estimado: number;
@@ -108,7 +108,7 @@ export function TareaFormModal({
       nombre: "",
       descripcion: "",
       objetivo: "",
-      tipo_tarea: "operativa",
+      tipo_tarea: ["operativa"],
       categorias: [],
       condiciones_aplicacion: [],
       tiempo_estimado: 0,
@@ -131,12 +131,15 @@ export function TareaFormModal({
     if (open) {
       if (tarea) {
         // Modo edición
+        const tipoTareaValue = Array.isArray(tarea.tipo_tarea) 
+          ? tarea.tipo_tarea.filter((t): t is "administrativa" | "operativa" => t === "administrativa" || t === "operativa")
+          : [tarea.tipo_tarea as "administrativa" | "operativa"];
         form.reset({
           codigo_tarea: tarea.codigo_tarea,
           nombre: tarea.nombre,
           descripcion: tarea.descripcion || "",
           objetivo: tarea.objetivo || "",
-          tipo_tarea: tarea.tipo_tarea,
+          tipo_tarea: tipoTareaValue,
           categorias: tarea.categorias,
           condiciones_aplicacion: tarea.condiciones_aplicacion,
           tiempo_estimado: tarea.tiempo_estimado,
@@ -154,7 +157,7 @@ export function TareaFormModal({
           nombre: "",
           descripcion: "",
           objetivo: "",
-          tipo_tarea: "operativa",
+          tipo_tarea: ["operativa"],
           categorias: [],
           condiciones_aplicacion: [],
           tiempo_estimado: 0,
@@ -278,6 +281,21 @@ export function TareaFormModal({
     }
   };
 
+  const handleTipoTareaToggle = (tipo: "administrativa" | "operativa", checked: boolean) => {
+    const current = form.getValues("tipo_tarea");
+    if (checked) {
+      if (!current.includes(tipo)) {
+        form.setValue("tipo_tarea", [...current, tipo], { shouldValidate: true });
+      }
+    } else {
+      const newValue = current.filter(t => t !== tipo);
+      // Asegurar que al menos un tipo esté seleccionado
+      if (newValue.length > 0) {
+        form.setValue("tipo_tarea", newValue, { shouldValidate: true });
+      }
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] p-0">
@@ -369,29 +387,33 @@ export function TareaFormModal({
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="tipo_tarea"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de Tarea *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar tipo" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="administrativa">Administrativa</SelectItem>
-                            <SelectItem value="operativa">Operativa</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="tipo_tarea"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Tipo de Tarea *</FormLabel>
+                      <div className="flex gap-4 mt-2">
+                        {[
+                          { value: "administrativa", label: "Administrativa" },
+                          { value: "operativa", label: "Operativa" },
+                        ].map((tipo) => (
+                          <div key={tipo.value} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`tipo-${tipo.value}`}
+                              checked={form.watch("tipo_tarea").includes(tipo.value as "administrativa" | "operativa")}
+                              onCheckedChange={(checked) => handleTipoTareaToggle(tipo.value as "administrativa" | "operativa", !!checked)}
+                            />
+                            <Label htmlFor={`tipo-${tipo.value}`} className="text-sm font-normal cursor-pointer">
+                              {tipo.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
