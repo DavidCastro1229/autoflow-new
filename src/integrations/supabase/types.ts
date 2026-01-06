@@ -118,7 +118,7 @@ export type Database = {
           roles_preferentes: number[] | null
           taller_id: string
           tiempo_estimado: number | null
-          tipo_tarea: Database["public"]["Enums"]["tipo_tarea"]
+          tipo_tarea: string[]
           unidad_tiempo:
             | Database["public"]["Enums"]["unidad_tiempo_tarea"]
             | null
@@ -140,7 +140,7 @@ export type Database = {
           roles_preferentes?: number[] | null
           taller_id: string
           tiempo_estimado?: number | null
-          tipo_tarea?: Database["public"]["Enums"]["tipo_tarea"]
+          tipo_tarea?: string[]
           unidad_tiempo?:
             | Database["public"]["Enums"]["unidad_tiempo_tarea"]
             | null
@@ -162,7 +162,7 @@ export type Database = {
           roles_preferentes?: number[] | null
           taller_id?: string
           tiempo_estimado?: number | null
-          tipo_tarea?: Database["public"]["Enums"]["tipo_tarea"]
+          tipo_tarea?: string[]
           unidad_tiempo?:
             | Database["public"]["Enums"]["unidad_tiempo_tarea"]
             | null

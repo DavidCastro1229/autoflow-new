@@ -109,7 +109,7 @@ interface FaseFormModalProps {
   onOpenChange: (open: boolean) => void;
   fase: TareaFase | null;
   tareaId: string;
-  tipoTarea: 'administrativa' | 'operativa';
+  tipoTarea: string[];
   nextNumeroOrden: number;
   tallerId: string;
   currentFlujos?: FaseFlujo[];
@@ -355,8 +355,8 @@ export function FaseFormModal({
             color: values.color,
             tiempo_estimado: values.tiempo_estimado,
             unidad_tiempo: values.unidad_tiempo,
-            equipo_id: tipoTarea === 'administrativa' ? values.equipo_id || null : null,
-            tecnico_id: tipoTarea === 'operativa' ? values.tecnico_id || null : null,
+            equipo_id: tipoTarea.includes('administrativa') ? values.equipo_id || null : null,
+            tecnico_id: tipoTarea.includes('operativa') ? values.tecnico_id || null : null,
           })
           .eq("id", fase.id);
 
@@ -373,8 +373,8 @@ export function FaseFormModal({
             color: values.color,
             tiempo_estimado: values.tiempo_estimado,
             unidad_tiempo: values.unidad_tiempo,
-            equipo_id: tipoTarea === 'administrativa' ? values.equipo_id || null : null,
-            tecnico_id: tipoTarea === 'operativa' ? values.tecnico_id || null : null,
+            equipo_id: tipoTarea.includes('administrativa') ? values.equipo_id || null : null,
+            tecnico_id: tipoTarea.includes('operativa') ? values.tecnico_id || null : null,
           })
           .select()
           .single();
@@ -584,7 +584,7 @@ export function FaseFormModal({
               />
             </div>
 
-            {tipoTarea === 'administrativa' ? (
+            {tipoTarea.includes('administrativa') && (
               <FormField
                 control={form.control}
                 name="equipo_id"
@@ -610,7 +610,9 @@ export function FaseFormModal({
                   </FormItem>
                 )}
               />
-            ) : (
+            )}
+
+            {tipoTarea.includes('operativa') && (
               <FormField
                 control={form.control}
                 name="tecnico_id"

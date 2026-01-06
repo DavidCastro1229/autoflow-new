@@ -66,7 +66,7 @@ interface CatalogoTarea {
   id: string;
   nombre: string;
   codigo_tarea: string;
-  tipo_tarea: 'administrativa' | 'operativa';
+  tipo_tarea: string[];
   taller_id: string;
 }
 

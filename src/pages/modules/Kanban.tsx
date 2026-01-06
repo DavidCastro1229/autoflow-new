@@ -37,7 +37,7 @@ interface CatalogoTarea {
   nombre: string;
   descripcion: string | null;
   objetivo: string | null;
-  tipo_tarea: 'administrativa' | 'operativa';
+  tipo_tarea: string[];
   categorias: string[];
   condiciones_aplicacion: string[];
   tiempo_estimado: number;
@@ -288,7 +288,7 @@ export default function Kanban() {
     numero_orden: t.numero_orden,
     codigo: t.codigo_tarea,
     nombre: t.nombre,
-    tipo: t.tipo_tarea === 'administrativa' ? 'Administrativa' : 'Operativa',
+    tipo: t.tipo_tarea.map(tipo => tipo === 'administrativa' ? 'Administrativa' : 'Operativa').join(', '),
     categorias: t.categorias.join(", "),
     condiciones: t.condiciones_aplicacion.join(", "),
     roles: t.roles_preferentes.map(getRolNombre).join(", ")
@@ -379,9 +379,13 @@ export default function Kanban() {
                   </TableCell>
                   <TableCell className="font-medium">{tarea.nombre}</TableCell>
                   <TableCell>
-                    <Badge variant={tarea.tipo_tarea === 'administrativa' ? 'secondary' : 'default'}>
-                      {tarea.tipo_tarea === 'administrativa' ? 'Admin' : 'Operativa'}
-                    </Badge>
+                    <div className="flex gap-1">
+                      {tarea.tipo_tarea.map((tipo, idx) => (
+                        <Badge key={idx} variant={tipo === 'administrativa' ? 'secondary' : 'default'}>
+                          {tipo === 'administrativa' ? 'Admin' : 'Operativa'}
+                        </Badge>
+                      ))}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
