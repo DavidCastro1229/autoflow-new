@@ -1940,6 +1940,8 @@ export type Database = {
           color: string
           created_at: string
           id: string
+          mensaje_notificacion: string | null
+          notificar: boolean | null
           taller_id: string
           tiempo_estimado: number | null
           titulo: string
@@ -1952,6 +1954,8 @@ export type Database = {
           color?: string
           created_at?: string
           id?: string
+          mensaje_notificacion?: string | null
+          notificar?: boolean | null
           taller_id: string
           tiempo_estimado?: number | null
           titulo: string
@@ -1964,6 +1968,8 @@ export type Database = {
           color?: string
           created_at?: string
           id?: string
+          mensaje_notificacion?: string | null
+          notificar?: boolean | null
           taller_id?: string
           tiempo_estimado?: number | null
           titulo?: string
@@ -2380,6 +2386,8 @@ export type Database = {
           created_at: string
           equipo_id: string | null
           id: string
+          mensaje_notificacion: string | null
+          notificar: boolean | null
           numero_orden: number
           tarea_id: string
           tecnico_id: string | null
@@ -2395,6 +2403,8 @@ export type Database = {
           created_at?: string
           equipo_id?: string | null
           id?: string
+          mensaje_notificacion?: string | null
+          notificar?: boolean | null
           numero_orden: number
           tarea_id: string
           tecnico_id?: string | null
@@ -2410,6 +2420,8 @@ export type Database = {
           created_at?: string
           equipo_id?: string | null
           id?: string
+          mensaje_notificacion?: string | null
+          notificar?: boolean | null
           numero_orden?: number
           tarea_id?: string
           tecnico_id?: string | null
