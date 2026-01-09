@@ -19,6 +19,8 @@ interface TareaFase {
   equipo_id: string | null;
   tecnico?: { nombre: string; apellido: string } | null;
   equipo?: { nombre: string; apellido: string } | null;
+  notificar: boolean | null;
+  mensaje_notificacion: string | null;
 }
 
 interface FaseFlujo {
@@ -137,6 +139,38 @@ export function OrdenProcesoKanban({
       toast.error("Error al cargar el proceso");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Función para enviar notificación al completar una fase
+  const sendFaseNotification = async (fase: TareaFase) => {
+    if (!fase.notificar || !fase.mensaje_notificacion) return;
+    
+    try {
+      console.log("Sending fase notification:", { faseId: fase.id, faseTitulo: fase.titulo });
+      
+      const { data, error } = await supabase.functions.invoke('send-fase-notification', {
+        body: {
+          ordenId,
+          faseId: fase.id,
+          faseTitulo: fase.titulo,
+          mensaje: fase.mensaje_notificacion,
+        },
+      });
+
+      if (error) {
+        console.error("Error sending notification:", error);
+        toast.error("Error al enviar notificación");
+        return;
+      }
+
+      if (data?.success) {
+        toast.success("Notificación enviada al cliente");
+      } else {
+        console.warn("Notification partially failed:", data);
+      }
+    } catch (error) {
+      console.error("Error invoking notification function:", error);
     }
   };
 
@@ -265,6 +299,12 @@ export function OrdenProcesoKanban({
           const allCompleted = flujos.every(f => f.id === flujoId || completedFlujos.has(f.id));
           
           if (allCompleted) {
+            // Fase completada - enviar notificación si está configurado
+            const currentFase = fases.find(f => f.id === faseId);
+            if (currentFase?.notificar && currentFase.mensaje_notificacion) {
+              sendFaseNotification(currentFase);
+            }
+
             // Buscar siguiente fase
             const currentFaseIndex = fases.findIndex(f => f.id === faseId);
             

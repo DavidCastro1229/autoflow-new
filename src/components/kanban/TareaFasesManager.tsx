@@ -52,6 +52,8 @@ interface TareaFase {
   tecnico_id: string | null;
   equipo?: { nombre: string; apellido: string } | null;
   tecnico?: { nombre: string; apellido: string } | null;
+  notificar: boolean | null;
+  mensaje_notificacion: string | null;
 }
 
 interface FaseFlujo {

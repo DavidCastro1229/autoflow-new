@@ -1,1 +1,4 @@
 project_id = "nesjbfzxcjavttwknfsw"
+
+[functions.send-fase-notification]
+verify_jwt = false
