@@ -31,6 +31,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, FileText, Bell } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+
+const MENSAJE_PLANTILLA_DEFAULT = "Hola {cliente}, su vehículo ha completado la fase {fase}. Gracias por su preferencia.";
 
 const faseFormSchema = z.object({
   titulo: z.string().min(1, "El título es requerido").max(100, "Máximo 100 caracteres"),
@@ -41,6 +44,7 @@ const faseFormSchema = z.object({
   tecnico_id: z.string().optional(),
   guardar_plantilla: z.boolean().default(false),
   notificar: z.boolean().default(false),
+  usar_plantilla_mensaje: z.boolean().default(true),
   mensaje_notificacion: z.string().optional(),
 });
 
@@ -160,7 +164,8 @@ export function FaseFormModal({
       tecnico_id: undefined,
       guardar_plantilla: false,
       notificar: false,
-      mensaje_notificacion: "",
+      usar_plantilla_mensaje: true,
+      mensaje_notificacion: MENSAJE_PLANTILLA_DEFAULT,
     },
   });
 
@@ -170,6 +175,7 @@ export function FaseFormModal({
       fetchPlantillas();
       setSelectedPlantilla("");
       if (fase) {
+        const usaPlantilla = fase.mensaje_notificacion === MENSAJE_PLANTILLA_DEFAULT;
         form.reset({
           titulo: fase.titulo,
           color: fase.color,
@@ -179,7 +185,8 @@ export function FaseFormModal({
           tecnico_id: fase.tecnico_id || undefined,
           guardar_plantilla: false,
           notificar: fase.notificar || false,
-          mensaje_notificacion: fase.mensaje_notificacion || "",
+          usar_plantilla_mensaje: usaPlantilla,
+          mensaje_notificacion: fase.mensaje_notificacion || MENSAJE_PLANTILLA_DEFAULT,
         });
       } else {
         form.reset({
@@ -191,7 +198,8 @@ export function FaseFormModal({
           tecnico_id: undefined,
           guardar_plantilla: false,
           notificar: false,
-          mensaje_notificacion: "",
+          usar_plantilla_mensaje: true,
+          mensaje_notificacion: MENSAJE_PLANTILLA_DEFAULT,
         });
       }
     }
@@ -683,26 +691,55 @@ export function FaseFormModal({
               />
 
               {form.watch("notificar") && (
-                <FormField
-                  control={form.control}
-                  name="mensaje_notificacion"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Mensaje de notificación</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          {...field} 
-                          placeholder="Ej: Hola {cliente}, su vehículo ha completado la fase {fase}. ¡Gracias por su preferencia!"
-                          rows={3}
-                        />
-                      </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        Usa {"{cliente}"}, {"{fase}"} y {"{orden}"} como variables
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-3 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+                  <FormField
+                    control={form.control}
+                    name="usar_plantilla_mensaje"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              if (checked) {
+                                form.setValue("mensaje_notificacion", MENSAJE_PLANTILLA_DEFAULT);
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormLabel className="cursor-pointer text-sm font-normal">
+                          Usar plantilla de mensaje predeterminada
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="mensaje_notificacion"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mensaje de notificación</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            placeholder="Ej: Hola {cliente}, su vehículo ha completado la fase {fase}. ¡Gracias por su preferencia!"
+                            rows={3}
+                            disabled={form.watch("usar_plantilla_mensaje")}
+                            className={cn(
+                              form.watch("usar_plantilla_mensaje") && "bg-muted cursor-not-allowed opacity-70"
+                            )}
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Usa {"{cliente}"}, {"{fase}"} y {"{orden}"} como variables
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               )}
             </div>
 

@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Clock, ChevronRight, ChevronLeft, Check, CheckCheck, User } from "lucide-react";
+import { Loader2, Clock, ChevronRight, ChevronLeft, Check, CheckCheck, User, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TareaFase {
   id: string;
@@ -607,6 +608,18 @@ export function OrdenProcesoKanban({
                             <CardTitle className="text-sm font-medium">
                               {fase.titulo}
                             </CardTitle>
+                            {fase.notificar && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Bell className="h-3.5 w-3.5 text-blue-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Se notificará al cliente al completar esta fase</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </div>
                           {isCurrentFase && (
                             <Badge variant="default" className="text-xs">
