@@ -28,8 +28,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, Bell } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 
 const faseFormSchema = z.object({
   titulo: z.string().min(1, "El título es requerido").max(100, "Máximo 100 caracteres"),
@@ -39,6 +40,8 @@ const faseFormSchema = z.object({
   equipo_id: z.string().optional(),
   tecnico_id: z.string().optional(),
   guardar_plantilla: z.boolean().default(false),
+  notificar: z.boolean().default(false),
+  mensaje_notificacion: z.string().optional(),
 });
 
 type FaseFormValues = z.infer<typeof faseFormSchema>;
@@ -53,6 +56,8 @@ interface TareaFase {
   unidad_tiempo: 'minutos' | 'horas';
   equipo_id: string | null;
   tecnico_id: string | null;
+  notificar: boolean | null;
+  mensaje_notificacion: string | null;
 }
 
 interface PlantillaFaseFlujo {
@@ -154,6 +159,8 @@ export function FaseFormModal({
       equipo_id: undefined,
       tecnico_id: undefined,
       guardar_plantilla: false,
+      notificar: false,
+      mensaje_notificacion: "",
     },
   });
 
@@ -171,6 +178,8 @@ export function FaseFormModal({
           equipo_id: fase.equipo_id || undefined,
           tecnico_id: fase.tecnico_id || undefined,
           guardar_plantilla: false,
+          notificar: fase.notificar || false,
+          mensaje_notificacion: fase.mensaje_notificacion || "",
         });
       } else {
         form.reset({
@@ -181,6 +190,8 @@ export function FaseFormModal({
           equipo_id: undefined,
           tecnico_id: undefined,
           guardar_plantilla: false,
+          notificar: false,
+          mensaje_notificacion: "",
         });
       }
     }
@@ -357,6 +368,8 @@ export function FaseFormModal({
             unidad_tiempo: values.unidad_tiempo,
             equipo_id: tipoTarea.includes('administrativa') ? values.equipo_id || null : null,
             tecnico_id: tipoTarea.includes('operativa') ? values.tecnico_id || null : null,
+            notificar: values.notificar,
+            mensaje_notificacion: values.notificar ? values.mensaje_notificacion || null : null,
           })
           .eq("id", fase.id);
 
@@ -375,6 +388,8 @@ export function FaseFormModal({
             unidad_tiempo: values.unidad_tiempo,
             equipo_id: tipoTarea.includes('administrativa') ? values.equipo_id || null : null,
             tecnico_id: tipoTarea.includes('operativa') ? values.tecnico_id || null : null,
+            notificar: values.notificar,
+            mensaje_notificacion: values.notificar ? values.mensaje_notificacion || null : null,
           })
           .select()
           .single();
@@ -639,6 +654,57 @@ export function FaseFormModal({
                 )}
               />
             )}
+
+            {/* Notificación section */}
+            <Separator />
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="notificar"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-blue-50/50 dark:bg-blue-900/20">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="cursor-pointer flex items-center gap-2">
+                        <Bell className="h-4 w-4 text-blue-500" />
+                        Notificar al cliente
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Enviar mensaje por WhatsApp y correo al completar esta fase
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("notificar") && (
+                <FormField
+                  control={form.control}
+                  name="mensaje_notificacion"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mensaje de notificación</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="Ej: Hola {cliente}, su vehículo ha completado la fase {fase}. ¡Gracias por su preferencia!"
+                          rows={3}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Usa {"{cliente}"}, {"{fase}"} y {"{orden}"} como variables
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
 
             {!fase && (
               <FormField
