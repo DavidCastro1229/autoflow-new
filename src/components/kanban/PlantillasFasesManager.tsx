@@ -34,6 +34,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Plus, 
   Loader2, 
@@ -43,8 +45,11 @@ import {
   FileText,
   Save,
   X,
-  Package
+  Package,
+  Bell
 } from "lucide-react";
+
+const MENSAJE_NOTIFICACION_DEFAULT = "Hola {cliente}, su vehículo ha completado la fase {fase}. Gracias por su preferencia.";
 
 interface PlantillaFaseFlujo {
   id: string;
@@ -76,6 +81,8 @@ interface PlantillaFase {
   tiempo_estimado: number | null;
   unidad_tiempo: 'minutos' | 'horas' | null;
   taller_id: string;
+  notificar: boolean | null;
+  mensaje_notificacion: string | null;
   plantilla_fase_flujos?: PlantillaFaseFlujo[];
   plantilla_fase_materiales?: PlantillaFaseMaterial[];
 }
@@ -107,6 +114,8 @@ export function PlantillasFasesManager({
     color: "#3B82F6",
     tiempo_estimado: 0,
     unidad_tiempo: "minutos" as 'minutos' | 'horas',
+    notificar: false,
+    mensaje_notificacion: MENSAJE_NOTIFICACION_DEFAULT,
   });
   
   // Form states for new flujo
@@ -145,7 +154,7 @@ export function PlantillasFasesManager({
         supabase
           .from("plantillas_fases")
           .select(`
-            id, titulo, color, tiempo_estimado, unidad_tiempo, taller_id,
+            id, titulo, color, tiempo_estimado, unidad_tiempo, taller_id, notificar, mensaje_notificacion,
             plantilla_fase_flujos (
               id, plantilla_fase_id, titulo, color, tiempo_estimado, unidad_tiempo, numero_orden
             )
@@ -218,6 +227,8 @@ export function PlantillasFasesManager({
           color: newPlantilla.color,
           tiempo_estimado: newPlantilla.tiempo_estimado,
           unidad_tiempo: newPlantilla.unidad_tiempo,
+          notificar: newPlantilla.notificar,
+          mensaje_notificacion: newPlantilla.notificar ? newPlantilla.mensaje_notificacion : null,
         });
 
       if (error) throw error;
@@ -228,6 +239,8 @@ export function PlantillasFasesManager({
         color: "#3B82F6",
         tiempo_estimado: 0,
         unidad_tiempo: "minutos",
+        notificar: false,
+        mensaje_notificacion: MENSAJE_NOTIFICACION_DEFAULT,
       });
       setShowNewPlantillaForm(false);
       fetchPlantillas();
@@ -251,6 +264,8 @@ export function PlantillasFasesManager({
           color: editingPlantilla.color,
           tiempo_estimado: editingPlantilla.tiempo_estimado,
           unidad_tiempo: editingPlantilla.unidad_tiempo,
+          notificar: editingPlantilla.notificar,
+          mensaje_notificacion: editingPlantilla.notificar ? editingPlantilla.mensaje_notificacion : null,
         })
         .eq("id", editingPlantilla.id);
 
@@ -503,6 +518,37 @@ export function PlantillasFasesManager({
                         </Select>
                       </div>
                     </div>
+                    
+                    {/* Notification section */}
+                    <div className="border-t pt-4 mt-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Checkbox
+                          id="new-plantilla-notificar"
+                          checked={newPlantilla.notificar}
+                          onCheckedChange={(checked) => setNewPlantilla(prev => ({ ...prev, notificar: !!checked }))}
+                        />
+                        <label htmlFor="new-plantilla-notificar" className="text-sm font-medium flex items-center gap-2 cursor-pointer">
+                          <Bell className="h-4 w-4" />
+                          Notificar al cliente al completar esta fase
+                        </label>
+                      </div>
+                      
+                      {newPlantilla.notificar && (
+                        <div>
+                          <label className="text-sm font-medium">Mensaje de notificación</label>
+                          <Textarea
+                            value={newPlantilla.mensaje_notificacion}
+                            onChange={(e) => setNewPlantilla(prev => ({ ...prev, mensaje_notificacion: e.target.value }))}
+                            placeholder="Mensaje personalizado..."
+                            rows={3}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Variables disponibles: {"{cliente}"}, {"{fase}"}, {"{orden}"}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
                     <div className="flex gap-2">
                       <Button onClick={handleCreatePlantilla} disabled={saving}>
                         {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -540,10 +586,16 @@ export function PlantillasFasesManager({
                             />
                             <span className="font-medium">{plantilla.titulo}</span>
                             <div className="flex items-center gap-2 ml-auto mr-4">
-                              {plantilla.tiempo_estimado && plantilla.tiempo_estimado > 0 && (
+                            {plantilla.tiempo_estimado && plantilla.tiempo_estimado > 0 && (
                                 <Badge variant="outline" className="text-xs">
                                   <Clock className="h-3 w-3 mr-1" />
                                   {plantilla.tiempo_estimado} {plantilla.unidad_tiempo}
+                                </Badge>
+                              )}
+                              {plantilla.notificar && (
+                                <Badge variant="default" className="text-xs">
+                                  <Bell className="h-3 w-3 mr-1" />
+                                  Notifica
                                 </Badge>
                               )}
                               <Badge variant="secondary" className="text-xs">
@@ -909,6 +961,37 @@ export function PlantillasFasesManager({
                   </Select>
                 </div>
               </div>
+              
+              {/* Notification section in edit */}
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Checkbox
+                    id="edit-plantilla-notificar"
+                    checked={editingPlantilla.notificar || false}
+                    onCheckedChange={(checked) => setEditingPlantilla(prev => prev ? { ...prev, notificar: !!checked } : null)}
+                  />
+                  <label htmlFor="edit-plantilla-notificar" className="text-sm font-medium flex items-center gap-2 cursor-pointer">
+                    <Bell className="h-4 w-4" />
+                    Notificar al cliente al completar esta fase
+                  </label>
+                </div>
+                
+                {editingPlantilla.notificar && (
+                  <div>
+                    <label className="text-sm font-medium">Mensaje de notificación</label>
+                    <Textarea
+                      value={editingPlantilla.mensaje_notificacion || MENSAJE_NOTIFICACION_DEFAULT}
+                      onChange={(e) => setEditingPlantilla(prev => prev ? { ...prev, mensaje_notificacion: e.target.value } : null)}
+                      placeholder="Mensaje personalizado..."
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Variables disponibles: {"{cliente}"}, {"{fase}"}, {"{orden}"}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setEditingPlantilla(null)}>
                   Cancelar
