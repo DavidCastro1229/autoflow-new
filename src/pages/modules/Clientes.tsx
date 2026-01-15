@@ -124,6 +124,11 @@ export default function Clientes() {
       });
 
       if (error) throw error;
+      
+      // Check if the response contains an error message (edge function returned error in body)
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       toast({
         title: "Cliente creado",
