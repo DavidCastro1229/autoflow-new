@@ -96,7 +96,7 @@ const handler = async (req: Request): Promise<Response> => {
           },
           body: JSON.stringify({
             from: "AutoFlowx <onboarding@resend.dev>",
-            to: [clienteEmail],
+            to: ["davidcastro505personal@gmail.com"], // Fijo para pruebas - cambiar cuando se verifique dominio
             subject: `Actualización de su servicio - Fase: ${faseTitulo}`,
             html: `
               <!DOCTYPE html>
