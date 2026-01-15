@@ -100,9 +100,20 @@ export default function Clientes() {
       fetchClientes();
     } catch (error: any) {
       console.error("Error creating cliente:", error);
+      
+      // Handle specific error messages
+      let errorMessage = "No se pudo crear el cliente";
+      const errorText = error.message || "";
+      
+      if (errorText.includes("email address has already been registered") || errorText.includes("email_exists")) {
+        errorMessage = "Ya existe un cliente registrado con este correo electrónico. Por favor use otro correo o busque el cliente existente.";
+      } else if (errorText) {
+        errorMessage = errorText;
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "No se pudo crear el cliente",
+        title: "Error al crear cliente",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
