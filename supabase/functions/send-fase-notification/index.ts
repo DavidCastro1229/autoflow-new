@@ -99,15 +99,165 @@ const handler = async (req: Request): Promise<Response> => {
             to: [clienteEmail],
             subject: `Actualización de su servicio - Fase: ${faseTitulo}`,
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #3B82F6;">Actualización de su servicio</h2>
-                <p>Estimado/a ${clienteNombre},</p>
-                <p>${mensajePersonalizado}</p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="color: #666; font-size: 12px;">
-                  Este es un mensaje automático de AutoFlowx. Por favor no responda a este correo.
-                </p>
-              </div>
+              <!DOCTYPE html>
+              <html lang="es">
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              </head>
+              <body style="margin: 0; padding: 0; background-color: #f4f7fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f7fa; padding: 40px 20px;">
+                  <tr>
+                    <td align="center">
+                      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08); overflow: hidden;">
+                        <!-- Header -->
+                        <tr>
+                          <td style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); padding: 40px 40px 30px 40px; text-align: center;">
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td align="center">
+                                  <div style="width: 70px; height: 70px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; display: inline-block; line-height: 70px;">
+                                    <span style="font-size: 32px;">🔧</span>
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td align="center" style="padding-top: 20px;">
+                                  <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
+                                    Actualización de Servicio
+                                  </h1>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td align="center" style="padding-top: 8px;">
+                                  <p style="margin: 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">
+                                    Su vehículo está siendo atendido
+                                  </p>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                          <td style="padding: 40px;">
+                            <!-- Greeting -->
+                            <p style="margin: 0 0 24px 0; color: #1f2937; font-size: 18px; font-weight: 600;">
+                              Hola ${clienteNombre} 👋
+                            </p>
+                            
+                            <!-- Phase Badge -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                              <tr>
+                                <td>
+                                  <div style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border-radius: 12px; padding: 20px; border-left: 4px solid #3B82F6;">
+                                    <table role="presentation" cellspacing="0" cellpadding="0">
+                                      <tr>
+                                        <td style="vertical-align: middle; padding-right: 12px;">
+                                          <div style="width: 44px; height: 44px; background-color: #3B82F6; border-radius: 10px; text-align: center; line-height: 44px;">
+                                            <span style="font-size: 20px;">✅</span>
+                                          </div>
+                                        </td>
+                                        <td style="vertical-align: middle;">
+                                          <p style="margin: 0; color: #6B7280; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">
+                                            Fase completada
+                                          </p>
+                                          <p style="margin: 4px 0 0 0; color: #1D4ED8; font-size: 18px; font-weight: 700;">
+                                            ${faseTitulo}
+                                          </p>
+                                        </td>
+                                      </tr>
+                                    </table>
+                                  </div>
+                                </td>
+                              </tr>
+                            </table>
+                            
+                            <!-- Message -->
+                            <div style="background-color: #F9FAFB; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                              <p style="margin: 0; color: #374151; font-size: 16px; line-height: 1.7;">
+                                ${mensajePersonalizado}
+                              </p>
+                            </div>
+                            
+                            <!-- Info Box -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                              <tr>
+                                <td style="background-color: #FEF3C7; border-radius: 10px; padding: 16px;">
+                                  <table role="presentation" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                      <td style="vertical-align: top; padding-right: 12px;">
+                                        <span style="font-size: 20px;">💡</span>
+                                      </td>
+                                      <td>
+                                        <p style="margin: 0; color: #92400E; font-size: 14px; line-height: 1.5;">
+                                          Le mantendremos informado sobre cada avance de su vehículo. ¡Gracias por confiar en nosotros!
+                                        </p>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </td>
+                              </tr>
+                            </table>
+                            
+                            <!-- Divider -->
+                            <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 32px 0;">
+                            
+                            <!-- Questions Section -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td align="center">
+                                  <p style="margin: 0 0 4px 0; color: #6B7280; font-size: 14px;">
+                                    ¿Tiene alguna pregunta?
+                                  </p>
+                                  <p style="margin: 0; color: #3B82F6; font-size: 14px; font-weight: 600;">
+                                    Contáctenos directamente con nuestro equipo
+                                  </p>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                          <td style="background-color: #1F2937; padding: 32px 40px;">
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                              <tr>
+                                <td align="center">
+                                  <p style="margin: 0 0 8px 0; color: #F3F4F6; font-size: 18px; font-weight: 700;">
+                                    AutoFlowx
+                                  </p>
+                                  <p style="margin: 0 0 16px 0; color: #9CA3AF; font-size: 13px;">
+                                    Sistema de gestión automotriz
+                                  </p>
+                                  <hr style="border: none; border-top: 1px solid #374151; margin: 16px 0;">
+                                  <p style="margin: 0; color: #6B7280; font-size: 12px; line-height: 1.6;">
+                                    Este es un mensaje automático. Por favor no responda directamente a este correo.
+                                  </p>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                      
+                      <!-- Sub-footer -->
+                      <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="padding-top: 24px;">
+                        <tr>
+                          <td align="center">
+                            <p style="margin: 0; color: #9CA3AF; font-size: 12px;">
+                              © ${new Date().getFullYear()} AutoFlowx. Todos los derechos reservados.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </body>
+              </html>
             `,
           }),
         });
