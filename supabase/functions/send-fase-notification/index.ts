@@ -95,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
             "Authorization": `Bearer ${resendApiKey}`,
           },
           body: JSON.stringify({
-            from: "AutoFlowx <davidcastro505personal@gmail.com>",
+            from: "AutoFlowx <onboarding@resend.dev>",
             to: [clienteEmail],
             subject: `Actualización de su servicio - Fase: ${faseTitulo}`,
             html: `
