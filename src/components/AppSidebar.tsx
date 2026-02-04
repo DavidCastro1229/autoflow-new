@@ -117,8 +117,8 @@ const menuItems: MenuItem[] = [
     allowedRoles: ["admin_taller"] 
   },
   { 
-    title: "Talleres", 
-    url: "/talleres", 
+    title: "Solicitar Afiliación", 
+    url: "/aseguradoras", 
     icon: Building2, 
     allowedRoles: ["aseguradora"] 
   },
@@ -165,10 +165,10 @@ const menuItems: MenuItem[] = [
     allowedRoles: ["taller", "admin_taller", "aseguradora"] 
   },
   { 
-    title: "Aseguradoras", 
-    url: "/aseguradoras", 
+    title: "Talleres Afiliados", 
+    url: "/talleres", 
     icon: Building2, 
-    allowedRoles: ["taller", "admin_taller"] 
+    allowedRoles: ["aseguradora"] 
   },
   { 
     title: "Mensajes", 
@@ -177,10 +177,10 @@ const menuItems: MenuItem[] = [
     allowedRoles: ["aseguradora", "taller", "admin_taller"] 
   },
   { 
-    title: "Solicitudes Afiliación", 
+    title: "Solicitudes de Aseguradoras", 
     url: "/solicitudes-afiliacion", 
     icon: FileCheck, 
-    allowedRoles: ["aseguradora"] 
+    allowedRoles: ["taller", "admin_taller"] 
   },
   { 
     title: "Reparaciones", 
