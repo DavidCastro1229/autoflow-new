@@ -333,6 +333,80 @@ export type Database = {
           },
         ]
       }
+      convenios_afiliacion: {
+        Row: {
+          created_at: string
+          descuento_repuestos_b2b: number
+          dias_credito_pago: number
+          duracion_garantia_meses: number
+          id: string
+          regla_origen_piezas: string
+          solicitud_id: string
+          tarifa_mo_mecanica: number
+          tarifa_mo_pintura: number
+          tiempo_max_auth_complementos: number
+          tiempo_max_auth_repuestos: number
+          tiempo_max_autorizacion_tap: number
+          tiempo_max_entrega_repuestos: number
+          tiempo_max_inspeccion: number
+          tiempo_max_presupuesto: number
+          tiempo_max_qc_final: number
+          tiempo_max_reparacion: number
+          tiempo_max_traslado: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descuento_repuestos_b2b?: number
+          dias_credito_pago?: number
+          duracion_garantia_meses?: number
+          id?: string
+          regla_origen_piezas?: string
+          solicitud_id: string
+          tarifa_mo_mecanica?: number
+          tarifa_mo_pintura?: number
+          tiempo_max_auth_complementos?: number
+          tiempo_max_auth_repuestos?: number
+          tiempo_max_autorizacion_tap?: number
+          tiempo_max_entrega_repuestos?: number
+          tiempo_max_inspeccion?: number
+          tiempo_max_presupuesto?: number
+          tiempo_max_qc_final?: number
+          tiempo_max_reparacion?: number
+          tiempo_max_traslado?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descuento_repuestos_b2b?: number
+          dias_credito_pago?: number
+          duracion_garantia_meses?: number
+          id?: string
+          regla_origen_piezas?: string
+          solicitud_id?: string
+          tarifa_mo_mecanica?: number
+          tarifa_mo_pintura?: number
+          tiempo_max_auth_complementos?: number
+          tiempo_max_auth_repuestos?: number
+          tiempo_max_autorizacion_tap?: number
+          tiempo_max_entrega_repuestos?: number
+          tiempo_max_inspeccion?: number
+          tiempo_max_presupuesto?: number
+          tiempo_max_qc_final?: number
+          tiempo_max_reparacion?: number
+          tiempo_max_traslado?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convenios_afiliacion_solicitud_id_fkey"
+            columns: ["solicitud_id"]
+            isOneToOne: true
+            referencedRelation: "solicitudes_afiliacion"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cotizacion_partes: {
         Row: {
           cantidad: number

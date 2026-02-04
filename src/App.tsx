@@ -31,7 +31,7 @@ import Siniestros from "./pages/modules/Siniestros";
 import Usuarios from "./pages/modules/Usuarios";
 import Solicitudes from "./pages/modules/Solicitudes";
 import AseguradorasModule from "./pages/modules/AseguradorasModule";
-import SolicitudesAfiliacion from "./pages/modules/SolicitudesAfiliacion";
+import TallerSolicitudesAfiliacion from "./pages/modules/TallerSolicitudesAfiliacion";
 import HojaIngreso from "./pages/modules/HojaIngreso";
 import Servicios from "./pages/modules/Servicios";
 import Paquetes from "./pages/modules/Paquetes";
@@ -55,7 +55,7 @@ const App = () => (
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="solicitudes" element={<Solicitudes />} />
               <Route path="aseguradoras" element={<AseguradorasModule />} />
-              <Route path="solicitudes-afiliacion" element={<SolicitudesAfiliacion />} />
+              <Route path="solicitudes-afiliacion" element={<TallerSolicitudesAfiliacion />} />
               <Route path="kanban" element={<Kanban />} />
               <Route path="talleres" element={<Talleres />} />
               <Route path="equipo" element={<Equipo />} />
