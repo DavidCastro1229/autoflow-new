@@ -4,11 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Building2, Users } from "lucide-react";
+import ContactosAseguradoraSection from "@/components/aseguradoras/ContactosAseguradoraSection";
 
 interface AseguradoraConfig {
+  id: string;
   nombre_aseguradora: string;
   telefono: string;
   email: string;
@@ -129,8 +132,21 @@ export default function ConfiguracionesAseguradora() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Información General
+          </TabsTrigger>
+          <TabsTrigger value="contactos" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Contactos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Card>
           <CardHeader>
             <CardTitle>Información General</CardTitle>
             <CardDescription>
@@ -277,23 +293,29 @@ export default function ConfiguracionesAseguradora() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={fetchConfig}
-            disabled={saving}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={saving}>
-            {saving && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            {saving ? "Guardando..." : "Guardar Cambios"}
-          </Button>
-        </div>
-      </form>
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={fetchConfig}
+                disabled={saving}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {saving ? "Guardando..." : "Guardar Cambios"}
+              </Button>
+            </div>
+          </form>
+        </TabsContent>
+
+        <TabsContent value="contactos">
+          {config && <ContactosAseguradoraSection aseguradoraId={config.id} />}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
