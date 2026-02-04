@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      aseguradora_contactos: {
+        Row: {
+          aseguradora_id: string
+          created_at: string
+          email: string | null
+          id: string
+          incluir_cliente_final: boolean
+          nombre: string
+          notificar_app: boolean
+          notificar_email: boolean
+          notificar_whatsapp: boolean
+          telefono: string | null
+          tipo_contacto: Database["public"]["Enums"]["tipo_contacto_aseguradora"]
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          aseguradora_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          incluir_cliente_final?: boolean
+          nombre: string
+          notificar_app?: boolean
+          notificar_email?: boolean
+          notificar_whatsapp?: boolean
+          telefono?: string | null
+          tipo_contacto: Database["public"]["Enums"]["tipo_contacto_aseguradora"]
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          aseguradora_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          incluir_cliente_final?: boolean
+          nombre?: string
+          notificar_app?: boolean
+          notificar_email?: boolean
+          notificar_whatsapp?: boolean
+          telefono?: string | null
+          tipo_contacto?: Database["public"]["Enums"]["tipo_contacto_aseguradora"]
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aseguradora_contactos_aseguradora_id_fkey"
+            columns: ["aseguradora_id"]
+            isOneToOne: false
+            referencedRelation: "aseguradoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aseguradoras: {
         Row: {
           apellido_contacto: string
@@ -2866,6 +2922,12 @@ export type Database = {
         | "ventas"
         | "produccion"
         | "suministro"
+      tipo_contacto_aseguradora:
+        | "gerente_pais"
+        | "gerente_regional"
+        | "reclamos"
+        | "ajustadores"
+        | "corredores"
       tipo_contrato: "arrendamiento" | "propiedad" | "subcontratacion"
       tipo_flota: "propia" | "alquilada" | "mixta"
       tipo_tarea: "administrativa" | "operativa"
@@ -3049,6 +3111,13 @@ export const Constants = {
         "ventas",
         "produccion",
         "suministro",
+      ],
+      tipo_contacto_aseguradora: [
+        "gerente_pais",
+        "gerente_regional",
+        "reclamos",
+        "ajustadores",
+        "corredores",
       ],
       tipo_contrato: ["arrendamiento", "propiedad", "subcontratacion"],
       tipo_flota: ["propia", "alquilada", "mixta"],
