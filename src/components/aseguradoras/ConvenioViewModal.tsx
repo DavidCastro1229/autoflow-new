@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, DollarSign, Clock, FileCheck, Package } from "lucide-react";
+import { Loader2, DollarSign, Clock, FileCheck, Package, PenTool } from "lucide-react";
+import { SignatureDisplay } from "@/components/ui/signature-pad";
 
 interface ConvenioViewModalProps {
   open: boolean;
@@ -29,6 +30,10 @@ interface Convenio {
   tiempo_max_qc_final: number;
   dias_credito_pago: number;
   duracion_garantia_meses: number;
+  firma_aseguradora: string | null;
+  firma_taller: string | null;
+  fecha_firma_aseguradora: string | null;
+  fecha_firma_taller: string | null;
 }
 
 export default function ConvenioViewModal({
@@ -205,6 +210,45 @@ export default function ConvenioViewModal({
                     value={convenio.duracion_garantia_meses} 
                     unit="meses" 
                   />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Firmas Digitales */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <PenTool className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Firmas Digitales</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {convenio.firma_aseguradora ? (
+                    <SignatureDisplay 
+                      signature={convenio.firma_aseguradora}
+                      label="Firma de la Aseguradora"
+                      date={convenio.fecha_firma_aseguradora || undefined}
+                    />
+                  ) : (
+                    <div className="border rounded-lg p-4 bg-muted/20">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Pendiente firma de aseguradora
+                      </p>
+                    </div>
+                  )}
+                  
+                  {convenio.firma_taller ? (
+                    <SignatureDisplay 
+                      signature={convenio.firma_taller}
+                      label="Firma del Taller"
+                      date={convenio.fecha_firma_taller || undefined}
+                    />
+                  ) : (
+                    <div className="border rounded-lg p-4 bg-muted/20">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Pendiente firma del taller
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
