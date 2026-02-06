@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, DollarSign, Clock, FileCheck } from "lucide-react";
+import { Send, DollarSign, Clock, FileCheck, PenTool } from "lucide-react";
+import { SignaturePad } from "@/components/ui/signature-pad";
 
 export interface ConvenioData {
   // Tarifas y descuentos
@@ -32,6 +33,9 @@ export interface ConvenioData {
   tiempo_max_qc_final: number;
   dias_credito_pago: number;
   duracion_garantia_meses: number;
+  
+  // Firma
+  firma_aseguradora?: string;
 }
 
 interface ConvenioFormModalProps {
@@ -60,6 +64,7 @@ const defaultConvenio: ConvenioData = {
   tiempo_max_qc_final: 4,
   dias_credito_pago: 30,
   duracion_garantia_meses: 12,
+  firma_aseguradora: undefined,
 };
 
 export default function ConvenioFormModal({
@@ -96,7 +101,7 @@ export default function ConvenioFormModal({
 
         <ScrollArea className="h-[60vh] pr-4">
           <Tabs defaultValue="tarifas" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="tarifas" className="text-xs">
                 <DollarSign className="w-3 h-3 mr-1" />
                 Tarifas
@@ -112,6 +117,10 @@ export default function ConvenioFormModal({
               <TabsTrigger value="cierre" className="text-xs">
                 <FileCheck className="w-3 h-3 mr-1" />
                 Cierre
+              </TabsTrigger>
+              <TabsTrigger value="firma" className="text-xs">
+                <PenTool className="w-3 h-3 mr-1" />
+                Firma
               </TabsTrigger>
             </TabsList>
 
@@ -386,6 +395,23 @@ export default function ConvenioFormModal({
                 </div>
               </div>
             </TabsContent>
+
+            <TabsContent value="firma" className="space-y-4 mt-4">
+              <h3 className="font-semibold text-sm text-muted-foreground">Firma de la Aseguradora</h3>
+              
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Al firmar, confirmas que los términos del convenio propuesto son correctos y autorizados por la aseguradora.
+                </p>
+                
+                <SignaturePad
+                  label="Firma del Representante de la Aseguradora"
+                  value={convenio.firma_aseguradora}
+                  onChange={(signature) => handleChange("firma_aseguradora", signature || "")}
+                  required
+                />
+              </div>
+            </TabsContent>
           </Tabs>
 
           <div className="space-y-2 mt-6 border-t pt-4">
@@ -404,11 +430,19 @@ export default function ConvenioFormModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isLoading || !convenio.firma_aseguradora}
+          >
             <Send className="w-4 h-4 mr-2" />
             {isLoading ? "Enviando..." : "Enviar Solicitud"}
           </Button>
         </DialogFooter>
+        {!convenio.firma_aseguradora && (
+          <p className="text-xs text-destructive text-center">
+            Debes firmar el convenio antes de enviar la solicitud
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

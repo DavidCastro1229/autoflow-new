@@ -139,12 +139,13 @@ export default function AseguradorasModule() {
         return;
       }
 
-      // 2. Crear el convenio asociado
+      // 2. Crear el convenio asociado con la firma
       const { error: convenioError } = await supabase
         .from("convenios_afiliacion")
         .insert({
           solicitud_id: solicitudData.id,
           ...convenio,
+          fecha_firma_aseguradora: new Date().toISOString(),
         });
 
       if (convenioError) throw convenioError;

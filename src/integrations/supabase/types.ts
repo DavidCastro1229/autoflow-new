@@ -395,6 +395,10 @@ export type Database = {
           descuento_repuestos_b2b: number
           dias_credito_pago: number
           duracion_garantia_meses: number
+          fecha_firma_aseguradora: string | null
+          fecha_firma_taller: string | null
+          firma_aseguradora: string | null
+          firma_taller: string | null
           id: string
           regla_origen_piezas: string
           solicitud_id: string
@@ -416,6 +420,10 @@ export type Database = {
           descuento_repuestos_b2b?: number
           dias_credito_pago?: number
           duracion_garantia_meses?: number
+          fecha_firma_aseguradora?: string | null
+          fecha_firma_taller?: string | null
+          firma_aseguradora?: string | null
+          firma_taller?: string | null
           id?: string
           regla_origen_piezas?: string
           solicitud_id: string
@@ -437,6 +445,10 @@ export type Database = {
           descuento_repuestos_b2b?: number
           dias_credito_pago?: number
           duracion_garantia_meses?: number
+          fecha_firma_aseguradora?: string | null
+          fecha_firma_taller?: string | null
+          firma_aseguradora?: string | null
+          firma_taller?: string | null
           id?: string
           regla_origen_piezas?: string
           solicitud_id?: string

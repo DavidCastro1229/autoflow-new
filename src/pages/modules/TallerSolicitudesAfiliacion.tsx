@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, CheckCircle2, XCircle, Clock, MessageSquare, Eye } from "lucide-react";
+import { Building2, CheckCircle2, XCircle, Clock, MessageSquare, Eye, PenTool } from "lucide-react";
 import { toast } from "sonner";
 import ConvenioViewModal from "@/components/aseguradoras/ConvenioViewModal";
+import { SignaturePad, SignatureDisplay } from "@/components/ui/signature-pad";
 
 interface Aseguradora {
   id: string;
@@ -39,6 +40,7 @@ export default function TallerSolicitudesAfiliacion() {
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [selectedSolicitud, setSelectedSolicitud] = useState<Solicitud | null>(null);
   const [respuesta, setRespuesta] = useState("");
+  const [firmaTaller, setFirmaTaller] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConvenioViewOpen, setIsConvenioViewOpen] = useState(false);
   const [selectedSolicitudId, setSelectedSolicitudId] = useState<string | null>(null);
@@ -105,6 +107,12 @@ export default function TallerSolicitudesAfiliacion() {
     try {
       // Si se aprueba, crear primero la relación en taller_aseguradoras
       if (actionType === "aprobar") {
+        // Verificar que haya firma si es aprobación
+        if (!firmaTaller) {
+          toast.error("Debes firmar el convenio para aceptar la solicitud");
+          return;
+        }
+
         const { error: relationError } = await supabase
           .from("taller_aseguradoras")
           .insert({
@@ -115,6 +123,17 @@ export default function TallerSolicitudesAfiliacion() {
         if (relationError && relationError.code !== "23505") {
           throw relationError;
         }
+
+        // Actualizar el convenio con la firma del taller
+        const { error: convenioError } = await supabase
+          .from("convenios_afiliacion")
+          .update({
+            firma_taller: firmaTaller,
+            fecha_firma_taller: new Date().toISOString(),
+          })
+          .eq("solicitud_id", selectedSolicitud.id);
+
+        if (convenioError) throw convenioError;
       }
 
       // Actualizar el estado de la solicitud
@@ -139,6 +158,7 @@ export default function TallerSolicitudesAfiliacion() {
       
       setIsDialogOpen(false);
       setRespuesta("");
+      setFirmaTaller(null);
       setSelectedSolicitud(null);
       fetchSolicitudes();
     } catch (error) {
@@ -151,6 +171,7 @@ export default function TallerSolicitudesAfiliacion() {
     setSelectedSolicitud(solicitud);
     setActionType(type);
     setRespuesta("");
+    setFirmaTaller(null);
     setIsDialogOpen(true);
   };
 
@@ -397,7 +418,7 @@ export default function TallerSolicitudesAfiliacion() {
       </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {actionType === "aprobar" ? "Aceptar Solicitud" : "Rechazar Solicitud"}
@@ -422,10 +443,28 @@ export default function TallerSolicitudesAfiliacion() {
                 }
                 value={respuesta}
                 onChange={(e) => setRespuesta(e.target.value)}
-                rows={4}
+                rows={3}
                 className="mt-1"
               />
             </div>
+
+            {actionType === "aprobar" && (
+              <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <PenTool className="w-4 h-4" />
+                  Firma Digital del Taller
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Al firmar, aceptas los términos del convenio propuesto por la aseguradora.
+                </p>
+                <SignaturePad
+                  label="Firma del Representante del Taller"
+                  value={firmaTaller || undefined}
+                  onChange={(signature) => setFirmaTaller(signature)}
+                  required
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -435,12 +474,15 @@ export default function TallerSolicitudesAfiliacion() {
               onClick={handleAction}
               className={actionType === "aprobar" ? "bg-green-600 hover:bg-green-700" : ""}
               variant={actionType === "rechazar" ? "destructive" : "default"}
-              disabled={actionType === "rechazar" && !respuesta.trim()}
+              disabled={
+                (actionType === "rechazar" && !respuesta.trim()) ||
+                (actionType === "aprobar" && !firmaTaller)
+              }
             >
               {actionType === "aprobar" ? (
                 <>
                   <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Aceptar
+                  Aceptar y Firmar
                 </>
               ) : (
                 <>
@@ -450,6 +492,11 @@ export default function TallerSolicitudesAfiliacion() {
               )}
             </Button>
           </DialogFooter>
+          {actionType === "aprobar" && !firmaTaller && (
+            <p className="text-xs text-destructive text-center">
+              Debes firmar el convenio antes de aceptar la solicitud
+            </p>
+          )}
         </DialogContent>
       </Dialog>
 
