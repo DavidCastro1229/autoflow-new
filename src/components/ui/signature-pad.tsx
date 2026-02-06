@@ -23,8 +23,39 @@ export function SignaturePad({
   required = false,
 }: SignaturePadProps) {
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [hasExistingSignature, setHasExistingSignature] = useState(false);
+
+  // Resize canvas to match container size
+  useEffect(() => {
+    const resizeCanvas = () => {
+      if (containerRef.current && sigCanvas.current) {
+        const canvas = sigCanvas.current.getCanvas();
+        const container = containerRef.current;
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        
+        canvas.width = container.offsetWidth * ratio;
+        canvas.height = 150 * ratio;
+        canvas.style.width = `${container.offsetWidth}px`;
+        canvas.style.height = "150px";
+        
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.scale(ratio, ratio);
+        }
+        
+        // Restore signature if exists
+        if (value) {
+          sigCanvas.current.fromDataURL(value);
+        }
+      }
+    };
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, [value]);
 
   useEffect(() => {
     if (value && sigCanvas.current) {
@@ -60,10 +91,10 @@ export function SignaturePad({
         </Label>
       )}
       
-      <div className="relative">
+      <div className="relative" ref={containerRef}>
         <div
           className={cn(
-            "border-2 border-dashed rounded-lg bg-muted/30 transition-colors",
+            "border-2 rounded-lg bg-white transition-colors overflow-hidden",
             disabled ? "opacity-50 cursor-not-allowed" : "hover:border-primary/50",
             !isEmpty ? "border-primary" : "border-muted-foreground/30"
           )}
@@ -71,13 +102,17 @@ export function SignaturePad({
           <SignatureCanvas
             ref={sigCanvas}
             penColor="black"
+            backgroundColor="white"
             canvasProps={{
-              width: 400,
-              height: 150,
               className: cn(
-                "w-full rounded-lg",
+                "w-full touch-none",
                 disabled && "pointer-events-none"
               ),
+              style: { 
+                display: "block",
+                width: "100%",
+                height: "150px"
+              }
             }}
             onEnd={handleEnd}
           />
@@ -85,7 +120,7 @@ export function SignaturePad({
 
         {!isEmpty && (
           <div className="absolute top-2 right-2 flex items-center gap-1">
-            <div className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
+            <div className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">
               <Check className="w-3 h-3" />
               Firmado
             </div>
