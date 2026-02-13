@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Send, CheckCircle2, XCircle, Clock, Search, Eye } from "lucide-react";
+import { Building2, Send, CheckCircle2, XCircle, Clock, Search, Eye, Ban } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import ConvenioFormModal, { ConvenioData } from "@/components/aseguradoras/ConvenioFormModal";
 import ConvenioViewModal from "@/components/aseguradoras/ConvenioViewModal";
@@ -166,6 +167,28 @@ export default function AseguradorasModule() {
   const handleViewConvenio = (solicitudId: string) => {
     setSelectedSolicitudId(solicitudId);
     setIsConvenioViewOpen(true);
+  };
+
+  const handleRevokeSolicitud = async (solicitudId: string) => {
+    try {
+      // Delete convenio first (FK dependency)
+      await supabase
+        .from("convenios_afiliacion")
+        .delete()
+        .eq("solicitud_id", solicitudId);
+
+      const { error } = await supabase
+        .from("solicitudes_afiliacion")
+        .delete()
+        .eq("id", solicitudId);
+
+      if (error) throw error;
+      toast.success("Solicitud revocada exitosamente");
+      fetchSolicitudes();
+    } catch (error) {
+      console.error("Error revoking solicitud:", error);
+      toast.error("Error al revocar la solicitud");
+    }
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -349,14 +372,40 @@ export default function AseguradorasModule() {
                     <p className="text-muted-foreground">📧 {solicitud.talleres.email}</p>
                     <p className="text-muted-foreground">📞 {solicitud.talleres.telefono}</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleViewConvenio(solicitud.id)}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Ver Convenio
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewConvenio(solicitud.id)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Ver Convenio
+                    </Button>
+                    {solicitud.estado === "pendiente" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <Ban className="w-4 h-4 mr-2" />
+                            Revocar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Revocar solicitud?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción eliminará la solicitud enviada a {solicitud.talleres.nombre_taller} junto con el convenio propuesto. Esta acción no se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleRevokeSolicitud(solicitud.id)}>
+                              Revocar Solicitud
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
