@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, CheckCircle2, XCircle, Clock, MessageSquare, Eye, PenTool } from "lucide-react";
+import { Building2, CheckCircle2, XCircle, Clock, MessageSquare, Eye, PenTool, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import ConvenioViewModal from "@/components/aseguradoras/ConvenioViewModal";
 import { SignaturePad, SignatureDisplay } from "@/components/ui/signature-pad";
+import MisAseguradorasTab from "@/components/aseguradoras/MisAseguradorasTab";
 
 interface Aseguradora {
   id: string;
@@ -210,22 +211,38 @@ export default function TallerSolicitudesAfiliacion() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Solicitudes de Aseguradoras</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Aseguradoras</h1>
         <p className="text-muted-foreground">
-          Gestiona las solicitudes de afiliación que has recibido de aseguradoras
+          Gestiona tus aseguradoras afiliadas y solicitudes de afiliación
         </p>
       </div>
 
-      <Tabs defaultValue="pendientes" className="w-full">
+      <Tabs defaultValue="solicitudes" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="pendientes">
-            Pendientes
+          <TabsTrigger value="solicitudes">
+            <Clock className="w-4 h-4 mr-2" />
+            Solicitudes
             {solicitudesPendientes.length > 0 && (
               <Badge className="ml-2" variant="destructive">{solicitudesPendientes.length}</Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="historial">Historial</TabsTrigger>
+          <TabsTrigger value="mis-aseguradoras">
+            <ShieldCheck className="w-4 h-4 mr-2" />
+            Mis Aseguradoras
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="solicitudes" className="space-y-6 mt-6">
+          <Tabs defaultValue="pendientes" className="w-full">
+            <TabsList className="grid w-full max-w-sm grid-cols-2">
+              <TabsTrigger value="pendientes">
+                Pendientes
+                {solicitudesPendientes.length > 0 && (
+                  <Badge className="ml-2" variant="destructive">{solicitudesPendientes.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="historial">Historial</TabsTrigger>
+            </TabsList>
 
         <TabsContent value="pendientes" className="space-y-4">
           {solicitudesPendientes.map((solicitud) => (
@@ -414,6 +431,12 @@ export default function TallerSolicitudesAfiliacion() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+          </Tabs>
+        </TabsContent>
+
+        <TabsContent value="mis-aseguradoras" className="mt-6">
+          <MisAseguradorasTab />
         </TabsContent>
       </Tabs>
 
