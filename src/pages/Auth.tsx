@@ -11,13 +11,15 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PAISES_AMERICA } from "@/lib/countries";
 
 const signupSchema = z.object({
   nombre_taller: z.string().trim().min(1, "El nombre del taller es requerido").max(100, "Máximo 100 caracteres"),
   telefono: z.string().trim().min(10, "Teléfono debe tener al menos 10 dígitos").max(20, "Máximo 20 caracteres"),
   direccion: z.string().trim().min(1, "La dirección es requerida").max(200, "Máximo 200 caracteres"),
   ciudad: z.string().trim().min(1, "La ciudad es requerida").max(100, "Máximo 100 caracteres"),
-  estado: z.string().trim().min(1, "El estado es requerido").max(100, "Máximo 100 caracteres"),
+  estado: z.string().trim().min(1, "El país es requerido").max(100, "Máximo 100 caracteres"),
   codigo_postal: z.string().trim().min(1, "El código postal es requerido").max(10, "Máximo 10 caracteres"),
   nombre_contacto: z.string().trim().min(1, "El nombre es requerido").max(50, "Máximo 50 caracteres"),
   apellido_contacto: z.string().trim().min(1, "El apellido es requerido").max(50, "Máximo 50 caracteres"),
@@ -32,7 +34,7 @@ const aseguradoraSignupSchema = z.object({
   telefono: z.string().trim().min(10, "Teléfono debe tener al menos 10 dígitos").max(20, "Máximo 20 caracteres"),
   direccion: z.string().trim().min(1, "La dirección es requerida").max(200, "Máximo 200 caracteres"),
   ciudad: z.string().trim().min(1, "La ciudad es requerida").max(100, "Máximo 100 caracteres"),
-  estado: z.string().trim().min(1, "El estado es requerido").max(100, "Máximo 100 caracteres"),
+  estado: z.string().trim().min(1, "El país es requerido").max(100, "Máximo 100 caracteres"),
   codigo_postal: z.string().trim().min(1, "El código postal es requerido").max(10, "Máximo 10 caracteres"),
   nombre_contacto: z.string().trim().min(1, "El nombre es requerido").max(50, "Máximo 50 caracteres"),
   apellido_contacto: z.string().trim().min(1, "El apellido es requerido").max(50, "Máximo 50 caracteres"),
@@ -442,15 +444,17 @@ const Auth = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="estado">Estado *</Label>
-                        <Input
-                          id="estado"
-                          name="estado"
-                          type="text"
-                          placeholder="Estado"
-                          required
-                          maxLength={100}
-                        />
+                        <Label htmlFor="estado">País *</Label>
+                        <Select name="estado" required>
+                          <SelectTrigger id="estado">
+                            <SelectValue placeholder="Seleccionar país" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAISES_AMERICA.map((pais) => (
+                              <SelectItem key={pais} value={pais}>{pais}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
@@ -616,15 +620,17 @@ const Auth = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="estado_aseg">Estado *</Label>
-                        <Input
-                          id="estado_aseg"
-                          name="estado"
-                          type="text"
-                          placeholder="Estado"
-                          required
-                          maxLength={100}
-                        />
+                        <Label htmlFor="estado_aseg">País *</Label>
+                        <Select name="estado" required>
+                          <SelectTrigger id="estado_aseg">
+                            <SelectValue placeholder="Seleccionar país" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAISES_AMERICA.map((pais) => (
+                              <SelectItem key={pais} value={pais}>{pais}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 

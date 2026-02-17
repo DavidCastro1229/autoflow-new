@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Building2, Users } from "lucide-react";
 import ContactosAseguradoraSection from "@/components/aseguradoras/ContactosAseguradoraSection";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PAISES_AMERICA } from "@/lib/countries";
 
 interface AseguradoraConfig {
   id: string;
@@ -271,13 +273,20 @@ export default function ConfiguracionesAseguradora() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="estado">Estado</Label>
-                <Input
-                  id="estado"
+                <Label htmlFor="estado">País</Label>
+                <Select
                   value={config.estado}
-                  onChange={(e) => setConfig({ ...config, estado: e.target.value })}
-                  required
-                />
+                  onValueChange={(value) => setConfig({ ...config, estado: value })}
+                >
+                  <SelectTrigger id="estado">
+                    <SelectValue placeholder="Seleccionar país" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAISES_AMERICA.map((pais) => (
+                      <SelectItem key={pais} value={pais}>{pais}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
