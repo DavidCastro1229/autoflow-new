@@ -115,7 +115,7 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
+/*Body*/
   
   body {
     @apply bg-background text-foreground;
