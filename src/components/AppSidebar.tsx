@@ -177,9 +177,9 @@ const menuItems: MenuItem[] = [
     allowedRoles: ["aseguradora", "taller", "admin_taller"] 
   },
   { 
-    title: "Solicitudes de Aseguradoras", 
+    title: "Aseguradoras", 
     url: "/solicitudes-afiliacion", 
-    icon: FileCheck, 
+    icon: Building2, 
     allowedRoles: ["taller", "admin_taller"] 
   },
   { 
