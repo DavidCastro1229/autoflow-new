@@ -16,19 +16,15 @@ import { useState, useEffect } from "react";
 
 // Define allowed roles for each route
 const routePermissions: Record<string, UserRole[]> = {
-  // Rutas específicas de super_admin
   "/usuarios": ["super_admin"],
   "/solicitudes": ["super_admin"],
-  
-  // Rutas compartidas
-  "/dashboard": ["admin_taller", "aseguradora", "super_admin"],
+  "/dashboard": ["admin_taller", "aseguradora", "super_admin", "flota"],
   "/kanban": ["admin_taller", "super_admin"],
   "/talleres": ["aseguradora", "super_admin"],
   "/equipo": ["taller", "admin_taller", "super_admin"],
   "/ordenes": ["taller", "admin_taller", "super_admin"],
   "/vehiculos": ["taller", "admin_taller", "aseguradora", "super_admin"],
   "/hoja-ingreso": ["taller", "admin_taller", "super_admin"],
-  "/flotas": ["taller", "admin_taller", "super_admin"],
   "/cotizaciones": ["taller", "admin_taller", "aseguradora", "super_admin"],
   "/facturacion": ["taller", "admin_taller", "aseguradora", "super_admin"],
   "/aseguradoras": ["aseguradora", "super_admin"],
@@ -46,6 +42,15 @@ const routePermissions: Record<string, UserRole[]> = {
   "/configuraciones-aseguradora": ["aseguradora", "super_admin"],
   "/servicios": ["taller", "admin_taller", "super_admin"],
   "/paquetes": ["taller", "admin_taller", "super_admin"],
+  // Flota routes
+  "/flota-datos-generales": ["flota", "super_admin"],
+  "/flota-jefe": ["flota", "super_admin"],
+  "/flota-comunicacion": ["flota", "super_admin"],
+  "/flota-datos-bancarios": ["flota", "super_admin"],
+  "/flota-negociacion": ["flota", "super_admin"],
+  "/flota-terminos": ["flota", "super_admin"],
+  "/flota-inventario": ["flota", "super_admin"],
+  "/flota-conductores": ["flota", "super_admin"],
 };
 
 export default function DashboardLayout() {
@@ -86,7 +91,8 @@ export default function DashboardLayout() {
       "aseguradora": "Aseguradora",
       "admin_taller": "Taller",
       "taller": "Taller",
-      "super_admin": "Super Admin"
+      "super_admin": "Super Admin",
+      "flota": "Flota",
     };
     return roleLabels[role] || role;
   };
