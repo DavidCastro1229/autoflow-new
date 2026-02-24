@@ -36,6 +36,14 @@ import HojaIngreso from "./pages/modules/HojaIngreso";
 import Servicios from "./pages/modules/Servicios";
 import Paquetes from "./pages/modules/Paquetes";
 import Suscripcion from "./pages/Suscripcion";
+import FlotaDatosGenerales from "./pages/modules/FlotaDatosGenerales";
+import FlotaJefe from "./pages/modules/FlotaJefe";
+import FlotaComunicacion from "./pages/modules/FlotaComunicacion";
+import FlotaDatosBancarios from "./pages/modules/FlotaDatosBancarios";
+import FlotaNegociacion from "./pages/modules/FlotaNegociacion";
+import FlotaTerminos from "./pages/modules/FlotaTerminos";
+import FlotaInventario from "./pages/modules/FlotaInventario";
+import FlotaConductores from "./pages/modules/FlotaConductores";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +71,14 @@ const App = () => (
               <Route path="vehiculos" element={<Vehiculos />} />
               <Route path="hoja-ingreso" element={<HojaIngreso />} />
               <Route path="flotas" element={<Flotas />} />
+              <Route path="flota-datos-generales" element={<FlotaDatosGenerales />} />
+              <Route path="flota-jefe" element={<FlotaJefe />} />
+              <Route path="flota-comunicacion" element={<FlotaComunicacion />} />
+              <Route path="flota-datos-bancarios" element={<FlotaDatosBancarios />} />
+              <Route path="flota-negociacion" element={<FlotaNegociacion />} />
+              <Route path="flota-terminos" element={<FlotaTerminos />} />
+              <Route path="flota-inventario" element={<FlotaInventario />} />
+              <Route path="flota-conductores" element={<FlotaConductores />} />
               <Route path="cotizaciones" element={<Cotizaciones />} />
               <Route path="facturacion" element={<Facturacion />} />
               <Route path="mensajes" element={<MensajesWrapper />} />

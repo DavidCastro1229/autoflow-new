@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type UserRole = "taller" | "admin_taller" | "aseguradora" | "super_admin";
+export type UserRole = "taller" | "admin_taller" | "aseguradora" | "super_admin" | "flota";
 
 export const useUserRole = () => {
   const [role, setRole] = useState<UserRole | null>(null);
   const [tallerId, setTallerId] = useState<string | null>(null);
+  const [flotaId, setFlotaId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,13 +16,14 @@ export const useUserRole = () => {
       if (!user) {
         setRole(null);
         setTallerId(null);
+        setFlotaId(null);
         setLoading(false);
         return;
       }
 
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, taller_id")
+        .select("role, taller_id, flota_id")
         .eq("user_id", user.id)
         .single();
 
@@ -29,9 +31,11 @@ export const useUserRole = () => {
         console.error("Error fetching user role:", error);
         setRole(null);
         setTallerId(null);
+        setFlotaId(null);
       } else {
         setRole(data.role as UserRole);
         setTallerId(data.taller_id);
+        setFlotaId((data as any).flota_id);
       }
       
       setLoading(false);
@@ -46,5 +50,5 @@ export const useUserRole = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  return { role, tallerId, loading };
+  return { role, tallerId, flotaId, loading };
 };
