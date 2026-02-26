@@ -4,13 +4,13 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Plus, Trash2, Loader2, Building2 } from "lucide-react";
+import { Phone, Plus, Trash2, Loader2, Eye, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 type TipoComunicacionInterna = "gerencia" | "ventas" | "produccion" | "suministro";
@@ -31,6 +31,16 @@ interface Contacto {
   tipo: string;
 }
 
+const TIPO_COLORS: Record<string, string> = {
+  gerencia: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700",
+  ventas: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700",
+  produccion: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700",
+  suministro: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700",
+  aseguradora: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700",
+  arrendadora: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700",
+  taller_externo: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700",
+};
+
 export default function FlotaComunicacion() {
   const { flotaId } = useUserRole();
   const { toast } = useToast();
@@ -47,6 +57,9 @@ export default function FlotaComunicacion() {
     nombre: "", correo: "", celular: "", whatsapp: "", telefono_fijo: "",
     tipo: "gerencia" as string,
   });
+  const [viewContact, setViewContact] = useState<Contacto | null>(null);
+  const [editContact, setEditContact] = useState<{ contact: Contacto; type: "interna" | "externa" } | null>(null);
+  const [editForm, setEditForm] = useState({ nombre: "", correo: "", celular: "", whatsapp: "", telefono_fijo: "" });
 
   useEffect(() => {
     if (flotaId) fetchDepartamentos();
@@ -101,10 +114,10 @@ export default function FlotaComunicacion() {
   const handleAddContact = async () => {
     if (!selectedDept) return;
     if (contactType === "interna") {
-      const { error } = await supabase.from("flota_comunicacion_interna").insert([{ departamento_id: selectedDept, ...contactForm, tipo: contactForm.tipo as "gerencia" | "ventas" | "produccion" | "suministro" }]);
+      const { error } = await supabase.from("flota_comunicacion_interna").insert([{ departamento_id: selectedDept, ...contactForm, tipo: contactForm.tipo as TipoComunicacionInterna }]);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     } else {
-      const { error } = await supabase.from("flota_comunicacion_externa").insert([{ departamento_id: selectedDept, ...contactForm, tipo: contactForm.tipo as "aseguradora" | "arrendadora" | "taller_externo" }]);
+      const { error } = await supabase.from("flota_comunicacion_externa").insert([{ departamento_id: selectedDept, ...contactForm, tipo: contactForm.tipo as TipoComunicacionExterna }]);
       if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     }
     setContactDialogOpen(false);
@@ -119,10 +132,39 @@ export default function FlotaComunicacion() {
     if (selectedDept) fetchContactos(selectedDept);
   };
 
+  const handleEditContact = async () => {
+    if (!editContact || !selectedDept) return;
+    const table = editContact.type === "interna" ? "flota_comunicacion_interna" : "flota_comunicacion_externa";
+    const { error } = await supabase.from(table).update({
+      nombre: editForm.nombre,
+      correo: editForm.correo,
+      celular: editForm.celular || null,
+      whatsapp: editForm.whatsapp || null,
+      telefono_fijo: editForm.telefono_fijo || null,
+    }).eq("id", editContact.contact.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    setEditContact(null);
+    fetchContactos(selectedDept);
+    toast({ title: "Contacto actualizado" });
+  };
+
+  const openEdit = (contact: Contacto, type: "interna" | "externa") => {
+    setEditContact({ contact, type });
+    setEditForm({
+      nombre: contact.nombre,
+      correo: contact.correo,
+      celular: contact.celular || "",
+      whatsapp: contact.whatsapp || "",
+      telefono_fijo: contact.telefono_fijo || "",
+    });
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   const tiposInternos: TipoComunicacionInterna[] = ["gerencia", "ventas", "produccion", "suministro"];
   const tiposExternos: TipoComunicacionExterna[] = ["aseguradora", "arrendadora", "taller_externo"];
+
+  const formatTipo = (tipo: string) => tipo.charAt(0).toUpperCase() + tipo.slice(1).replace("_", " ");
 
   const renderContactTable = (contactos: Contacto[], type: "interna" | "externa") => (
     <Table>
@@ -132,7 +174,7 @@ export default function FlotaComunicacion() {
           <TableHead>Tipo</TableHead>
           <TableHead>Correo</TableHead>
           <TableHead>Celular</TableHead>
-          <TableHead></TableHead>
+          <TableHead className="text-right">Acciones</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -141,13 +183,25 @@ export default function FlotaComunicacion() {
         ) : contactos.map((c) => (
           <TableRow key={c.id}>
             <TableCell className="font-medium">{c.nombre}</TableCell>
-            <TableCell><Badge variant="outline">{c.tipo}</Badge></TableCell>
+            <TableCell>
+              <Badge variant="outline" className={TIPO_COLORS[c.tipo] || ""}>
+                {formatTipo(c.tipo)}
+              </Badge>
+            </TableCell>
             <TableCell>{c.correo}</TableCell>
             <TableCell>{c.celular || "-"}</TableCell>
             <TableCell>
-              <Button variant="ghost" size="icon" onClick={() => handleDeleteContact(c.id, type)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              <div className="flex items-center justify-end gap-1">
+                <Button variant="ghost" size="icon" onClick={() => setViewContact(c)} title="Ver detalle">
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => openEdit(c, type)} title="Editar">
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteContact(c.id, type)} title="Eliminar">
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
         ))}
@@ -166,7 +220,6 @@ export default function FlotaComunicacion() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Sidebar: Departamentos */}
         <Card className="md:col-span-1">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -187,7 +240,6 @@ export default function FlotaComunicacion() {
           </CardContent>
         </Card>
 
-        {/* Main: Contactos */}
         <div className="md:col-span-3 space-y-4">
           {selectedDept ? (
             <>
@@ -252,7 +304,7 @@ export default function FlotaComunicacion() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(contactType === "interna" ? tiposInternos : tiposExternos).map(t => (
-                    <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1).replace("_", " ")}</SelectItem>
+                    <SelectItem key={t} value={t}>{formatTipo(t)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -266,6 +318,66 @@ export default function FlotaComunicacion() {
             <div className="space-y-2"><Label>Teléfono Fijo</Label><Input value={contactForm.telefono_fijo} onChange={(e) => setContactForm(p => ({ ...p, telefono_fijo: e.target.value }))} /></div>
           </div>
           <DialogFooter><Button onClick={handleAddContact}>Agregar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Ver Contacto */}
+      <Dialog open={!!viewContact} onOpenChange={() => setViewContact(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Detalle del Contacto</DialogTitle></DialogHeader>
+          {viewContact && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground text-xs">Nombre</Label>
+                  <p className="font-medium">{viewContact.nombre}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Tipo</Label>
+                  <div className="mt-1">
+                    <Badge variant="outline" className={TIPO_COLORS[viewContact.tipo] || ""}>
+                      {formatTipo(viewContact.tipo)}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">Correo</Label>
+                <p className="font-medium">{viewContact.correo}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-muted-foreground text-xs">Celular</Label>
+                  <p className="font-medium">{viewContact.celular || "-"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">WhatsApp</Label>
+                  <p className="font-medium">{viewContact.whatsapp || "-"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Teléfono Fijo</Label>
+                  <p className="font-medium">{viewContact.telefono_fijo || "-"}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Editar Contacto */}
+      <Dialog open={!!editContact} onOpenChange={() => setEditContact(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Contacto</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label>Nombre</Label><Input value={editForm.nombre} onChange={(e) => setEditForm(p => ({ ...p, nombre: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Correo</Label><Input value={editForm.correo} onChange={(e) => setEditForm(p => ({ ...p, correo: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Celular</Label><Input value={editForm.celular} onChange={(e) => setEditForm(p => ({ ...p, celular: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>WhatsApp</Label><Input value={editForm.whatsapp} onChange={(e) => setEditForm(p => ({ ...p, whatsapp: e.target.value }))} /></div>
+            </div>
+            <div className="space-y-2"><Label>Teléfono Fijo</Label><Input value={editForm.telefono_fijo} onChange={(e) => setEditForm(p => ({ ...p, telefono_fijo: e.target.value }))} /></div>
+          </div>
+          <DialogFooter><Button onClick={handleEditContact}>Guardar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
