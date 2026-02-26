@@ -77,6 +77,32 @@ const COLUMN_LABELS: Record<string, string> = {
   fecha_vencimiento_especiales: "Fecha Vencimiento Especiales",
 };
 
+const COLUMN_ALIASES: Record<string, string[]> = {
+  permiso_explotacion_unidad: ["Permiso de Explotacion de la Unidad", "Permiso de Explotacion de Unidad"],
+  fecha_autorizacion_explotacion: [
+    "Fecha de Autorizacion de Explotacion de la Unidad",
+    "Fecha Autorizacion de Explotacion de Unidad",
+  ],
+  fecha_vencimiento_explotacion: [
+    "Fecha de Vencimiento de Explotacion de la Unidad",
+    "Fecha Vencimiento de Explotacion de Unidad",
+  ],
+  fecha_autorizacion_circulacion: ["Fecha de Autorizacion de Circulacion", "Fecha Autorizacion de Circulacion"],
+  fecha_vencimiento_circulacion: ["Fecha de Vencimiento de Circulacion", "Fecha Vencimiento de Circulacion"],
+  fecha_autorizacion_publicidad: ["Fecha de Autorizacion de Publicidad", "Fecha Autorizacion de Publicidad"],
+  fecha_vencimiento_publicidad: ["Fecha de Vencimiento de Publicidad", "Fecha Vencimiento de Publicidad"],
+  fecha_autorizacion_especiales: [
+    "Fecha de Autorizacion de Permisos Especiales",
+    "Fecha de Autorizacion Especiales",
+    "Fecha Autorizacion Especiales",
+  ],
+  fecha_vencimiento_especiales: [
+    "Fecha de Vencimiento de Permisos Especiales",
+    "Fecha de Vencimiento Especiales",
+    "Fecha Vencimiento Especiales",
+  ],
+};
+
 const COLUMN_EXAMPLES: Record<string, string> = {
   numero_unidad: "U-001",
   marca_modelo: "Toyota Hilux 2024",
@@ -209,18 +235,36 @@ export default function FlotaInventario() {
   };
 
   const normalizeText = (text: string) =>
-    text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\s]+/g, " ").trim();
+    String(text ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      .replace(/[._,;:()[\]{}\-\/\\]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const normalizeLoose = (text: string) =>
+    normalizeText(text).replace(/\b(de|del|la|el|los|las)\b/g, "").replace(/\s+/g, " ").trim();
 
   const findColumnKey = (header: string): string | null => {
     const normalized = normalizeText(header);
-    // Try matching against labels first
+    const normalizedLoose = normalizeLoose(header);
+
     for (const [key, label] of Object.entries(COLUMN_LABELS)) {
-      if (normalizeText(label) === normalized) return key;
+      if (normalizeText(label) === normalized || normalizeLoose(label) === normalizedLoose) return key;
+
+      const aliases = COLUMN_ALIASES[key] || [];
+      if (aliases.some((alias) => normalizeText(alias) === normalized || normalizeLoose(alias) === normalizedLoose)) {
+        return key;
+      }
     }
-    // Try matching against keys directly
+
     for (const key of EXPECTED_COLUMNS) {
-      if (normalizeText(key.replace(/_/g, " ")) === normalized) return key;
+      const keyLabel = key.replace(/_/g, " ");
+      if (normalizeText(keyLabel) === normalized || normalizeLoose(keyLabel) === normalizedLoose) return key;
     }
+
     return null;
   };
 
