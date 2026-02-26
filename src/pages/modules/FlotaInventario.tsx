@@ -33,6 +33,22 @@ const EXPECTED_COLUMNS = [
   "anio_fabricacion",
   "kilometraje_actual",
   "estado_vehiculo",
+  "fecha_ultimo_mantenimiento",
+  "proximo_mantenimiento_programado",
+  "historial_reparaciones",
+  "conductores_asignados",
+  "permiso_explotacion_unidad",
+  "fecha_autorizacion_explotacion",
+  "fecha_vencimiento_explotacion",
+  "permiso_circulacion",
+  "fecha_autorizacion_circulacion",
+  "fecha_vencimiento_circulacion",
+  "permiso_publicidad",
+  "fecha_autorizacion_publicidad",
+  "fecha_vencimiento_publicidad",
+  "permisos_especiales",
+  "fecha_autorizacion_especiales",
+  "fecha_vencimiento_especiales",
 ];
 
 const COLUMN_LABELS: Record<string, string> = {
@@ -43,6 +59,22 @@ const COLUMN_LABELS: Record<string, string> = {
   anio_fabricacion: "Año de Fabricación",
   kilometraje_actual: "Kilometraje Actual",
   estado_vehiculo: "Estado del Vehículo",
+  fecha_ultimo_mantenimiento: "Fecha Último Mantenimiento",
+  proximo_mantenimiento_programado: "Próximo Mantenimiento Programado",
+  historial_reparaciones: "Historial de Reparaciones",
+  conductores_asignados: "Conductores Asignados",
+  permiso_explotacion_unidad: "Permiso Explotación Unidad",
+  fecha_autorizacion_explotacion: "Fecha Autorización Explotación",
+  fecha_vencimiento_explotacion: "Fecha Vencimiento Explotación",
+  permiso_circulacion: "Permiso de Circulación",
+  fecha_autorizacion_circulacion: "Fecha Autorización Circulación",
+  fecha_vencimiento_circulacion: "Fecha Vencimiento Circulación",
+  permiso_publicidad: "Permiso de Publicidad",
+  fecha_autorizacion_publicidad: "Fecha Autorización Publicidad",
+  fecha_vencimiento_publicidad: "Fecha Vencimiento Publicidad",
+  permisos_especiales: "Permisos Especiales",
+  fecha_autorizacion_especiales: "Fecha Autorización Especiales",
+  fecha_vencimiento_especiales: "Fecha Vencimiento Especiales",
 };
 
 const COLUMN_EXAMPLES: Record<string, string> = {
@@ -53,6 +85,22 @@ const COLUMN_EXAMPLES: Record<string, string> = {
   anio_fabricacion: "2024",
   kilometraje_actual: "15000",
   estado_vehiculo: "activo",
+  fecha_ultimo_mantenimiento: "2025-01-15",
+  proximo_mantenimiento_programado: "2025-07-15",
+  historial_reparaciones: "Cambio de aceite, frenos",
+  conductores_asignados: "Juan Pérez",
+  permiso_explotacion_unidad: "PEX-2024-001",
+  fecha_autorizacion_explotacion: "2024-01-01",
+  fecha_vencimiento_explotacion: "2025-01-01",
+  permiso_circulacion: "PC-2024-001",
+  fecha_autorizacion_circulacion: "2024-01-01",
+  fecha_vencimiento_circulacion: "2025-01-01",
+  permiso_publicidad: "PP-2024-001",
+  fecha_autorizacion_publicidad: "2024-01-01",
+  fecha_vencimiento_publicidad: "2025-01-01",
+  permisos_especiales: "PE-2024-001",
+  fecha_autorizacion_especiales: "2024-01-01",
+  fecha_vencimiento_especiales: "2025-01-01",
 };
 
 const exportColumns = [
@@ -63,6 +111,22 @@ const exportColumns = [
   { header: "Año", key: "anio_fabricacion", width: 10 },
   { header: "Kilometraje", key: "kilometraje_actual", width: 15 },
   { header: "Estado", key: "estado_vehiculo", width: 15 },
+  { header: "Últ. Mantenimiento", key: "fecha_ultimo_mantenimiento", width: 20 },
+  { header: "Próx. Mantenimiento", key: "proximo_mantenimiento_programado", width: 20 },
+  { header: "Historial Reparaciones", key: "historial_reparaciones", width: 25 },
+  { header: "Conductores", key: "conductores_asignados", width: 20 },
+  { header: "Permiso Explotación", key: "permiso_explotacion_unidad", width: 20 },
+  { header: "Aut. Explotación", key: "fecha_autorizacion_explotacion", width: 18 },
+  { header: "Venc. Explotación", key: "fecha_vencimiento_explotacion", width: 18 },
+  { header: "Permiso Circulación", key: "permiso_circulacion", width: 20 },
+  { header: "Aut. Circulación", key: "fecha_autorizacion_circulacion", width: 18 },
+  { header: "Venc. Circulación", key: "fecha_vencimiento_circulacion", width: 18 },
+  { header: "Permiso Publicidad", key: "permiso_publicidad", width: 20 },
+  { header: "Aut. Publicidad", key: "fecha_autorizacion_publicidad", width: 18 },
+  { header: "Venc. Publicidad", key: "fecha_vencimiento_publicidad", width: 18 },
+  { header: "Permisos Especiales", key: "permisos_especiales", width: 20 },
+  { header: "Aut. Especiales", key: "fecha_autorizacion_especiales", width: 18 },
+  { header: "Venc. Especiales", key: "fecha_vencimiento_especiales", width: 18 },
 ];
 
 export default function FlotaInventario() {
@@ -226,7 +290,7 @@ export default function FlotaInventario() {
           errors.push(`Fila ${rowNum}: Kilometraje inválido "${row.kilometraje_actual}"`);
           return;
         }
-        validRows.push({
+      validRows.push({
           flota_id: flotaId,
           numero_unidad: String(row.numero_unidad).trim(),
           marca_modelo: String(row.marca_modelo).trim(),
@@ -235,6 +299,22 @@ export default function FlotaInventario() {
           anio_fabricacion: anio,
           kilometraje_actual: km,
           estado_vehiculo: String(row.estado_vehiculo || "activo").trim().toLowerCase(),
+          fecha_ultimo_mantenimiento: row.fecha_ultimo_mantenimiento ? String(row.fecha_ultimo_mantenimiento).trim() : null,
+          proximo_mantenimiento_programado: row.proximo_mantenimiento_programado ? String(row.proximo_mantenimiento_programado).trim() : null,
+          historial_reparaciones: row.historial_reparaciones ? String(row.historial_reparaciones).trim() : null,
+          conductores_asignados: row.conductores_asignados ? String(row.conductores_asignados).trim() : null,
+          permiso_explotacion_unidad: row.permiso_explotacion_unidad ? String(row.permiso_explotacion_unidad).trim() : null,
+          fecha_autorizacion_explotacion: row.fecha_autorizacion_explotacion ? String(row.fecha_autorizacion_explotacion).trim() : null,
+          fecha_vencimiento_explotacion: row.fecha_vencimiento_explotacion ? String(row.fecha_vencimiento_explotacion).trim() : null,
+          permiso_circulacion: row.permiso_circulacion ? String(row.permiso_circulacion).trim() : null,
+          fecha_autorizacion_circulacion: row.fecha_autorizacion_circulacion ? String(row.fecha_autorizacion_circulacion).trim() : null,
+          fecha_vencimiento_circulacion: row.fecha_vencimiento_circulacion ? String(row.fecha_vencimiento_circulacion).trim() : null,
+          permiso_publicidad: row.permiso_publicidad ? String(row.permiso_publicidad).trim() : null,
+          fecha_autorizacion_publicidad: row.fecha_autorizacion_publicidad ? String(row.fecha_autorizacion_publicidad).trim() : null,
+          fecha_vencimiento_publicidad: row.fecha_vencimiento_publicidad ? String(row.fecha_vencimiento_publicidad).trim() : null,
+          permisos_especiales: row.permisos_especiales ? String(row.permisos_especiales).trim() : null,
+          fecha_autorizacion_especiales: row.fecha_autorizacion_especiales ? String(row.fecha_autorizacion_especiales).trim() : null,
+          fecha_vencimiento_especiales: row.fecha_vencimiento_especiales ? String(row.fecha_vencimiento_especiales).trim() : null,
         });
       });
 
@@ -318,8 +398,8 @@ export default function FlotaInventario() {
             <Info className="h-4 w-4 mt-0.5 shrink-0" />
             <span>
               <strong>Campos obligatorios:</strong> numero_unidad, marca_modelo, numero_placa, numero_vin. 
-              <strong className="ml-1">Estado:</strong> activo, en_servicio, entregado o inactivo. 
-              Si no se especifica, se usará "activo" por defecto.
+              <strong className="ml-1">Estado:</strong> activo, en_servicio, entregado o inactivo (por defecto "activo"). 
+              <strong className="ml-1">Fechas:</strong> formato AAAA-MM-DD. Los demás campos son opcionales.
             </span>
           </div>
         </CardContent>
