@@ -165,6 +165,10 @@ export default function FlotaInventario() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; errors: string[] } | null>(null);
+  const [previewData, setPreviewData] = useState<any[] | null>(null);
+  const [previewErrors, setPreviewErrors] = useState<string[]>([]);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [confirmingImport, setConfirmingImport] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     numero_unidad: "", marca_modelo: "", numero_placa: "", numero_vin: "",
@@ -367,6 +371,33 @@ export default function FlotaInventario() {
         return mapped;
       });
 
+      // Date conversion helper: DD/MM/YYYY or D/M/YY → YYYY-MM-DD
+      const parseDate = (val: any): string | null => {
+        if (!val) return null;
+        const s = String(val).trim();
+        if (!s) return null;
+        // Already YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        // DD/MM/YYYY or D/M/YYYY or D/M/YY
+        const parts = s.split(/[\/\-\.]/);
+        if (parts.length === 3) {
+          let [d, m, y] = parts.map(Number);
+          if (y < 100) y += 2000;
+          if (d > 0 && m > 0 && m <= 12 && y >= 1900) {
+            return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          }
+        }
+        return null;
+      };
+
+      const DATE_FIELDS = [
+        "fecha_ultimo_mantenimiento", "proximo_mantenimiento_programado",
+        "fecha_autorizacion_explotacion", "fecha_vencimiento_explotacion",
+        "fecha_autorizacion_circulacion", "fecha_vencimiento_circulacion",
+        "fecha_autorizacion_publicidad", "fecha_vencimiento_publicidad",
+        "fecha_autorizacion_especiales", "fecha_vencimiento_especiales",
+      ];
+
       const errors: string[] = [];
       const validRows: any[] = [];
 
@@ -386,7 +417,8 @@ export default function FlotaInventario() {
           errors.push(`Fila ${rowNum}: Kilometraje inválido "${row.kilometraje_actual}"`);
           return;
         }
-      validRows.push({
+
+        const vehiculo: any = {
           flota_id: flotaId,
           numero_unidad: String(row.numero_unidad).trim(),
           marca_modelo: String(row.marca_modelo).trim(),
@@ -395,45 +427,53 @@ export default function FlotaInventario() {
           anio_fabricacion: anio,
           kilometraje_actual: km,
           estado_vehiculo: String(row.estado_vehiculo || "activo").trim().toLowerCase(),
-          fecha_ultimo_mantenimiento: row.fecha_ultimo_mantenimiento ? String(row.fecha_ultimo_mantenimiento).trim() : null,
-          proximo_mantenimiento_programado: row.proximo_mantenimiento_programado ? String(row.proximo_mantenimiento_programado).trim() : null,
           historial_reparaciones: row.historial_reparaciones ? String(row.historial_reparaciones).trim() : null,
           conductores_asignados: row.conductores_asignados ? String(row.conductores_asignados).trim() : null,
           permiso_explotacion_unidad: row.permiso_explotacion_unidad ? String(row.permiso_explotacion_unidad).trim() : null,
-          fecha_autorizacion_explotacion: row.fecha_autorizacion_explotacion ? String(row.fecha_autorizacion_explotacion).trim() : null,
-          fecha_vencimiento_explotacion: row.fecha_vencimiento_explotacion ? String(row.fecha_vencimiento_explotacion).trim() : null,
           permiso_circulacion: row.permiso_circulacion ? String(row.permiso_circulacion).trim() : null,
-          fecha_autorizacion_circulacion: row.fecha_autorizacion_circulacion ? String(row.fecha_autorizacion_circulacion).trim() : null,
-          fecha_vencimiento_circulacion: row.fecha_vencimiento_circulacion ? String(row.fecha_vencimiento_circulacion).trim() : null,
           permiso_publicidad: row.permiso_publicidad ? String(row.permiso_publicidad).trim() : null,
-          fecha_autorizacion_publicidad: row.fecha_autorizacion_publicidad ? String(row.fecha_autorizacion_publicidad).trim() : null,
-          fecha_vencimiento_publicidad: row.fecha_vencimiento_publicidad ? String(row.fecha_vencimiento_publicidad).trim() : null,
           permisos_especiales: row.permisos_especiales ? String(row.permisos_especiales).trim() : null,
-          fecha_autorizacion_especiales: row.fecha_autorizacion_especiales ? String(row.fecha_autorizacion_especiales).trim() : null,
-          fecha_vencimiento_especiales: row.fecha_vencimiento_especiales ? String(row.fecha_vencimiento_especiales).trim() : null,
-        });
+        };
+
+        // Convert all date fields
+        for (const field of DATE_FIELDS) {
+          vehiculo[field] = parseDate(row[field]);
+        }
+
+        validRows.push(vehiculo);
       });
 
-      if (validRows.length > 0) {
-        const { error } = await supabase.from("flota_vehiculos").insert(validRows);
-        if (error) throw error;
-        await fetchVehiculos();
-      }
-
-      setImportResult({ success: validRows.length, errors });
-      setImportDialogOpen(true);
-
-      if (validRows.length > 0) {
-        toast({
-          title: "Importación completada",
-          description: `${validRows.length} vehículo(s) importados${errors.length > 0 ? `, ${errors.length} con errores` : ""}`,
-        });
-      }
+      // Show preview instead of inserting directly
+      setPreviewData(validRows);
+      setPreviewErrors(errors);
+      setPreviewDialogOpen(true);
     } catch (error: any) {
-      toast({ title: "Error al importar", description: error.message, variant: "destructive" });
+      toast({ title: "Error al procesar archivo", description: error.message, variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!previewData || previewData.length === 0) return;
+    setConfirmingImport(true);
+    try {
+      const { error } = await supabase.from("flota_vehiculos").insert(previewData);
+      if (error) throw error;
+      await fetchVehiculos();
+      setPreviewDialogOpen(false);
+      setImportResult({ success: previewData.length, errors: previewErrors });
+      setImportDialogOpen(true);
+      toast({
+        title: "Importación completada",
+        description: `${previewData.length} vehículo(s) importados${previewErrors.length > 0 ? `, ${previewErrors.length} con errores` : ""}`,
+      });
+    } catch (error: any) {
+      toast({ title: "Error al importar", description: error.message, variant: "destructive" });
+    } finally {
+      setConfirmingImport(false);
+      setPreviewData(null);
     }
   };
 
@@ -599,6 +639,81 @@ export default function FlotaInventario() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setImportDialogOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de vista previa antes de importar */}
+      <Dialog open={previewDialogOpen} onOpenChange={(open) => { if (!confirmingImport) setPreviewDialogOpen(open); }}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-primary" />
+              Vista Previa de Importación
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden flex flex-col gap-4">
+            {previewErrors.length > 0 && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>{previewErrors.length} fila(s) con errores (no se importarán)</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc pl-4 mt-1 text-xs max-h-20 overflow-y-auto">
+                    {previewErrors.map((err, i) => <li key={i}>{err}</li>)}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+            <Alert>
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>{previewData?.length || 0} vehículo(s) listos para importar</AlertTitle>
+              <AlertDescription>Revisa los datos antes de confirmar la importación.</AlertDescription>
+            </Alert>
+            <div className="flex-1 overflow-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">#</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Unidad</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Marca/Modelo</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Placa</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">VIN</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Año</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Km</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Estado</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Últ. Mant.</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Próx. Mant.</TableHead>
+                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Conductores</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(previewData || []).map((row, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="text-xs text-muted-foreground">{i + 1}</TableCell>
+                      <TableCell className="text-xs font-medium">{row.numero_unidad}</TableCell>
+                      <TableCell className="text-xs">{row.marca_modelo}</TableCell>
+                      <TableCell className="text-xs">{row.numero_placa}</TableCell>
+                      <TableCell className="text-xs font-mono">{row.numero_vin}</TableCell>
+                      <TableCell className="text-xs">{row.anio_fabricacion}</TableCell>
+                      <TableCell className="text-xs">{row.kilometraje_actual?.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs"><Badge variant="outline">{row.estado_vehiculo}</Badge></TableCell>
+                      <TableCell className="text-xs">{row.fecha_ultimo_mantenimiento || "—"}</TableCell>
+                      <TableCell className="text-xs">{row.proximo_mantenimiento_programado || "—"}</TableCell>
+                      <TableCell className="text-xs">{row.conductores_asignados || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setPreviewDialogOpen(false); setPreviewData(null); }} disabled={confirmingImport}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmImport} disabled={confirmingImport || !previewData?.length}>
+              {confirmingImport ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+              Confirmar Importación ({previewData?.length || 0})
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
