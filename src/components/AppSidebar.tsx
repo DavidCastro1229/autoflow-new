@@ -65,6 +65,12 @@ const superAdminMenuItems: MenuItem[] = [
     allowedRoles: ["super_admin"] 
   },
   { 
+    title: "Solicitudes de Flotas", 
+    url: "/solicitudes-flotas", 
+    icon: Truck, 
+    allowedRoles: ["super_admin"] 
+  },
+  { 
     title: "Aseguradoras", 
     url: "/aseguradoras", 
     icon: ShieldIcon, 

@@ -44,6 +44,7 @@ import FlotaNegociacion from "./pages/modules/FlotaNegociacion";
 import FlotaTerminos from "./pages/modules/FlotaTerminos";
 import FlotaInventario from "./pages/modules/FlotaInventario";
 import FlotaConductores from "./pages/modules/FlotaConductores";
+import SolicitudesFlotas from "./pages/modules/SolicitudesFlotas";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="usuarios" element={<Usuarios />} />
               <Route path="solicitudes" element={<Solicitudes />} />
+              <Route path="solicitudes-flotas" element={<SolicitudesFlotas />} />
               <Route path="aseguradoras" element={<AseguradorasModule />} />
               <Route path="solicitudes-afiliacion" element={<TallerSolicitudesAfiliacion />} />
               <Route path="kanban" element={<Kanban />} />
