@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Wrench, ArrowLeft } from "lucide-react";
+import { PasswordInput } from "@/components/ui/password-input";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +42,19 @@ const aseguradoraSignupSchema = z.object({
   email: z.string().trim().email("Correo electrónico inválido").max(255, "Máximo 255 caracteres"),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(100, "Máximo 100 caracteres"),
   descripcion: z.string().trim().max(500, "Máximo 500 caracteres").optional(),
+});
+
+const flotaSignupSchema = z.object({
+  nombre_flota: z.string().trim().min(1, "El nombre de la flota es requerido").max(100),
+  telefono: z.string().trim().min(10, "Teléfono debe tener al menos 10 dígitos").max(20),
+  direccion: z.string().trim().min(1, "La dirección es requerida").max(200),
+  ciudad: z.string().trim().min(1, "La ciudad es requerida").max(100),
+  estado: z.string().trim().min(1, "El país es requerido").max(100),
+  codigo_postal: z.string().trim().min(1, "El código postal es requerido").max(10),
+  nombre_contacto: z.string().trim().min(1, "El nombre es requerido").max(50),
+  apellido_contacto: z.string().trim().min(1, "El apellido es requerido").max(50),
+  email: z.string().trim().email("Correo electrónico inválido").max(255),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(100),
 });
 
 const loginSchema = z.object({
@@ -122,25 +136,34 @@ const Auth = () => {
         .eq('user_id', data.user.id)
         .maybeSingle();
 
-      if (tallerData && tallerData.status === 'pendiente') {
-        // Si el taller está pendiente, cerrar sesión
+      if (tallerData && (tallerData.status === 'pendiente' || tallerData.status === 'rechazado')) {
         await supabase.auth.signOut();
         setIsLoading(false);
         toast({
-          title: "Solicitud pendiente",
-          description: "Tu solicitud de registro está siendo revisada. Te notificaremos cuando sea aprobada.",
+          title: tallerData.status === 'pendiente' ? "Solicitud pendiente" : "Solicitud rechazada",
+          description: tallerData.status === 'pendiente' 
+            ? "Tu solicitud de registro está siendo revisada." 
+            : "Tu solicitud fue rechazada. Contacta al administrador.",
           variant: "destructive",
         });
         return;
       }
 
-      if (tallerData && tallerData.status === 'rechazado') {
-        // Si el taller fue rechazado
+      // Verificar si el usuario es una flota y si está aprobada
+      const { data: flotaData } = await supabase
+        .from('flotas')
+        .select('status')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+
+      if (flotaData && (flotaData.status === 'pendiente' || flotaData.status === 'rechazado')) {
         await supabase.auth.signOut();
         setIsLoading(false);
         toast({
-          title: "Solicitud rechazada",
-          description: "Tu solicitud de registro fue rechazada. Contacta al administrador para más información.",
+          title: flotaData.status === 'pendiente' ? "Solicitud pendiente" : "Solicitud rechazada",
+          description: flotaData.status === 'pendiente'
+            ? "Tu solicitud de registro está siendo revisada."
+            : "Tu solicitud fue rechazada. Contacta al administrador.",
           variant: "destructive",
         });
         return;
@@ -173,6 +196,13 @@ const Auth = () => {
       password: formData.get("password") as string,
       descripcion: (formData.get("descripcion") as string) || undefined,
     };
+
+    const confirmPassword = formData.get("confirm_password") as string;
+    if (signupData.password !== confirmPassword) {
+      setIsLoading(false);
+      toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" });
+      return;
+    }
 
     const result = signupSchema.safeParse(signupData);
 
@@ -251,6 +281,13 @@ const Auth = () => {
       descripcion: (formData.get("descripcion") as string) || undefined,
     };
 
+    const confirmPassword = formData.get("confirm_password") as string;
+    if (signupData.password !== confirmPassword) {
+      setIsLoading(false);
+      toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" });
+      return;
+    }
+
     const result = aseguradoraSignupSchema.safeParse(signupData);
 
     if (!result.success) {
@@ -308,6 +345,66 @@ const Auth = () => {
     });
   };
 
+  const handleFlotaSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const formData = new FormData(e.currentTarget);
+    const signupData = {
+      nombre_flota: formData.get("nombre_flota") as string,
+      telefono: formData.get("telefono") as string,
+      direccion: formData.get("direccion") as string,
+      ciudad: formData.get("ciudad") as string,
+      estado: formData.get("estado") as string,
+      codigo_postal: formData.get("codigo_postal") as string,
+      nombre_contacto: formData.get("nombre_contacto") as string,
+      apellido_contacto: formData.get("apellido_contacto") as string,
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+    };
+    const confirmPassword = formData.get("confirm_password") as string;
+    if (signupData.password !== confirmPassword) {
+      setIsLoading(false);
+      toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" });
+      return;
+    }
+    const result = flotaSignupSchema.safeParse(signupData);
+    if (!result.success) {
+      setIsLoading(false);
+      toast({ title: "Validación fallida", description: result.error.errors[0]?.message, variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.auth.signUp({
+      email: signupData.email,
+      password: signupData.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        data: {
+          user_type: 'flota',
+          nombre_flota: signupData.nombre_flota,
+          telefono: signupData.telefono,
+          direccion: signupData.direccion,
+          ciudad: signupData.ciudad,
+          estado: signupData.estado,
+          codigo_postal: signupData.codigo_postal,
+          nombre_contacto: signupData.nombre_contacto,
+          apellido_contacto: signupData.apellido_contacto,
+        },
+      },
+    });
+    if (error) {
+      setIsLoading(false);
+      toast({ title: "Error al registrar", description: error.message, variant: "destructive" });
+      return;
+    }
+    await supabase.auth.signOut();
+    setIsLoading(false);
+    (e.target as HTMLFormElement).reset();
+    toast({
+      title: "¡Registro exitoso!",
+      description: "Tu solicitud ha sido enviada. Podrás iniciar sesión una vez aprobada.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary to-secondary/90 flex items-center justify-center p-4">
       <div className="absolute top-4 right-4">
@@ -343,10 +440,11 @@ const Auth = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
                 <TabsTrigger value="signup">Taller</TabsTrigger>
                 <TabsTrigger value="aseguradora">Aseguradora</TabsTrigger>
+                <TabsTrigger value="flota">Flota</TabsTrigger>
               </TabsList>
 
               {/* Login Form */}
@@ -525,11 +623,21 @@ const Auth = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Contraseña *</Label>
-                      <Input
+                      <PasswordInput
                         id="signup-password"
                         name="password"
-                        type="password"
                         placeholder="Mínimo 8 caracteres"
+                        required
+                        minLength={8}
+                        maxLength={100}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-confirm-password">Confirmar Contraseña *</Label>
+                      <PasswordInput
+                        id="signup-confirm-password"
+                        name="confirm_password"
+                        placeholder="Repite tu contraseña"
                         required
                         minLength={8}
                         maxLength={100}
@@ -701,11 +809,21 @@ const Auth = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="aseg-password">Contraseña *</Label>
-                      <Input
+                      <PasswordInput
                         id="aseg-password"
                         name="password"
-                        type="password"
                         placeholder="Mínimo 8 caracteres"
+                        required
+                        minLength={8}
+                        maxLength={100}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="aseg-confirm-password">Confirmar Contraseña *</Label>
+                      <PasswordInput
+                        id="aseg-confirm-password"
+                        name="confirm_password"
+                        placeholder="Repite tu contraseña"
                         required
                         minLength={8}
                         maxLength={100}
@@ -720,6 +838,79 @@ const Auth = () => {
                     disabled={isLoading}
                   >
                     {isLoading ? "Creando cuenta..." : "Crear Cuenta de Aseguradora"}
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Al registrarte, aceptas nuestros términos de servicio y política de privacidad
+                  </p>
+                </form>
+              </TabsContent>
+
+              {/* Flota Signup Form */}
+              <TabsContent value="flota">
+                <form onSubmit={handleFlotaSignup} className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                  <div className="space-y-3 pb-3 border-b border-border">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Información de la Flota</h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre_flota">Nombre de la Flota *</Label>
+                      <Input id="nombre_flota" name="nombre_flota" type="text" placeholder="Flota Transportes ABC" required maxLength={100} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="telefono_flota">Teléfono *</Label>
+                      <Input id="telefono_flota" name="telefono" type="tel" placeholder="+504 1234 5678" required maxLength={20} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="direccion_flota">Dirección *</Label>
+                      <Input id="direccion_flota" name="direccion" type="text" placeholder="Blvd. Principal #456" required maxLength={200} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="ciudad_flota">Ciudad *</Label>
+                        <Input id="ciudad_flota" name="ciudad" type="text" placeholder="Ciudad" required maxLength={100} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="estado_flota">País *</Label>
+                        <Select name="estado" required>
+                          <SelectTrigger id="estado_flota"><SelectValue placeholder="Seleccionar país" /></SelectTrigger>
+                          <SelectContent>
+                            {PAISES_AMERICA.map((pais) => (
+                              <SelectItem key={pais} value={pais}>{pais}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="codigo_postal_flota">Código Postal *</Label>
+                      <Input id="codigo_postal_flota" name="codigo_postal" type="text" placeholder="12345" required maxLength={10} />
+                    </div>
+                  </div>
+                  <div className="space-y-3 pb-3 border-b border-border">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Información de Contacto</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="nombre_contacto_flota">Nombre *</Label>
+                        <Input id="nombre_contacto_flota" name="nombre_contacto" type="text" placeholder="Carlos" required maxLength={50} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="apellido_contacto_flota">Apellido *</Label>
+                        <Input id="apellido_contacto_flota" name="apellido_contacto" type="text" placeholder="Rodríguez" required maxLength={50} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="flota-email">Correo Electrónico *</Label>
+                      <Input id="flota-email" name="email" type="email" placeholder="contacto@flota.com" required maxLength={255} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="flota-password">Contraseña *</Label>
+                      <PasswordInput id="flota-password" name="password" placeholder="Mínimo 8 caracteres" required minLength={8} maxLength={100} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="flota-confirm-password">Confirmar Contraseña *</Label>
+                      <PasswordInput id="flota-confirm-password" name="confirm_password" placeholder="Repite tu contraseña" required minLength={8} maxLength={100} />
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full" variant="hero" disabled={isLoading}>
+                    {isLoading ? "Creando cuenta..." : "Crear Cuenta de Flota"}
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
                     Al registrarte, aceptas nuestros términos de servicio y política de privacidad

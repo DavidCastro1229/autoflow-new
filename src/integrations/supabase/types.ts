@@ -994,6 +994,7 @@ export type Database = {
           apellido: string
           calificacion_desempeno: number | null
           cedula_identidad: string
+          ciudad: string | null
           contacto_emergencia_nombre: string | null
           contacto_emergencia_telefono: string | null
           correo: string | null
@@ -1012,6 +1013,7 @@ export type Database = {
           notas_viaticos: string | null
           numero_licencia: string
           observaciones_desempeno: string | null
+          pais: string | null
           restricciones_licencia: string | null
           telefono: string
           tipo_licencia: string
@@ -1023,6 +1025,7 @@ export type Database = {
           apellido: string
           calificacion_desempeno?: number | null
           cedula_identidad: string
+          ciudad?: string | null
           contacto_emergencia_nombre?: string | null
           contacto_emergencia_telefono?: string | null
           correo?: string | null
@@ -1041,6 +1044,7 @@ export type Database = {
           notas_viaticos?: string | null
           numero_licencia: string
           observaciones_desempeno?: string | null
+          pais?: string | null
           restricciones_licencia?: string | null
           telefono: string
           tipo_licencia: string
@@ -1052,6 +1056,7 @@ export type Database = {
           apellido?: string
           calificacion_desempeno?: number | null
           cedula_identidad?: string
+          ciudad?: string | null
           contacto_emergencia_nombre?: string | null
           contacto_emergencia_telefono?: string | null
           correo?: string | null
@@ -1070,6 +1075,7 @@ export type Database = {
           notas_viaticos?: string | null
           numero_licencia?: string
           observaciones_desempeno?: string | null
+          pais?: string | null
           restricciones_licencia?: string | null
           telefono?: string
           tipo_licencia?: string
@@ -1493,8 +1499,11 @@ export type Database = {
       }
       flotas: {
         Row: {
+          apellido_contacto: string | null
           cantidad_vehiculos: number
           categoria_vehiculos: string[] | null
+          ciudad: string | null
+          codigo_postal: string | null
           correo_contacto: string
           created_at: string
           direccion_escrita: string | null
@@ -1507,20 +1516,27 @@ export type Database = {
           horarios_atencion: string | null
           id: string
           logo_url: string | null
+          nombre_contacto: string | null
           nombre_flota: string
           numero_flota: string
           numero_rtn: string
+          pais: string | null
           razon_social: string
           rubro_empresa: string
           sitio_web: string | null
-          taller_id: string
+          status: Database["public"]["Enums"]["taller_status"]
+          taller_id: string | null
           telefono_contacto: string
           tipo_flota: Database["public"]["Enums"]["tipo_flota"]
           updated_at: string
+          user_id: string | null
         }
         Insert: {
+          apellido_contacto?: string | null
           cantidad_vehiculos?: number
           categoria_vehiculos?: string[] | null
+          ciudad?: string | null
+          codigo_postal?: string | null
           correo_contacto: string
           created_at?: string
           direccion_escrita?: string | null
@@ -1533,20 +1549,27 @@ export type Database = {
           horarios_atencion?: string | null
           id?: string
           logo_url?: string | null
+          nombre_contacto?: string | null
           nombre_flota: string
           numero_flota: string
           numero_rtn: string
+          pais?: string | null
           razon_social: string
           rubro_empresa: string
           sitio_web?: string | null
-          taller_id: string
+          status?: Database["public"]["Enums"]["taller_status"]
+          taller_id?: string | null
           telefono_contacto: string
           tipo_flota: Database["public"]["Enums"]["tipo_flota"]
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
+          apellido_contacto?: string | null
           cantidad_vehiculos?: number
           categoria_vehiculos?: string[] | null
+          ciudad?: string | null
+          codigo_postal?: string | null
           correo_contacto?: string
           created_at?: string
           direccion_escrita?: string | null
@@ -1559,16 +1582,20 @@ export type Database = {
           horarios_atencion?: string | null
           id?: string
           logo_url?: string | null
+          nombre_contacto?: string | null
           nombre_flota?: string
           numero_flota?: string
           numero_rtn?: string
+          pais?: string | null
           razon_social?: string
           rubro_empresa?: string
           sitio_web?: string | null
-          taller_id?: string
+          status?: Database["public"]["Enums"]["taller_status"]
+          taller_id?: string | null
           telefono_contacto?: string
           tipo_flota?: Database["public"]["Enums"]["tipo_flota"]
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2765,6 +2792,7 @@ export type Database = {
       user_roles: {
         Row: {
           created_at: string
+          flota_id: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
           taller_id: string | null
@@ -2772,6 +2800,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          flota_id?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           taller_id?: string | null
@@ -2779,6 +2808,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          flota_id?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           taller_id?: string | null
@@ -2862,6 +2892,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_flota: { Args: { flota_id: string }; Returns: undefined }
       approve_taller: { Args: { taller_id_param: string }; Returns: undefined }
       generate_codigo_cotizacion: { Args: never; Returns: string }
       generate_codigo_producto: { Args: never; Returns: string }
@@ -2871,6 +2902,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      get_flota_id_for_user: { Args: { p_user_id: string }; Returns: string }
       get_next_numero_orden_tarea: {
         Args: { p_taller_id: string }
         Returns: number
@@ -2883,6 +2915,7 @@ export type Database = {
         Returns: boolean
       }
       is_trial_expired: { Args: { taller_id: string }; Returns: boolean }
+      reject_flota: { Args: { flota_id: string }; Returns: undefined }
       reject_taller: { Args: { taller_id_param: string }; Returns: undefined }
       update_expired_trials: { Args: never; Returns: undefined }
     }
@@ -2894,6 +2927,7 @@ export type Database = {
         | "super_admin"
         | "cliente"
         | "tecnico"
+        | "flota"
       area_tecnico: "tecnico" | "tecnico_senior"
       estado_cita: "programada" | "confirmada" | "completada" | "cancelada"
       estado_cotizacion:
@@ -3078,6 +3112,7 @@ export const Constants = {
         "super_admin",
         "cliente",
         "tecnico",
+        "flota",
       ],
       area_tecnico: ["tecnico", "tecnico_senior"],
       estado_cita: ["programada", "confirmada", "completada", "cancelada"],
