@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { ExportButtons } from "@/components/ExportButtons";
-import { Truck, Plus, Trash2, Loader2, Pencil, Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Truck, Plus, Trash2, Loader2, Pencil, Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2, Info, Eye } from "lucide-react";
 import * as XLSX from "xlsx";
 
 interface Vehiculo {
@@ -23,6 +23,22 @@ interface Vehiculo {
   anio_fabricacion: number;
   kilometraje_actual: number;
   estado_vehiculo: string;
+  fecha_ultimo_mantenimiento?: string | null;
+  proximo_mantenimiento_programado?: string | null;
+  historial_reparaciones?: string | null;
+  conductores_asignados?: string | null;
+  permiso_explotacion_unidad?: string | null;
+  fecha_autorizacion_explotacion?: string | null;
+  fecha_vencimiento_explotacion?: string | null;
+  permiso_circulacion?: string | null;
+  fecha_autorizacion_circulacion?: string | null;
+  fecha_vencimiento_circulacion?: string | null;
+  permiso_publicidad?: string | null;
+  fecha_autorizacion_publicidad?: string | null;
+  fecha_vencimiento_publicidad?: string | null;
+  permisos_especiales?: string | null;
+  fecha_autorizacion_especiales?: string | null;
+  fecha_vencimiento_especiales?: string | null;
 }
 
 const EXPECTED_COLUMNS = [
@@ -170,6 +186,7 @@ export default function FlotaInventario() {
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [confirmingImport, setConfirmingImport] = useState(false);
   const [structureModalOpen, setStructureModalOpen] = useState(false);
+  const [detailVehiculo, setDetailVehiculo] = useState<Vehiculo | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     numero_unidad: "", marca_modelo: "", numero_placa: "", numero_vin: "",
@@ -538,6 +555,7 @@ export default function FlotaInventario() {
                   <TableCell><Badge variant="outline">{v.estado_vehiculo}</Badge></TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => setDetailVehiculo(v)}><Eye className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(v)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(v.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
@@ -549,7 +567,95 @@ export default function FlotaInventario() {
         </CardContent>
       </Card>
 
-      {/* Dialog de agregar/editar */}
+      {/* Dialog de detalle del vehículo */}
+      <Dialog open={!!detailVehiculo} onOpenChange={(open) => { if (!open) setDetailVehiculo(null); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5 text-primary" />
+              Detalle del Vehículo — {detailVehiculo?.numero_unidad}
+            </DialogTitle>
+          </DialogHeader>
+          {detailVehiculo && (() => {
+            const sections = [
+              {
+                title: "Información General",
+                fields: [
+                  { label: "Numero de Unidad", value: detailVehiculo.numero_unidad },
+                  { label: "Marca y Modelo", value: detailVehiculo.marca_modelo },
+                  { label: "Numero de Placa", value: detailVehiculo.numero_placa },
+                  { label: "Numero de VIN", value: detailVehiculo.numero_vin },
+                  { label: "Año de Fabricación", value: detailVehiculo.anio_fabricacion },
+                  { label: "Kilometraje Actual", value: detailVehiculo.kilometraje_actual?.toLocaleString() },
+                  { label: "Estado del Vehículo", value: detailVehiculo.estado_vehiculo },
+                ],
+              },
+              {
+                title: "Mantenimiento",
+                fields: [
+                  { label: "Fecha Último Mantenimiento", value: detailVehiculo.fecha_ultimo_mantenimiento },
+                  { label: "Próximo Mantenimiento Programado", value: detailVehiculo.proximo_mantenimiento_programado },
+                  { label: "Historial de Reparaciones", value: detailVehiculo.historial_reparaciones },
+                  { label: "Conductores Asignados", value: detailVehiculo.conductores_asignados },
+                ],
+              },
+              {
+                title: "Permiso de Explotación",
+                fields: [
+                  { label: "Permiso", value: detailVehiculo.permiso_explotacion_unidad },
+                  { label: "Fecha Autorización", value: detailVehiculo.fecha_autorizacion_explotacion },
+                  { label: "Fecha Vencimiento", value: detailVehiculo.fecha_vencimiento_explotacion },
+                ],
+              },
+              {
+                title: "Permiso de Circulación",
+                fields: [
+                  { label: "Permiso", value: detailVehiculo.permiso_circulacion },
+                  { label: "Fecha Autorización", value: detailVehiculo.fecha_autorizacion_circulacion },
+                  { label: "Fecha Vencimiento", value: detailVehiculo.fecha_vencimiento_circulacion },
+                ],
+              },
+              {
+                title: "Permiso de Publicidad",
+                fields: [
+                  { label: "Permiso", value: detailVehiculo.permiso_publicidad },
+                  { label: "Fecha Autorización", value: detailVehiculo.fecha_autorizacion_publicidad },
+                  { label: "Fecha Vencimiento", value: detailVehiculo.fecha_vencimiento_publicidad },
+                ],
+              },
+              {
+                title: "Permisos Especiales",
+                fields: [
+                  { label: "Permiso", value: detailVehiculo.permisos_especiales },
+                  { label: "Fecha Autorización", value: detailVehiculo.fecha_autorizacion_especiales },
+                  { label: "Fecha Vencimiento", value: detailVehiculo.fecha_vencimiento_especiales },
+                ],
+              },
+            ];
+            return (
+              <div className="space-y-5">
+                {sections.map((section) => (
+                  <div key={section.title}>
+                    <h4 className="text-sm font-semibold text-primary mb-2">{section.title}</h4>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                      {section.fields.map((f) => (
+                        <div key={f.label} className={f.label === "Historial de Reparaciones" ? "col-span-2" : ""}>
+                          <p className="text-xs text-muted-foreground">{f.label}</p>
+                          <p className="text-sm">{f.value || "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailVehiculo(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editingId ? "Editar" : "Agregar"} Vehículo</DialogTitle></DialogHeader>
