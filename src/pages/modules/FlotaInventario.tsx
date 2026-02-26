@@ -310,16 +310,30 @@ export default function FlotaInventario() {
       const workbook = XLSX.read(data);
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
+      const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, {
+        header: 1,
+        defval: "",
+        raw: false,
+      });
 
-      if (jsonData.length === 0) {
+      if (!rows.length) {
         toast({ title: "Archivo vacío", description: "El archivo no contiene datos", variant: "destructive" });
         setUploading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
 
-      const headers = Object.keys(jsonData[0]);
+      const rawHeaders = (rows[0] || []).map((h) => String(h ?? "").trim());
+      const headers = rawHeaders.filter((h) => h.length > 0);
+      const dataRows = rows.slice(1).filter((row) => row.some((cell) => String(cell ?? "").trim() !== ""));
+
+      if (dataRows.length === 0) {
+        toast({ title: "Archivo vacío", description: "El archivo no contiene filas de datos", variant: "destructive" });
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+
       const validation = validateExcelStructure(headers);
 
       if (!validation.valid) {
@@ -342,13 +356,14 @@ export default function FlotaInventario() {
         return;
       }
 
-      // Remap rows using the header-to-key mapping
-      const remappedData = jsonData.map((row) => {
+      // Remap rows using real header row (not first data row)
+      const remappedData = dataRows.map((row) => {
         const mapped: Record<string, any> = {};
-        for (const [header, value] of Object.entries(row)) {
-          const key = validation.mapping[header];
-          if (key) mapped[key] = value;
-        }
+        rawHeaders.forEach((header, index) => {
+          if (!header) return;
+          const key = validation.mapping[header] || findColumnKey(header);
+          if (key) mapped[key] = row[index];
+        });
         return mapped;
       });
 
