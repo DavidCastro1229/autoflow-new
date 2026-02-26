@@ -1514,6 +1514,7 @@ export type Database = {
           nombre_flota: string
           numero_flota: string
           numero_rtn: string
+          pais: string | null
           razon_social: string
           rubro_empresa: string
           sitio_web: string | null
@@ -1546,6 +1547,7 @@ export type Database = {
           nombre_flota: string
           numero_flota: string
           numero_rtn: string
+          pais?: string | null
           razon_social: string
           rubro_empresa: string
           sitio_web?: string | null
@@ -1578,6 +1580,7 @@ export type Database = {
           nombre_flota?: string
           numero_flota?: string
           numero_rtn?: string
+          pais?: string | null
           razon_social?: string
           rubro_empresa?: string
           sitio_web?: string | null

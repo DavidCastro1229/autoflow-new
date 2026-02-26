@@ -1,0 +1,1 @@
+ALTER TABLE public.flotas ADD COLUMN IF NOT EXISTS pais text DEFAULT NULL;
