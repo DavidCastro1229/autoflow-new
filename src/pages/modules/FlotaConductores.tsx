@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Trash2, Loader2, Pencil } from "lucide-react";
+import { Users, Plus, Trash2, Loader2, Pencil, Eye } from "lucide-react";
+import { PAISES_AMERICA } from "@/lib/countries";
 
 interface Conductor {
   id: string;
@@ -24,6 +26,19 @@ interface Conductor {
   fecha_nacimiento: string;
   direccion: string;
   fecha_emision_licencia: string;
+  pais: string | null;
+  ciudad: string | null;
+  calificacion_desempeno: number | null;
+  contacto_emergencia_nombre: string | null;
+  contacto_emergencia_telefono: string | null;
+  estado_civil: string | null;
+  historial_asignaciones: string | null;
+  limite_diario_viaticos: number | null;
+  notas_viaticos: string | null;
+  observaciones_desempeno: string | null;
+  restricciones_licencia: string | null;
+  vehiculo_asignado_actual: string | null;
+  viaticos_autorizados: number | null;
 }
 
 const emptyForm = {
@@ -31,6 +46,7 @@ const emptyForm = {
   numero_licencia: "", tipo_licencia: "", fecha_vencimiento_licencia: "",
   fecha_ingreso: new Date().toISOString().split("T")[0],
   fecha_nacimiento: "", direccion: "", fecha_emision_licencia: "",
+  pais: "", ciudad: "",
 };
 
 export default function FlotaConductores() {
@@ -41,6 +57,7 @@ export default function FlotaConductores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [detailConductor, setDetailConductor] = useState<Conductor | null>(null);
 
   useEffect(() => {
     if (flotaId) fetchConductores();
@@ -61,11 +78,12 @@ export default function FlotaConductores() {
   const handleSubmit = async () => {
     if (!flotaId) return;
     try {
+      const payload = { ...form, correo: form.correo || null, pais: form.pais || null, ciudad: form.ciudad || null };
       if (editingId) {
-        const { error } = await supabase.from("flota_conductores").update(form).eq("id", editingId);
+        const { error } = await supabase.from("flota_conductores").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("flota_conductores").insert([{ flota_id: flotaId, ...form }]);
+        const { error } = await supabase.from("flota_conductores").insert([{ flota_id: flotaId, ...payload }]);
         if (error) throw error;
       }
       setDialogOpen(false);
@@ -86,6 +104,7 @@ export default function FlotaConductores() {
       tipo_licencia: c.tipo_licencia, fecha_vencimiento_licencia: c.fecha_vencimiento_licencia,
       fecha_ingreso: c.fecha_ingreso, fecha_nacimiento: c.fecha_nacimiento,
       direccion: c.direccion, fecha_emision_licencia: c.fecha_emision_licencia,
+      pais: c.pais || "", ciudad: c.ciudad || "",
     });
     setDialogOpen(true);
   };
@@ -97,6 +116,13 @@ export default function FlotaConductores() {
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+
+  const DetailRow = ({ label, value }: { label: string; value: string | number | null | undefined }) => (
+    <div className="flex flex-col">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium">{value || "—"}</span>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -137,6 +163,7 @@ export default function FlotaConductores() {
                   <TableCell>{c.fecha_vencimiento_licencia}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => setDetailConductor(c)}><Eye className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
@@ -148,6 +175,7 @@ export default function FlotaConductores() {
         </CardContent>
       </Card>
 
+      {/* Form Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editingId ? "Editar" : "Agregar"} Conductor</DialogTitle></DialogHeader>
@@ -165,6 +193,20 @@ export default function FlotaConductores() {
               <div className="space-y-2"><Label>Dirección</Label><Input value={form.direccion} onChange={(e) => setForm(p => ({ ...p, direccion: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>País</Label>
+                <Select value={form.pais} onValueChange={(v) => setForm(p => ({ ...p, pais: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar país" /></SelectTrigger>
+                  <SelectContent>
+                    {PAISES_AMERICA.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Ciudad</Label><Input value={form.ciudad} onChange={(e) => setForm(p => ({ ...p, ciudad: e.target.value }))} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Fecha de Nacimiento</Label><Input type="date" value={form.fecha_nacimiento} onChange={(e) => setForm(p => ({ ...p, fecha_nacimiento: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Fecha de Ingreso</Label><Input type="date" value={form.fecha_ingreso} onChange={(e) => setForm(p => ({ ...p, fecha_ingreso: e.target.value }))} /></div>
             </div>
@@ -176,6 +218,61 @@ export default function FlotaConductores() {
             <div className="space-y-2"><Label>Vencimiento Licencia</Label><Input type="date" value={form.fecha_vencimiento_licencia} onChange={(e) => setForm(p => ({ ...p, fecha_vencimiento_licencia: e.target.value }))} /></div>
           </div>
           <DialogFooter><Button onClick={handleSubmit}>{editingId ? "Actualizar" : "Agregar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!detailConductor} onOpenChange={() => setDetailConductor(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Detalle del Conductor</DialogTitle></DialogHeader>
+          {detailConductor && (
+            <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-3">Información Personal</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <DetailRow label="Nombre" value={`${detailConductor.nombre} ${detailConductor.apellido}`} />
+                  <DetailRow label="Cédula" value={detailConductor.cedula_identidad} />
+                  <DetailRow label="Teléfono" value={detailConductor.telefono} />
+                  <DetailRow label="Correo" value={detailConductor.correo} />
+                  <DetailRow label="Dirección" value={detailConductor.direccion} />
+                  <DetailRow label="País" value={detailConductor.pais} />
+                  <DetailRow label="Ciudad" value={detailConductor.ciudad} />
+                  <DetailRow label="Fecha Nacimiento" value={detailConductor.fecha_nacimiento} />
+                  <DetailRow label="Estado Civil" value={detailConductor.estado_civil} />
+                  <DetailRow label="Fecha Ingreso" value={detailConductor.fecha_ingreso} />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-3">Licencia</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <DetailRow label="Nº Licencia" value={detailConductor.numero_licencia} />
+                  <DetailRow label="Tipo" value={detailConductor.tipo_licencia} />
+                  <DetailRow label="Emisión" value={detailConductor.fecha_emision_licencia} />
+                  <DetailRow label="Vencimiento" value={detailConductor.fecha_vencimiento_licencia} />
+                  <DetailRow label="Restricciones" value={detailConductor.restricciones_licencia} />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-3">Contacto de Emergencia</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <DetailRow label="Nombre" value={detailConductor.contacto_emergencia_nombre} />
+                  <DetailRow label="Teléfono" value={detailConductor.contacto_emergencia_telefono} />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-primary mb-3">Desempeño y Viáticos</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <DetailRow label="Calificación" value={detailConductor.calificacion_desempeno} />
+                  <DetailRow label="Observaciones" value={detailConductor.observaciones_desempeno} />
+                  <DetailRow label="Vehículo Asignado" value={detailConductor.vehiculo_asignado_actual} />
+                  <DetailRow label="Viáticos Autorizados" value={detailConductor.viaticos_autorizados} />
+                  <DetailRow label="Límite Diario" value={detailConductor.limite_diario_viaticos} />
+                  <DetailRow label="Notas Viáticos" value={detailConductor.notas_viaticos} />
+                  <DetailRow label="Historial Asignaciones" value={detailConductor.historial_asignaciones} />
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
