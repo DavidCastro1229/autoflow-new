@@ -169,6 +169,7 @@ export default function FlotaInventario() {
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [confirmingImport, setConfirmingImport] = useState(false);
+  const [structureModalOpen, setStructureModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     numero_unidad: "", marca_modelo: "", numero_placa: "", numero_vin: "",
@@ -502,44 +503,11 @@ export default function FlotaInventario() {
         </div>
       </div>
 
-      {/* Estructura requerida del Excel */}
-      <Card className="border-dashed">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-primary" />
-            Estructura requerida del archivo Excel
-          </CardTitle>
-          <CardDescription>El archivo debe contener exactamente las siguientes columnas con los nombres indicados</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {EXPECTED_COLUMNS.map((col) => (
-                    <TableHead key={col} className="text-xs font-semibold whitespace-nowrap">{col}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  {EXPECTED_COLUMNS.map((col) => (
-                    <TableCell key={col} className="text-xs text-muted-foreground whitespace-nowrap">{COLUMN_EXAMPLES[col]}</TableCell>
-                  ))}
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-          <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
-            <Info className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>
-              <strong>Campos obligatorios:</strong> numero_unidad, marca_modelo, numero_placa, numero_vin. 
-              <strong className="ml-1">Estado:</strong> activo, en_servicio, entregado o inactivo (por defecto "activo"). 
-              <strong className="ml-1">Fechas:</strong> formato AAAA-MM-DD. Los demás campos son opcionales.
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Botón para ver estructura requerida */}
+      <Button variant="outline" size="sm" onClick={() => setStructureModalOpen(true)} className="flex items-center gap-2">
+        <Info className="h-4 w-4" />
+        Ver estructura requerida del Excel
+      </Button>
 
       <Card>
         <CardContent className="p-0">
@@ -603,7 +571,39 @@ export default function FlotaInventario() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de resultados de importación */}
+      {/* Modal de estructura requerida */}
+      <Dialog open={structureModalOpen} onOpenChange={setStructureModalOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-primary" />
+              Estructura Requerida del Excel
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-1">
+              {EXPECTED_COLUMNS.map((col, i) => {
+                const isRequired = ["numero_unidad", "marca_modelo", "numero_placa", "numero_vin"].includes(col);
+                return (
+                  <div key={col} className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/50">
+                    <span className="text-xs font-medium text-muted-foreground w-6">{i + 1}.</span>
+                    <span className="text-sm flex-1">{COLUMN_LABELS[col]}</span>
+                    {isRequired && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Obligatorio</Badge>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 p-3 rounded-md bg-muted/50 text-xs text-muted-foreground space-y-1">
+              <p><strong>Fechas:</strong> formato DD/MM/AAAA o AAAA-MM-DD</p>
+              <p><strong>Estado:</strong> activo, en_servicio, entregado, inactivo (por defecto "activo")</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStructureModalOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -674,32 +674,22 @@ export default function FlotaInventario() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">#</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Unidad</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Marca/Modelo</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Placa</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">VIN</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Año</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Km</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Estado</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Últ. Mant.</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Próx. Mant.</TableHead>
-                    <TableHead className="text-xs whitespace-nowrap sticky top-0 bg-background">Conductores</TableHead>
+                    {EXPECTED_COLUMNS.map((col) => (
+                      <TableHead key={col} className="text-xs whitespace-nowrap sticky top-0 bg-background">
+                        {COLUMN_LABELS[col]}
+                      </TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(previewData || []).map((row, i) => (
                     <TableRow key={i}>
                       <TableCell className="text-xs text-muted-foreground">{i + 1}</TableCell>
-                      <TableCell className="text-xs font-medium">{row.numero_unidad}</TableCell>
-                      <TableCell className="text-xs">{row.marca_modelo}</TableCell>
-                      <TableCell className="text-xs">{row.numero_placa}</TableCell>
-                      <TableCell className="text-xs font-mono">{row.numero_vin}</TableCell>
-                      <TableCell className="text-xs">{row.anio_fabricacion}</TableCell>
-                      <TableCell className="text-xs">{row.kilometraje_actual?.toLocaleString()}</TableCell>
-                      <TableCell className="text-xs"><Badge variant="outline">{row.estado_vehiculo}</Badge></TableCell>
-                      <TableCell className="text-xs">{row.fecha_ultimo_mantenimiento || "—"}</TableCell>
-                      <TableCell className="text-xs">{row.proximo_mantenimiento_programado || "—"}</TableCell>
-                      <TableCell className="text-xs">{row.conductores_asignados || "—"}</TableCell>
+                      {EXPECTED_COLUMNS.map((col) => (
+                        <TableCell key={col} className="text-xs whitespace-nowrap">
+                          {row[col] != null && String(row[col]).trim() !== "" ? String(row[col]) : "—"}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   ))}
                 </TableBody>
