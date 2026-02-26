@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Wrench, ArrowLeft } from "lucide-react";
+import { PasswordInput } from "@/components/ui/password-input";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -196,6 +197,13 @@ const Auth = () => {
       descripcion: (formData.get("descripcion") as string) || undefined,
     };
 
+    const confirmPassword = formData.get("confirm_password") as string;
+    if (signupData.password !== confirmPassword) {
+      setIsLoading(false);
+      toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" });
+      return;
+    }
+
     const result = signupSchema.safeParse(signupData);
 
     if (!result.success) {
@@ -273,6 +281,13 @@ const Auth = () => {
       descripcion: (formData.get("descripcion") as string) || undefined,
     };
 
+    const confirmPassword = formData.get("confirm_password") as string;
+    if (signupData.password !== confirmPassword) {
+      setIsLoading(false);
+      toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" });
+      return;
+    }
+
     const result = aseguradoraSignupSchema.safeParse(signupData);
 
     if (!result.success) {
@@ -346,6 +361,12 @@ const Auth = () => {
       email: formData.get("email") as string,
       password: formData.get("password") as string,
     };
+    const confirmPassword = formData.get("confirm_password") as string;
+    if (signupData.password !== confirmPassword) {
+      setIsLoading(false);
+      toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" });
+      return;
+    }
     const result = flotaSignupSchema.safeParse(signupData);
     if (!result.success) {
       setIsLoading(false);
@@ -602,11 +623,21 @@ const Auth = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Contraseña *</Label>
-                      <Input
+                      <PasswordInput
                         id="signup-password"
                         name="password"
-                        type="password"
                         placeholder="Mínimo 8 caracteres"
+                        required
+                        minLength={8}
+                        maxLength={100}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-confirm-password">Confirmar Contraseña *</Label>
+                      <PasswordInput
+                        id="signup-confirm-password"
+                        name="confirm_password"
+                        placeholder="Repite tu contraseña"
                         required
                         minLength={8}
                         maxLength={100}
@@ -778,11 +809,21 @@ const Auth = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="aseg-password">Contraseña *</Label>
-                      <Input
+                      <PasswordInput
                         id="aseg-password"
                         name="password"
-                        type="password"
                         placeholder="Mínimo 8 caracteres"
+                        required
+                        minLength={8}
+                        maxLength={100}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="aseg-confirm-password">Confirmar Contraseña *</Label>
+                      <PasswordInput
+                        id="aseg-confirm-password"
+                        name="confirm_password"
+                        placeholder="Repite tu contraseña"
                         required
                         minLength={8}
                         maxLength={100}
@@ -861,7 +902,11 @@ const Auth = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="flota-password">Contraseña *</Label>
-                      <Input id="flota-password" name="password" type="password" placeholder="Mínimo 8 caracteres" required minLength={8} maxLength={100} />
+                      <PasswordInput id="flota-password" name="password" placeholder="Mínimo 8 caracteres" required minLength={8} maxLength={100} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="flota-confirm-password">Confirmar Contraseña *</Label>
+                      <PasswordInput id="flota-confirm-password" name="confirm_password" placeholder="Repite tu contraseña" required minLength={8} maxLength={100} />
                     </div>
                   </div>
                   <Button type="submit" className="w-full" variant="hero" disabled={isLoading}>
