@@ -51,6 +51,7 @@ const routePermissions: Record<string, UserRole[]> = {
   "/flota-terminos": ["flota", "super_admin"],
   "/flota-inventario": ["flota", "super_admin"],
   "/flota-conductores": ["flota", "super_admin"],
+  "/solicitudes-flotas": ["super_admin"],
 };
 
 export default function DashboardLayout() {
