@@ -383,6 +383,8 @@ const Auth = () => {
       description: "Tu solicitud ha sido enviada. Podrás iniciar sesión una vez aprobada.",
     });
   };
+
+  return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-secondary to-secondary/90 flex items-center justify-center p-4">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
