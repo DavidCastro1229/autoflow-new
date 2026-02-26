@@ -7,14 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Save, Loader2 } from "lucide-react";
+import { Building2, Save, Loader2, Clock } from "lucide-react";
 import { PAISES_AMERICA } from "@/lib/countries";
+import HorariosAtencionSelector, {
+  type HorariosMap,
+  parseHorarios,
+  stringifyHorarios,
+} from "@/components/flotas/HorariosAtencionSelector";
 
 export default function FlotaDatosGenerales() {
   const { flotaId } = useUserRole();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [horarios, setHorarios] = useState<HorariosMap>(() => parseHorarios(null));
   const [formData, setFormData] = useState({
     nombre_flota: "",
     razon_social: "",
@@ -32,11 +38,10 @@ export default function FlotaDatosGenerales() {
     direccion_escrita: "",
     direccion_parqueo: "",
     direccion_google_maps_parqueo: "",
-    horarios_atencion: "",
     nombre_contacto: "",
     apellido_contacto: "",
     ciudad: "",
-    estado: "",
+    pais: "",
     codigo_postal: "",
   });
 
@@ -70,13 +75,13 @@ export default function FlotaDatosGenerales() {
           direccion_escrita: data.direccion_escrita || "",
           direccion_parqueo: data.direccion_parqueo || "",
           direccion_google_maps_parqueo: data.direccion_google_maps_parqueo || "",
-          horarios_atencion: data.horarios_atencion || "",
           nombre_contacto: (data as any).nombre_contacto || "",
           apellido_contacto: (data as any).apellido_contacto || "",
           ciudad: (data as any).ciudad || "",
-          estado: (data as any).estado || "",
+          pais: (data as any).pais || "",
           codigo_postal: (data as any).codigo_postal || "",
         });
+        setHorarios(parseHorarios(data.horarios_atencion));
       }
     } catch (error) {
       console.error("Error fetching flota:", error);
@@ -107,8 +112,9 @@ export default function FlotaDatosGenerales() {
           direccion_escrita: formData.direccion_escrita,
           direccion_parqueo: formData.direccion_parqueo,
           direccion_google_maps_parqueo: formData.direccion_google_maps_parqueo,
-          horarios_atencion: formData.horarios_atencion,
-        })
+          horarios_atencion: stringifyHorarios(horarios),
+          pais: formData.pais,
+        } as any)
         .eq("id", flotaId);
       if (error) throw error;
       toast({ title: "Guardado", description: "Datos generales actualizados correctamente" });
@@ -201,7 +207,7 @@ export default function FlotaDatosGenerales() {
               </div>
               <div className="space-y-2">
                 <Label>País</Label>
-                <Select value={formData.estado} onValueChange={(v) => setFormData(p => ({ ...p, estado: v }))}>
+                <Select value={formData.pais} onValueChange={(v) => setFormData(p => ({ ...p, pais: v }))}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                   <SelectContent>
                     {PAISES_AMERICA.map((p) => (
@@ -227,13 +233,22 @@ export default function FlotaDatosGenerales() {
               <Label>Sitio Web</Label>
               <Input value={formData.sitio_web || ""} onChange={(e) => setFormData(p => ({ ...p, sitio_web: e.target.value }))} />
             </div>
-            <div className="space-y-2">
-              <Label>Horarios de Atención</Label>
-              <Input value={formData.horarios_atencion || ""} onChange={(e) => setFormData(p => ({ ...p, horarios_atencion: e.target.value }))} />
-            </div>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary" />
+            Horarios de Atención
+          </CardTitle>
+          <CardDescription>Configura los horarios de atención de tu flota</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <HorariosAtencionSelector value={horarios} onChange={setHorarios} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
