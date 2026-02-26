@@ -994,6 +994,7 @@ export type Database = {
           apellido: string
           calificacion_desempeno: number | null
           cedula_identidad: string
+          ciudad: string | null
           contacto_emergencia_nombre: string | null
           contacto_emergencia_telefono: string | null
           correo: string | null
@@ -1012,6 +1013,7 @@ export type Database = {
           notas_viaticos: string | null
           numero_licencia: string
           observaciones_desempeno: string | null
+          pais: string | null
           restricciones_licencia: string | null
           telefono: string
           tipo_licencia: string
@@ -1023,6 +1025,7 @@ export type Database = {
           apellido: string
           calificacion_desempeno?: number | null
           cedula_identidad: string
+          ciudad?: string | null
           contacto_emergencia_nombre?: string | null
           contacto_emergencia_telefono?: string | null
           correo?: string | null
@@ -1041,6 +1044,7 @@ export type Database = {
           notas_viaticos?: string | null
           numero_licencia: string
           observaciones_desempeno?: string | null
+          pais?: string | null
           restricciones_licencia?: string | null
           telefono: string
           tipo_licencia: string
@@ -1052,6 +1056,7 @@ export type Database = {
           apellido?: string
           calificacion_desempeno?: number | null
           cedula_identidad?: string
+          ciudad?: string | null
           contacto_emergencia_nombre?: string | null
           contacto_emergencia_telefono?: string | null
           correo?: string | null
@@ -1070,6 +1075,7 @@ export type Database = {
           notas_viaticos?: string | null
           numero_licencia?: string
           observaciones_desempeno?: string | null
+          pais?: string | null
           restricciones_licencia?: string | null
           telefono?: string
           tipo_licencia?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.flota_conductores ADD COLUMN pais text DEFAULT NULL, ADD COLUMN ciudad text DEFAULT NULL;
