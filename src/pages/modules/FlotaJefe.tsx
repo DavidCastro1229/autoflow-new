@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { UserCircle, Save, Loader2 } from "lucide-react";
+import HorariosAtencionSelector, { HorariosMap, parseHorarios, stringifyHorarios } from "@/components/flotas/HorariosAtencionSelector";
 
 const CARGOS_JEFE = [
   "Gerente de Flota",
@@ -22,10 +23,6 @@ const CARGOS_JEFE = [
   "Encargado de Flota",
 ];
 
-const HORAS = Array.from({ length: 24 }, (_, i) => {
-  const h = i.toString().padStart(2, "0");
-  return [`${h}:00`, `${h}:30`];
-}).flat();
 
 export default function FlotaJefe() {
   const { flotaId } = useUserRole();
@@ -33,8 +30,7 @@ export default function FlotaJefe() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [cargoMode, setCargoMode] = useState<"select" | "custom">("select");
-  const [horaInicio, setHoraInicio] = useState("08:00");
-  const [horaFin, setHoraFin] = useState("17:00");
+  const [horarios, setHorarios] = useState<HorariosMap>(parseHorarios(null));
   const [formData, setFormData] = useState({
     nombre: "",
     telefono: "",
@@ -63,17 +59,12 @@ export default function FlotaJefe() {
           cargo_posicion: data.cargo_posicion,
           horarios_trabajo: data.horarios_trabajo,
         });
-        // Determine cargo mode
+        // Parse horarios
+        setHorarios(parseHorarios(data.horarios_trabajo));
         if (CARGOS_JEFE.includes(data.cargo_posicion)) {
           setCargoMode("select");
         } else {
           setCargoMode("custom");
-        }
-        // Parse horarios
-        const match = data.horarios_trabajo?.match(/^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/);
-        if (match) {
-          setHoraInicio(match[1]);
-          setHoraFin(match[2]);
         }
       }
     } catch (error) {
@@ -85,8 +76,7 @@ export default function FlotaJefe() {
 
   const handleSave = async () => {
     if (!flotaId) return;
-    setSaving(true);
-    const horarios_trabajo = `${horaInicio} - ${horaFin}`;
+    const horarios_trabajo = stringifyHorarios(horarios);
     try {
       await supabase.from("flota_jefe").delete().eq("flota_id", flotaId);
       const { error } = await supabase.from("flota_jefe").insert([{
@@ -181,29 +171,7 @@ export default function FlotaJefe() {
 
           <div className="space-y-2">
             <Label>Horarios de Trabajo</Label>
-            <div className="flex items-center gap-3">
-              <Select value={horaInicio} onValueChange={setHoraInicio}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {HORAS.map((hr) => (
-                    <SelectItem key={hr} value={hr}>{hr}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground font-medium">a</span>
-              <Select value={horaFin} onValueChange={setHoraFin}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {HORAS.map((hr) => (
-                    <SelectItem key={hr} value={hr}>{hr}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <HorariosAtencionSelector value={horarios} onChange={setHorarios} />
           </div>
         </CardContent>
       </Card>
