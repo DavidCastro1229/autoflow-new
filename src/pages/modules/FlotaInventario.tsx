@@ -196,24 +196,51 @@ export default function FlotaInventario() {
   const downloadTemplate = () => {
     const templateData = [
       EXPECTED_COLUMNS.reduce((acc, col) => {
-        acc[col] = COLUMN_EXAMPLES[col];
+        acc[COLUMN_LABELS[col]] = COLUMN_EXAMPLES[col];
         return acc;
       }, {} as Record<string, string>),
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Vehiculos");
-    ws["!cols"] = EXPECTED_COLUMNS.map((col) => ({ wch: Math.max(col.length + 5, 20) }));
+    ws["!cols"] = EXPECTED_COLUMNS.map((col) => ({ wch: Math.max((COLUMN_LABELS[col] || col).length + 5, 20) }));
     XLSX.writeFile(wb, "plantilla_vehiculos.xlsx");
     toast({ title: "Plantilla descargada", description: "Completa la plantilla con los datos de tus vehículos" });
   };
 
-  const validateExcelStructure = (headers: string[]): { valid: boolean; missing: string[]; extra: string[] } => {
-    const normalizedHeaders = headers.map((h) => h.trim().toLowerCase());
-    const normalizedExpected = EXPECTED_COLUMNS.map((c) => c.toLowerCase());
-    const missing = EXPECTED_COLUMNS.filter((col) => !normalizedHeaders.includes(col.toLowerCase()));
-    const extra = headers.filter((h) => !normalizedExpected.includes(h.trim().toLowerCase()));
-    return { valid: missing.length === 0, missing, extra };
+  const normalizeText = (text: string) =>
+    text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\s]+/g, " ").trim();
+
+  const findColumnKey = (header: string): string | null => {
+    const normalized = normalizeText(header);
+    // Try matching against labels first
+    for (const [key, label] of Object.entries(COLUMN_LABELS)) {
+      if (normalizeText(label) === normalized) return key;
+    }
+    // Try matching against keys directly
+    for (const key of EXPECTED_COLUMNS) {
+      if (normalizeText(key.replace(/_/g, " ")) === normalized) return key;
+    }
+    return null;
+  };
+
+  const validateExcelStructure = (headers: string[]): { valid: boolean; missing: string[]; extra: string[]; mapping: Record<string, string> } => {
+    const mapping: Record<string, string> = {}; // header -> key
+    const matchedKeys = new Set<string>();
+    const extra: string[] = [];
+
+    for (const header of headers) {
+      const key = findColumnKey(header);
+      if (key) {
+        mapping[header] = key;
+        matchedKeys.add(key);
+      } else {
+        extra.push(header);
+      }
+    }
+
+    const missing = EXPECTED_COLUMNS.filter((col) => !matchedKeys.has(col));
+    return { valid: missing.length === 0, missing, extra, mapping };
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -271,10 +298,20 @@ export default function FlotaInventario() {
         return;
       }
 
+      // Remap rows using the header-to-key mapping
+      const remappedData = jsonData.map((row) => {
+        const mapped: Record<string, any> = {};
+        for (const [header, value] of Object.entries(row)) {
+          const key = validation.mapping[header];
+          if (key) mapped[key] = value;
+        }
+        return mapped;
+      });
+
       const errors: string[] = [];
       const validRows: any[] = [];
 
-      jsonData.forEach((row, idx) => {
+      remappedData.forEach((row, idx) => {
         const rowNum = idx + 2;
         if (!row.numero_unidad || !row.marca_modelo || !row.numero_placa || !row.numero_vin) {
           errors.push(`Fila ${rowNum}: Faltan campos obligatorios (unidad, marca/modelo, placa o VIN)`);
