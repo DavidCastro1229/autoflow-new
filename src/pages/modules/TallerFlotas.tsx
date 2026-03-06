@@ -42,7 +42,7 @@ const TallerFlotas = () => {
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [detailFlota, setDetailFlota] = useState<Flota | null>(null);
+  const [detailSolicitud, setDetailSolicitud] = useState<Solicitud | null>(null);
 
   const fetchSolicitudes = async () => {
     if (!tallerId) return;
