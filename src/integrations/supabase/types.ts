@@ -2965,6 +2965,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_flota_owner: {
+        Args: { _flota_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_taller_member: {
         Args: { _taller_id: string; _user_id: string }
         Returns: boolean
