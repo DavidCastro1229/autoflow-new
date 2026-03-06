@@ -42,7 +42,7 @@ const TallerFlotas = () => {
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [detailFlota, setDetailFlota] = useState<Flota | null>(null);
+  const [detailSolicitud, setDetailSolicitud] = useState<Solicitud | null>(null);
 
   const fetchSolicitudes = async () => {
     if (!tallerId) return;
@@ -205,7 +205,7 @@ const TallerFlotas = () => {
                         <TableCell>{sol.flota?.ciudad || "—"}</TableCell>
                         <TableCell>{sol.flota?.rubro_empresa}</TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="outline" onClick={() => sol.flota && setDetailFlota(sol.flota)}>
+                          <Button size="sm" variant="outline" onClick={() => sol.flota && setDetailSolicitud(sol)}>
                             <Eye className="h-4 w-4 mr-1" /> Ver Detalles
                           </Button>
                         </TableCell>
@@ -248,7 +248,7 @@ const TallerFlotas = () => {
                         <TableCell>{getStatusBadge(sol.status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
-                            <Button size="sm" variant="outline" onClick={() => sol.flota && setDetailFlota(sol.flota)}>
+                            <Button size="sm" variant="outline" onClick={() => sol.flota && setDetailSolicitud(sol)}>
                               <Eye className="h-4 w-4" />
                             </Button>
                             {sol.status === "pendiente" && (
@@ -286,64 +286,117 @@ const TallerFlotas = () => {
       </Tabs>
 
       {/* Modal detalle flota */}
-      <Dialog open={!!detailFlota} onOpenChange={() => setDetailFlota(null)}>
-        <DialogContent className="max-w-lg">
+      <Dialog open={!!detailSolicitud} onOpenChange={() => setDetailSolicitud(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalles de la Flota</DialogTitle>
+            <DialogDescription>Información completa de la solicitud</DialogDescription>
           </DialogHeader>
-          {detailFlota && (
+          {detailSolicitud?.flota && (
             <div className="space-y-4">
+              {/* Estado */}
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <span className="font-semibold text-sm">Estado de la Solicitud</span>
+                {getStatusBadge(detailSolicitud.status)}
+              </div>
+
               <div className="flex items-center gap-4">
-                {detailFlota.logo_url ? (
-                  <img src={detailFlota.logo_url} alt="" className="h-16 w-16 rounded-lg object-cover" />
+                {detailSolicitud.flota.logo_url ? (
+                  <img src={detailSolicitud.flota.logo_url} alt="" className="h-16 w-16 rounded-lg object-cover" />
                 ) : (
                   <div className="h-16 w-16 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Truck className="h-8 w-8 text-primary" />
                   </div>
                 )}
                 <div>
-                  <h3 className="font-semibold text-lg">{detailFlota.nombre_flota}</h3>
-                  <p className="text-sm text-muted-foreground">{detailFlota.numero_flota}</p>
+                  <h3 className="font-semibold text-lg">{detailSolicitud.flota.nombre_flota}</h3>
+                  <p className="text-sm text-muted-foreground">{detailSolicitud.flota.numero_flota}</p>
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Razón Social</p>
-                  <p className="font-medium">{detailFlota.razon_social}</p>
+                  <p className="font-medium">{detailSolicitud.flota.razon_social}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">RTN</p>
-                  <p className="font-medium">{detailFlota.numero_rtn}</p>
+                  <p className="font-medium">{detailSolicitud.flota.numero_rtn}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Rubro</p>
-                  <p className="font-medium">{detailFlota.rubro_empresa}</p>
+                  <p className="font-medium">{detailSolicitud.flota.rubro_empresa}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Ciudad</p>
-                  <p className="font-medium">{detailFlota.ciudad || "—"}</p>
+                  <p className="font-medium">{detailSolicitud.flota.ciudad || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Contacto</p>
+                  <p className="font-medium">{detailSolicitud.flota.nombre_contacto} {detailSolicitud.flota.apellido_contacto}</p>
                 </div>
               </div>
+
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{detailFlota.direccion_fisica}</span>
+                  <span className="text-sm">{detailSolicitud.flota.direccion_fisica}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{detailFlota.telefono_contacto}</span>
+                  <span className="text-sm">{detailSolicitud.flota.telefono_contacto}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{detailFlota.correo_contacto}</span>
+                  <span className="text-sm">{detailSolicitud.flota.correo_contacto}</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              {detailSolicitud.mensaje && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Contacto</p>
-                  <p className="font-medium">{detailFlota.nombre_contacto} {detailFlota.apellido_contacto}</p>
+                  <p className="text-sm text-muted-foreground">Mensaje de la Flota</p>
+                  <p className="text-sm mt-1 p-3 bg-muted/50 rounded-lg">{detailSolicitud.mensaje}</p>
                 </div>
+              )}
+
+              <div>
+                <p className="text-sm text-muted-foreground">Fecha de Solicitud</p>
+                <p className="font-medium">
+                  {new Date(detailSolicitud.created_at).toLocaleString('es-MX', {
+                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                  })}
+                </p>
               </div>
+
+              {/* Botones aprobar/rechazar */}
+              {detailSolicitud.status === "pendiente" && (
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-green-500/10 hover:bg-green-500/20 text-green-500"
+                    onClick={() => {
+                      handleApprove(detailSolicitud.id);
+                      setDetailSolicitud(null);
+                    }}
+                    disabled={processingId === detailSolicitud.id}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Aprobar Flota
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500"
+                    onClick={() => {
+                      handleReject(detailSolicitud.id);
+                      setDetailSolicitud(null);
+                    }}
+                    disabled={processingId === detailSolicitud.id}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Rechazar Flota
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
