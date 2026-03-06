@@ -1313,6 +1313,54 @@ export type Database = {
           },
         ]
       }
+      flota_taller_solicitudes: {
+        Row: {
+          created_at: string
+          fecha_respuesta: string | null
+          flota_id: string
+          id: string
+          mensaje: string | null
+          status: string
+          taller_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fecha_respuesta?: string | null
+          flota_id: string
+          id?: string
+          mensaje?: string | null
+          status?: string
+          taller_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fecha_respuesta?: string | null
+          flota_id?: string
+          id?: string
+          mensaje?: string | null
+          status?: string
+          taller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flota_taller_solicitudes_flota_id_fkey"
+            columns: ["flota_id"]
+            isOneToOne: false
+            referencedRelation: "flotas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flota_taller_solicitudes_taller_id_fkey"
+            columns: ["taller_id"]
+            isOneToOne: false
+            referencedRelation: "talleres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flota_tarifas_servicio: {
         Row: {
           categoria_servicio_id: string
@@ -1528,6 +1576,7 @@ export type Database = {
           taller_id: string | null
           telefono_contacto: string
           tipo_flota: Database["public"]["Enums"]["tipo_flota"]
+          tipo_taller: string | null
           updated_at: string
           user_id: string | null
         }
@@ -1561,6 +1610,7 @@ export type Database = {
           taller_id?: string | null
           telefono_contacto: string
           tipo_flota: Database["public"]["Enums"]["tipo_flota"]
+          tipo_taller?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1594,6 +1644,7 @@ export type Database = {
           taller_id?: string | null
           telefono_contacto?: string
           tipo_flota?: Database["public"]["Enums"]["tipo_flota"]
+          tipo_taller?: string | null
           updated_at?: string
           user_id?: string | null
         }

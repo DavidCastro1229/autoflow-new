@@ -118,6 +118,7 @@ const flotaMenuItems: MenuItem[] = [
   { title: "Términos", url: "/flota-terminos", icon: ShieldIcon, allowedRoles: ["flota"] },
   { title: "Inventario", url: "/flota-inventario", icon: Truck, allowedRoles: ["flota"] },
   { title: "Conductores", url: "/flota-conductores", icon: Users, allowedRoles: ["flota"] },
+  { title: "Taller", url: "/flota-taller", icon: WrenchIcon, allowedRoles: ["flota"] },
 ];
 
 // Módulos para otros roles
@@ -134,6 +135,7 @@ const menuItems: MenuItem[] = [
   { title: "Talleres Afiliados", url: "/talleres", icon: Building2, allowedRoles: ["aseguradora"] },
   { title: "Mensajes", url: "/mensajes", icon: MessageSquare, allowedRoles: ["aseguradora", "taller", "admin_taller"] },
   { title: "Aseguradoras", url: "/solicitudes-afiliacion", icon: Building2, allowedRoles: ["taller", "admin_taller"] },
+  { title: "Flotas", url: "/taller-flotas", icon: Truck, allowedRoles: ["taller", "admin_taller"] },
   { title: "Reparaciones", url: "/reparaciones", icon: WrenchIcon, allowedRoles: ["aseguradora"] },
   { title: "Siniestros", url: "/siniestros", icon: AlertTriangle, allowedRoles: ["aseguradora"] },
   { title: "Citas", url: "/citas", icon: Calendar, allowedRoles: ["taller", "admin_taller"] },
