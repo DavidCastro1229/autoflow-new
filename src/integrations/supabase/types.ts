@@ -2965,6 +2965,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_taller_member: {
+        Args: { _taller_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_trial_expired: { Args: { taller_id: string }; Returns: boolean }
       reject_flota: { Args: { flota_id: string }; Returns: undefined }
       reject_taller: { Args: { taller_id_param: string }; Returns: undefined }
