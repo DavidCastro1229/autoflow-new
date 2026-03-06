@@ -118,6 +118,7 @@ const flotaMenuItems: MenuItem[] = [
   { title: "Términos", url: "/flota-terminos", icon: ShieldIcon, allowedRoles: ["flota"] },
   { title: "Inventario", url: "/flota-inventario", icon: Truck, allowedRoles: ["flota"] },
   { title: "Conductores", url: "/flota-conductores", icon: Users, allowedRoles: ["flota"] },
+  { title: "Taller", url: "/flota-taller", icon: WrenchIcon, allowedRoles: ["flota"] },
 ];
 
 // Módulos para otros roles
