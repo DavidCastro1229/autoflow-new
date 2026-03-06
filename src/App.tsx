@@ -44,7 +44,9 @@ import FlotaNegociacion from "./pages/modules/FlotaNegociacion";
 import FlotaTerminos from "./pages/modules/FlotaTerminos";
 import FlotaInventario from "./pages/modules/FlotaInventario";
 import FlotaConductores from "./pages/modules/FlotaConductores";
+import FlotaTaller from "./pages/modules/FlotaTaller";
 import SolicitudesFlotas from "./pages/modules/SolicitudesFlotas";
+import TallerFlotas from "./pages/modules/TallerFlotas";
 
 const queryClient = new QueryClient();
 
