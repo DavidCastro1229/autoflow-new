@@ -205,7 +205,7 @@ const TallerFlotas = () => {
                         <TableCell>{sol.flota?.ciudad || "—"}</TableCell>
                         <TableCell>{sol.flota?.rubro_empresa}</TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="outline" onClick={() => sol.flota && setDetailFlota(sol.flota)}>
+                          <Button size="sm" variant="outline" onClick={() => sol.flota && setDetailSolicitud(sol)}>
                             <Eye className="h-4 w-4 mr-1" /> Ver Detalles
                           </Button>
                         </TableCell>
