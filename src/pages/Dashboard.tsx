@@ -110,6 +110,11 @@ export default function Dashboard() {
     return <AseguradoraDashboard />;
   }
 
+  // Si es flota, mostrar el dashboard de flota
+  if (role === "flota") {
+    return <FlotaDashboard />;
+  }
+
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
