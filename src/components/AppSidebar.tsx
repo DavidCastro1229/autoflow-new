@@ -110,6 +110,7 @@ const superAdminMenuItems: MenuItem[] = [
 
 // Módulos para flota
 const flotaMenuItems: MenuItem[] = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, allowedRoles: ["flota"] },
   { title: "Datos Generales", url: "/flota-datos-generales", icon: Building2, allowedRoles: ["flota"] },
   { title: "Jefe de Flota", url: "/flota-jefe", icon: UserCog, allowedRoles: ["flota"] },
   { title: "Comunicación", url: "/flota-comunicacion", icon: MessageSquare, allowedRoles: ["flota"] },
