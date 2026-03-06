@@ -83,6 +83,8 @@ const App = () => (
               <Route path="flota-terminos" element={<FlotaTerminos />} />
               <Route path="flota-inventario" element={<FlotaInventario />} />
               <Route path="flota-conductores" element={<FlotaConductores />} />
+              <Route path="flota-taller" element={<FlotaTaller />} />
+              <Route path="taller-flotas" element={<TallerFlotas />} />
               <Route path="cotizaciones" element={<Cotizaciones />} />
               <Route path="facturacion" element={<Facturacion />} />
               <Route path="mensajes" element={<MensajesWrapper />} />
