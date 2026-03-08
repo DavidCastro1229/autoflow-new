@@ -51,6 +51,8 @@ const routePermissions: Record<string, UserRole[]> = {
   "/flota-terminos": ["flota", "super_admin"],
   "/flota-inventario": ["flota", "super_admin"],
   "/flota-conductores": ["flota", "super_admin"],
+  "/flota-taller": ["flota", "super_admin"],
+  "/taller-flotas": ["taller", "admin_taller", "super_admin"],
   "/solicitudes-flotas": ["super_admin"],
 };
 
