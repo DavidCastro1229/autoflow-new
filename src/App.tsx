@@ -44,7 +44,9 @@ import FlotaNegociacion from "./pages/modules/FlotaNegociacion";
 import FlotaTerminos from "./pages/modules/FlotaTerminos";
 import FlotaInventario from "./pages/modules/FlotaInventario";
 import FlotaConductores from "./pages/modules/FlotaConductores";
+import FlotaTaller from "./pages/modules/FlotaTaller";
 import SolicitudesFlotas from "./pages/modules/SolicitudesFlotas";
+import TallerFlotas from "./pages/modules/TallerFlotas";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +83,8 @@ const App = () => (
               <Route path="flota-terminos" element={<FlotaTerminos />} />
               <Route path="flota-inventario" element={<FlotaInventario />} />
               <Route path="flota-conductores" element={<FlotaConductores />} />
+              <Route path="flota-taller" element={<FlotaTaller />} />
+              <Route path="taller-flotas" element={<TallerFlotas />} />
               <Route path="cotizaciones" element={<Cotizaciones />} />
               <Route path="facturacion" element={<Facturacion />} />
               <Route path="mensajes" element={<MensajesWrapper />} />

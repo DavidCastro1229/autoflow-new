@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import AseguradoraDashboard from "./modules/AseguradoraDashboard";
+import FlotaDashboard from "./modules/FlotaDashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,11 @@ export default function Dashboard() {
   // Si es aseguradora, mostrar el dashboard de aseguradora
   if (role === "aseguradora") {
     return <AseguradoraDashboard />;
+  }
+
+  // Si es flota, mostrar el dashboard de flota
+  if (role === "flota") {
+    return <FlotaDashboard />;
   }
 
   const fetchDashboardData = async () => {
